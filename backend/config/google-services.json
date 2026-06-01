@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "967183591469",
+    "project_id": "novaplus-app",
+    "storage_bucket": "novaplus-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:967183591469:android:8c9bd404c0632d2465b0a4",
+        "android_client_info": {
+          "package_name": "com.novaplus.social"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "967183591469-a6hue7hi4m9llkvqv05ta2sbdrkk196e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqxnaIi72H1S4nxzxsj1Djh3LbXZQ0aUM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "967183591469-a6hue7hi4m9llkvqv05ta2sbdrkk196e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -133,6 +133,7 @@ import rewardsRoutes from './routes/rewardsRoutes.js';
 import diamondRoutes from './routes/diamondRoutes.js';
 import rewardShopRoutes from './routes/rewardShopRoutes.js';
 import profileEvolutionRoutes from './routes/profileEvolutionRoutes.js';
+import firebaseRoutes from './routes/firebaseRoutes.js';
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -167,6 +168,7 @@ app.use('/api/rewards', rewardsRoutes);
 app.use('/api/diamond', diamondRoutes);
 app.use('/api/reward-shop', rewardShopRoutes);
 app.use('/api/profile-evolution', profileEvolutionRoutes);
+app.use('/api/firebase', firebaseRoutes);
 // app.use('/api/videos', videoRoutes);
 // app.use('/api/reels', reelRoutes);
 // app.use('/api/stories', storyRoutes);

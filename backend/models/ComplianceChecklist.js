@@ -212,7 +212,7 @@ const complianceChecklistSchema = new mongoose.Schema(
 
     // Approval Workflow
     approvalWorkflow: {
-      submittedFor Review: {
+      submittedForReview: {
         type: Boolean,
         default: false,
       },

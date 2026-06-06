@@ -300,14 +300,14 @@ diamondSchema.methods.addExperience = async function (amount) {
 };
 
 // Method to check if premium tier is active
-diamondsSchema.methods.isPremiumActive = function () {
+diamondSchema.methods.isPremiumActive = function () {
   if (this.tier === 'free') return false;
   if (!this.premiumExpires) return false;
   return this.premiumExpires > new Date();
 };
 
 // Method to upgrade to premium
-diamondsSchema.methods.upgradeToPremium = async function (tier = 'premium', durationDays = 30) {
+diamondSchema.methods.upgradeToPremium = async function (tier = 'premium', durationDays = 30) {
   this.tier = tier;
   this.premiumExpires = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
@@ -338,7 +338,7 @@ diamondsSchema.methods.upgradeToPremium = async function (tier = 'premium', dura
 };
 
 // Method to downgrade to free tier
-diamondsSchema.methods.downgradeToFree = async function () {
+diamondSchema.methods.downgradeToFree = async function () {
   this.tier = 'free';
   this.premiumExpires = null;
   this.premiumFeatures = {
@@ -355,7 +355,7 @@ diamondsSchema.methods.downgradeToFree = async function () {
 };
 
 // Method to check if user can claim daily bonus
-diamondsSchema.methods.canClaimDailyBonus = function () {
+diamondSchema.methods.canClaimDailyBonus = function () {
   if (!this.lastLoginDate) return true;
 
   const today = new Date();
@@ -405,7 +405,7 @@ diamondSchema.methods.applyMultiplier = async function (multiplier, durationHour
 };
 
 // Method to check and remove expired boosts
-diamondsSchema.methods.checkExpiredBoosts = async function () {
+diamondSchema.methods.checkExpiredBoosts = async function () {
   const now = new Date();
 
   // Check multiplier expiry
@@ -426,7 +426,7 @@ diamondsSchema.methods.checkExpiredBoosts = async function () {
 };
 
 // Method to check free tier monthly limit
-diamondsSchema.methods.canEarnDiamonds = function (amount) {
+diamondSchema.methods.canEarnDiamonds = function (amount) {
   if (this.tier !== 'free') return true; // Premium users have no limit
 
   // Check if monthly limit reached
@@ -435,7 +435,7 @@ diamondsSchema.methods.canEarnDiamonds = function (amount) {
 };
 
 // Method to reset monthly diamond counter
-diamondsSchema.methods.resetMonthlyCounter = async function () {
+diamondSchema.methods.resetMonthlyCounter = async function () {
   const now = new Date();
   const lastReset = this.updatedAt;
 

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -17,6 +17,9 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  profileImage: text("profileImage"),
+  bio: text("bio"),
+  website: varchar("website", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -45,6 +48,121 @@ export const posts = mysqlTable("posts", {
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
+
+/**
+ * Videos table for YouTube-style video uploads
+ */
+export const videos = mysqlTable("videos", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  videoUrl: text("videoUrl").notNull(),
+  thumbnailUrl: text("thumbnailUrl"),
+  duration: int("duration"), // in seconds
+  views: int("views").default(0).notNull(),
+  likes: int("likes").default(0).notNull(),
+  comments: int("comments").default(0).notNull(),
+  isPublic: boolean("isPublic").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Video = typeof videos.$inferSelect;
+export type InsertVideo = typeof videos.$inferInsert;
+
+/**
+ * Stories table for Instagram-style stories (24-hour expiry)
+ */
+export const stories = mysqlTable("stories", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id),
+  mediaUrl: text("mediaUrl").notNull(),
+  mediaType: mysqlEnum("mediaType", ["image", "video"]).notNull(),
+  caption: text("caption"),
+  views: int("views").default(0).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Story = typeof stories.$inferSelect;
+export type InsertStory = typeof stories.$inferInsert;
+
+/**
+ * Comments table for post/video comments
+ */
+export const comments = mysqlTable("comments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id),
+  postId: int("postId").references(() => posts.id),
+  videoId: int("videoId").references(() => videos.id),
+  parentCommentId: int("parentCommentId"),
+  content: text("content").notNull(),
+  likes: int("likes").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Comment = typeof comments.$inferSelect;
+export type InsertComment = typeof comments.$inferInsert;
+
+/**
+ * Hashtags table for trending topics
+ */
+export const hashtags = mysqlTable("hashtags", {
+  id: int("id").autoincrement().primaryKey(),
+  tag: varchar("tag", { length: 100 }).notNull().unique(),
+  count: int("count").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Hashtag = typeof hashtags.$inferSelect;
+export type InsertHashtag = typeof hashtags.$inferInsert;
+
+/**
+ * Post-Hashtag relationship table
+ */
+export const postHashtags = mysqlTable("postHashtags", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId")
+    .notNull()
+    .references(() => posts.id),
+  hashtagId: int("hashtagId")
+    .notNull()
+    .references(() => hashtags.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PostHashtag = typeof postHashtags.$inferSelect;
+export type InsertPostHashtag = typeof postHashtags.$inferInsert;
+
+/**
+ * Notifications table
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id),
+  fromUserId: int("fromUserId").references(() => users.id),
+  type: mysqlEnum("type", ["like", "comment", "follow", "share", "mention"]).notNull(),
+  postId: int("postId").references(() => posts.id),
+  videoId: int("videoId").references(() => videos.id),
+  commentId: int("commentId").references(() => comments.id),
+  message: text("message"),
+  isRead: boolean("isRead").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 /**
  * Conversations table for messaging
@@ -92,9 +210,9 @@ export const likes = mysqlTable("likes", {
   userId: int("userId")
     .notNull()
     .references(() => users.id),
-  postId: int("postId")
-    .notNull()
-    .references(() => posts.id),
+  postId: int("postId").references(() => posts.id),
+  videoId: int("videoId").references(() => videos.id),
+  commentId: int("commentId").references(() => comments.id),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

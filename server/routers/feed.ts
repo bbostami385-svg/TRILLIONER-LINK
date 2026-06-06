@@ -8,7 +8,7 @@ import {
   updatePostLikes,
   addLike,
   removeLike,
-  hasUserLikedPost,
+  hasUserLiked,
 } from "../db";
 
 export const feedRouter = router({
@@ -89,7 +89,7 @@ export const feedRouter = router({
         throw new Error("Post not found");
       }
 
-      const alreadyLiked = await hasUserLikedPost(ctx.user.id, input.postId);
+      const alreadyLiked = await hasUserLiked(ctx.user.id, input.postId);
       if (alreadyLiked) {
         throw new Error("Already liked this post");
       }
@@ -110,7 +110,7 @@ export const feedRouter = router({
         throw new Error("Post not found");
       }
 
-      const hasLiked = await hasUserLikedPost(ctx.user.id, input.postId);
+      const hasLiked = await hasUserLiked(ctx.user.id, input.postId);
       if (!hasLiked) {
         throw new Error("You haven't liked this post");
       }
@@ -126,6 +126,6 @@ export const feedRouter = router({
   hasLiked: protectedProcedure
     .input(z.object({ postId: z.number() }))
     .query(async ({ input, ctx }) => {
-      return await hasUserLikedPost(ctx.user.id, input.postId);
+      return await hasUserLiked(ctx.user.id, input.postId);
     }),
 });

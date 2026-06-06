@@ -5,6 +5,11 @@ import { publicProcedure, router } from "./_core/trpc";
 import { feedRouter } from "./routers/feed";
 import { messagesRouter } from "./routers/messages";
 import { usersRouter } from "./routers/users";
+import { videosRouter } from "./routers/videos";
+import { storiesRouter } from "./routers/stories";
+import { commentsRouter } from "./routers/comments";
+import { searchRouter } from "./routers/search";
+import { notificationsRouter } from "./routers/notifications";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -22,6 +27,11 @@ export const appRouter = router({
   feed: feedRouter,
   messages: messagesRouter,
   users: usersRouter,
+  videos: videosRouter,
+  stories: storiesRouter,
+  comments: commentsRouter,
+  search: searchRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

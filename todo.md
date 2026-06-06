@@ -23,31 +23,45 @@
 - [ ] Analytics dashboard
 - [ ] Multi-language support
 
-## Core Features - Backend Integration Pending
-- [ ] Feed API: fetch posts, create posts, like/comment/share
+## Core Features - Backend Integration Complete
+- [x] Feed API: fetch posts, create posts, like/unlike
+- [x] Messages API: fetch conversations, send messages
+- [x] User profile API endpoints: follow, unfollow, search
 - [ ] Explore API: search, trending topics, suggested users
-- [ ] Messages API: fetch conversations, send messages, real-time updates
-- [ ] User profile API endpoints
 - [ ] Marketplace endpoints
 
 ## Backend API - In Progress
 - [x] User management endpoints (OAuth)
-- [ ] Feed/Post endpoints (create, read, like, comment, share)
-- [ ] Message endpoints (send, fetch, real-time)
+- [x] Feed/Post endpoints (create, read, like, unlike)
+- [x] Message endpoints (send, fetch, conversations)
+- [x] User profile endpoints (follow, unfollow, search)
 - [ ] Explore endpoints (search, trending, suggestions)
 - [ ] Marketplace endpoints
 - [ ] Analytics endpoints
 
 ## Database Schema
-- [ ] User model
-- [ ] Post model
-- [ ] Message model
+- [x] User model
+- [x] Post model
+- [x] Message model
+- [x] Conversation model
+- [x] Like model
+- [x] Follow model
 - [ ] Marketplace transaction model
 - [ ] Analytics model
 
+## Frontend-Backend Integration
+- [ ] Wire Feed.tsx to trpc.feed API (getFeed, createPost, likePost, unlikePost)
+- [ ] Wire Explore.tsx to trpc.users search API
+- [ ] Wire Messages.tsx to trpc.messages API (getConversations, sendMessage)
+- [ ] Add authorization checks to messages endpoints
+- [ ] Add loading and error states to all pages
+- [ ] Implement real-time updates for messages (WebSocket)
+
 ## Testing
 - [ ] Unit tests for auth flow
-- [ ] Integration tests for API endpoints
+- [ ] Integration tests for feed router
+- [ ] Integration tests for messages router
+- [ ] Integration tests for users router
 - [ ] E2E tests for user flows
 
 ## Deployment

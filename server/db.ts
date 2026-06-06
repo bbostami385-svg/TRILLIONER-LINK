@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, posts, messages, conversations, likes, follows, Post, Message, Conversation, Like, Follow } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,227 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Post queries
+export async function createPost(userId: number, content: string, imageUrl?: string, videoUrl?: string): Promise<Post | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(posts).values({
+    userId,
+    content,
+    imageUrl: imageUrl || null,
+    videoUrl: videoUrl || null,
+  });
+
+  if (result[0].insertId) {
+    return db.select().from(posts).where(eq(posts.id, Number(result[0].insertId))).then(r => r[0] || null);
+  }
+  return null;
+}
+
+export async function getPostsByUserId(userId: number, limit: number = 20, offset: number = 0): Promise<Post[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(posts)
+    .where(eq(posts.userId, userId))
+    .orderBy(desc(posts.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getFeedPosts(limit: number = 20, offset: number = 0): Promise<Post[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(posts)
+    .orderBy(desc(posts.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getPostById(postId: number): Promise<Post | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+  return result[0] || null;
+}
+
+export async function updatePostLikes(postId: number, increment: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const post = await getPostById(postId);
+  if (!post) return;
+
+  const newLikes = increment ? post.likes + 1 : Math.max(0, post.likes - 1);
+  await db.update(posts).set({ likes: newLikes }).where(eq(posts.id, postId));
+}
+
+// Message queries
+export async function createMessage(conversationId: number, senderId: number, content: string, imageUrl?: string): Promise<Message | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(messages).values({
+    conversationId,
+    senderId,
+    content,
+    imageUrl: imageUrl || null,
+  });
+
+  if (result[0].insertId) {
+    return db.select().from(messages).where(eq(messages.id, Number(result[0].insertId))).then(r => r[0] || null);
+  }
+  return null;
+}
+
+export async function getMessagesByConversation(conversationId: number, limit: number = 50): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit);
+}
+
+// Conversation queries
+export async function getOrCreateConversation(participant1Id: number, participant2Id: number): Promise<Conversation | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  // Ensure consistent ordering
+  const [p1, p2] = participant1Id < participant2Id ? [participant1Id, participant2Id] : [participant2Id, participant1Id];
+
+  const existing = await db.select().from(conversations)
+    .where(and(
+      eq(conversations.participant1Id, p1),
+      eq(conversations.participant2Id, p2)
+    ))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const result = await db.insert(conversations).values({
+    participant1Id: p1,
+    participant2Id: p2,
+  });
+
+  if (result[0].insertId) {
+    return db.select().from(conversations).where(eq(conversations.id, Number(result[0].insertId))).then(r => r[0] || null);
+  }
+  return null;
+}
+
+export async function getUserConversations(userId: number): Promise<Conversation[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(conversations)
+    .where(sql`${conversations.participant1Id} = ${userId} OR ${conversations.participant2Id} = ${userId}`)
+    .orderBy(desc(conversations.lastMessageAt));
+}
+
+// Like queries
+export async function addLike(userId: number, postId: number): Promise<Like | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(likes).values({
+    userId,
+    postId,
+  });
+
+  if (result[0].insertId) {
+    return db.select().from(likes).where(eq(likes.id, Number(result[0].insertId))).then(r => r[0] || null);
+  }
+  return null;
+}
+
+export async function removeLike(userId: number, postId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.delete(likes).where(and(
+    eq(likes.userId, userId),
+    eq(likes.postId, postId)
+  ));
+}
+
+export async function hasUserLikedPost(userId: number, postId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db.select().from(likes)
+    .where(and(
+      eq(likes.userId, userId),
+      eq(likes.postId, postId)
+    ))
+    .limit(1);
+
+  return result.length > 0;
+}
+
+// Follow queries
+export async function followUser(followerId: number, followingId: number): Promise<Follow | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(follows).values({
+    followerId,
+    followingId,
+  });
+
+  if (result[0].insertId) {
+    return db.select().from(follows).where(eq(follows.id, Number(result[0].insertId))).then(r => r[0] || null);
+  }
+  return null;
+}
+
+export async function unfollowUser(followerId: number, followingId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.delete(follows).where(and(
+    eq(follows.followerId, followerId),
+    eq(follows.followingId, followingId)
+  ));
+}
+
+export async function isFollowing(followerId: number, followingId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db.select().from(follows)
+    .where(and(
+      eq(follows.followerId, followerId),
+      eq(follows.followingId, followingId)
+    ))
+    .limit(1);
+
+  return result.length > 0;
+}
+
+export async function getFollowers(userId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db.select({ followerId: follows.followerId }).from(follows)
+    .where(eq(follows.followingId, userId));
+
+  return result.map(r => r.followerId);
+}
+
+export async function getFollowing(userId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db.select({ followingId: follows.followingId }).from(follows)
+    .where(eq(follows.followerId, userId));
+
+  return result.map(r => r.followingId);
+}

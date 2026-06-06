@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// Set axios default headers if token exists
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function Login() {
@@ -22,11 +28,17 @@ function Login() {
         password,
       });
 
+      // Save token
       localStorage.setItem('token', response.data.token);
-      navigate('/');
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+
+      // Set axios default header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
+      // Redirect to feed
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };

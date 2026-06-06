@@ -32,15 +32,24 @@ function App() {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
+        const storedUser = localStorage.getItem('user');
+
+        if (token && storedUser) {
+          // Set axios default header
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          setUser(JSON.parse(storedUser));
+        } else if (token) {
+          // Try to fetch user from backend
           const response = await axios.get(`${API_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUser(response.data.user);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }
@@ -53,10 +62,13 @@ function App() {
     return <div className="loading">Loading...</div>;
   }
 
+  // Check if user is logged in from localStorage
+  const isLoggedIn = user || localStorage.getItem('token');
+
   return (
     <Router>
       <div className="app">
-        {user ? (
+        {isLoggedIn ? (
           <>
             <DiamondCounter />
             <Routes>
@@ -77,6 +89,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/user/:userId" element={<UserProfile />} />
+            <Route path="*" element={<Home />} />
           </Routes>
         )}
       </div>

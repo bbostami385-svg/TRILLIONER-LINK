@@ -1,0 +1,61 @@
+{
+  "common": {
+    "appName": "नोवाप्लस सोशल",
+    "welcome": "नोवाप्लस सोशल में स्वागत है",
+    "loading": "लोड हो रहा है...",
+    "error": "एक त्रुटि हुई",
+    "success": "सफल",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "logout": "लॉग आउट करें",
+    "login": "लॉग इन करें",
+    "signup": "साइन अप करें",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफाइल"
+  },
+  "navigation": {
+    "feed": "फीड",
+    "explore": "खोजें",
+    "messages": "संदेश",
+    "videos": "वीडियो",
+    "stories": "कहानियां",
+    "notifications": "सूचनाएं",
+    "marketplace": "मार्केटप्लेस",
+    "creatorDashboard": "निर्माता डैशबोर्ड",
+    "settings": "सेटिंग्स",
+    "payment": "भुगतान"
+  },
+  "feed": {
+    "createPost": "एक पोस्ट बनाएं",
+    "postContent": "आपके मन में क्या है?",
+    "like": "पसंद करें",
+    "comment": "टिप्पणी करें",
+    "share": "साझा करें",
+    "noPostsYet": "अभी कोई पोस्ट नहीं"
+  },
+  "messages": {
+    "conversations": "बातचीत",
+    "newMessage": "नया संदेश",
+    "typeMessage": "अपना संदेश टाइप करें...",
+    "sendMessage": "भेजें",
+    "noConversations": "अभी कोई बातचीत नहीं"
+  },
+  "payment": {
+    "choosePlan": "अपनी योजना चुनें",
+    "subscribeNow": "अभी सदस्यता लें",
+    "monthlyPrice": "/माह",
+    "features": "विशेषताएं",
+    "paymentMethods": "स्वीकृत भुगतान विधियां",
+    "faq": "अक्सर पूछे जाने वाले प्रश्न"
+  },
+  "settings": {
+    "accountSettings": "खाता सेटिंग्स",
+    "privacySettings": "गोपनीयता सेटिंग्स",
+    "notificationSettings": "सूचना सेटिंग्स",
+    "appearanceSettings": "उपस्थिति सेटिंग्स",
+    "darkMode": "डार्क मोड",
+    "language": "भाषा"
+  }
+}

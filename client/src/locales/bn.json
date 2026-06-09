@@ -1,0 +1,61 @@
+{
+  "common": {
+    "appName": "নোভাপ্লাস সোশ্যাল",
+    "welcome": "নোভাপ্লাস সোশ্যালে স্বাগতম",
+    "loading": "লোডিং হচ্ছে...",
+    "error": "একটি ত্রুটি ঘটেছে",
+    "success": "সফল",
+    "cancel": "বাতিল",
+    "save": "সংরক্ষণ করুন",
+    "delete": "মুছুন",
+    "edit": "সম্পাদনা করুন",
+    "logout": "লগ আউট",
+    "login": "লগ ইন করুন",
+    "signup": "সাইন আপ করুন",
+    "settings": "সেটিংস",
+    "profile": "প্রোফাইল"
+  },
+  "navigation": {
+    "feed": "ফিড",
+    "explore": "অন্বেষণ করুন",
+    "messages": "বার্তা",
+    "videos": "ভিডিও",
+    "stories": "গল্প",
+    "notifications": "বিজ্ঞপ্তি",
+    "marketplace": "মার্কেটপ্লেস",
+    "creatorDashboard": "ক্রিয়েটর ড্যাশবোর্ড",
+    "settings": "সেটিংস",
+    "payment": "পেমেন্ট"
+  },
+  "feed": {
+    "createPost": "একটি পোস্ট তৈরি করুন",
+    "postContent": "আপনার মনে কী আছে?",
+    "like": "পছন্দ করুন",
+    "comment": "মন্তব্য করুন",
+    "share": "শেয়ার করুন",
+    "noPostsYet": "এখনও কোনো পোস্ট নেই"
+  },
+  "messages": {
+    "conversations": "কথোপকথন",
+    "newMessage": "নতুন বার্তা",
+    "typeMessage": "আপনার বার্তা টাইপ করুন...",
+    "sendMessage": "পাঠান",
+    "noConversations": "এখনও কোনো কথোপকথন নেই"
+  },
+  "payment": {
+    "choosePlan": "আপনার পরিকল্পনা চয়ন করুন",
+    "subscribeNow": "এখনই সাবস্ক্রাইব করুন",
+    "monthlyPrice": "/মাস",
+    "features": "বৈশিষ্ট্য",
+    "paymentMethods": "গৃহীত পেমেন্ট পদ্ধতি",
+    "faq": "প্রায়শই জিজ্ঞাসিত প্রশ্ন"
+  },
+  "settings": {
+    "accountSettings": "অ্যাকাউন্ট সেটিংস",
+    "privacySettings": "গোপনীয়তা সেটিংস",
+    "notificationSettings": "বিজ্ঞপ্তি সেটিংস",
+    "appearanceSettings": "চেহারা সেটিংস",
+    "darkMode": "ডার্ক মোড",
+    "language": "ভাষা"
+  }
+}

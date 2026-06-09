@@ -16,6 +16,7 @@ import Notifications from "./pages/Notifications";
 import Marketplace from "./pages/Marketplace";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import Settings from "./pages/Settings";
+import Payment from "./pages/Payment";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -33,6 +34,7 @@ function Router() {
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/creator-dashboard"} component={CreatorDashboard} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/payment"} component={Payment} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

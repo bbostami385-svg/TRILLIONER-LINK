@@ -13,8 +13,9 @@
 - [x] Create Stories page with story viewer
 - [x] Create Profile page with user stats
 - [x] Create Notifications page with notification list
+- [x] Create Marketplace page with product grid and cart
+- [x] Create Creator Dashboard with analytics
 - [ ] Create Login page (separate from OAuth redirect)
-- [ ] Create Marketplace page
 
 ## Core Features - UI Complete
 - [x] Feed page UI with post creation and display
@@ -24,10 +25,10 @@
 - [x] Stories page UI with viewer
 - [x] Profile page UI with stats and posts
 - [x] Notifications page UI
+- [x] Marketplace page with product grid and cart
+- [x] Creator Dashboard with analytics and earnings
+- [ ] Marketplace integration (SSLCommerz payment)
 - [ ] User profile management
-- [ ] Marketplace integration (SSLCommerz)
-- [ ] Creator Fund
-- [ ] Analytics dashboard
 - [ ] Multi-language support
 
 ## Database Schema - Complete
@@ -59,17 +60,16 @@
 - [ ] Marketplace endpoints
 - [ ] Analytics endpoints
 
-## Frontend-Backend Integration - In Progress
+## Frontend-Backend Integration - Complete
 - [x] Wire Feed.tsx to trpc.feed API (getFeed, createPost, likePost, unlikePost)
 - [x] Wire Explore.tsx to trpc.search API (trending hashtags, search users, search hashtags)
 - [x] Wire Messages.tsx to trpc.messages API (getConversations, sendMessage, getMessages)
-- [ ] Wire Videos.tsx to trpc.videos API
-- [ ] Wire Stories.tsx to trpc.stories API
-- [ ] Wire Profile.tsx to trpc.users API
-- [ ] Wire Notifications.tsx to trpc.notifications API
+- [x] Wire Videos.tsx to trpc.videos API (getTrending, likeVideo, unlikeVideo)
+- [x] Wire Stories.tsx to trpc.stories API
+- [x] Wire Profile.tsx to trpc.users API
+- [x] Wire Notifications.tsx to trpc.notifications API
 - [x] Add authorization checks to messages endpoints
-- [x] Add loading and error states to Feed page
-- [ ] Add loading and error states to all pages
+- [x] Add loading and error states to all pages
 - [ ] Implement real-time updates for messages (WebSocket)
 
 ## Testing - Complete
@@ -77,7 +77,10 @@
 - [x] Tests for Feed page (6 tests)
 - [x] Tests for Explore page (10 tests)
 - [x] Tests for Messages page (12 tests)
-- [x] Total: 29 tests passing
+- [x] Tests for Videos router (4 tests)
+- [x] Tests for Stories router (3 tests)
+- [x] Tests for Comments router (4 tests)
+- [x] Total: 40 tests passing
 - [ ] Integration tests for all routers
 - [ ] E2E tests for user flows
 

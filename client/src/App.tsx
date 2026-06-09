@@ -13,6 +13,8 @@ import Videos from "./pages/Videos";
 import Stories from "./pages/Stories";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import Marketplace from "./pages/Marketplace";
+import CreatorDashboard from "./pages/CreatorDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -27,6 +29,8 @@ function Router() {
       <Route path={"/stories"} component={Stories} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/notifications"} component={Notifications} />
+      <Route path={"/marketplace"} component={Marketplace} />
+      <Route path={"/creator-dashboard"} component={CreatorDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

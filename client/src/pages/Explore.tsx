@@ -2,21 +2,9 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { Loader } from "lucide-react";
 import "./Explore.css";
-
-interface TrendingTopic {
-  id: number;
-  topic: string;
-  posts: string;
-}
-
-interface SuggestedUser {
-  id: number;
-  name: string;
-  username: string;
-  followers: string;
-  avatar: string;
-}
 
 export default function Explore() {
   const { isAuthenticated } = useAuth();
@@ -26,32 +14,23 @@ export default function Explore() {
     "trending"
   );
 
-  const trendingTopics: TrendingTopic[] = [
-    { id: 1, topic: "#Technology", posts: "2.5M" },
-    { id: 2, topic: "#Cricket", posts: "1.8M" },
-    { id: 3, topic: "#Gaming", posts: "1.5M" },
-    { id: 4, topic: "#Music", posts: "1.2M" },
-    { id: 5, topic: "#Sports", posts: "980K" },
-    { id: 6, topic: "#Entertainment", posts: "850K" },
-  ];
+  // Fetch trending hashtags
+  const { data: trendingData, isLoading: trendingLoading } = trpc.search.getTrendingHashtags.useQuery(
+    { limit: 10 },
+    { enabled: isAuthenticated }
+  );
 
-  const suggestedUsers: SuggestedUser[] = [
-    { id: 1, name: "John Doe", username: "@johndoe", followers: "125K", avatar: "👨" },
-    { id: 2, name: "Jane Smith", username: "@janesmith", followers: "98K", avatar: "👩" },
-    { id: 3, name: "Tech Guru", username: "@techguru", followers: "250K", avatar: "🧑‍💻" },
-    { id: 4, name: "Creative Mind", username: "@creativemind", followers: "180K", avatar: "🎨" },
-  ];
+  // Search users
+  const { data: usersData, isLoading: usersLoading } = trpc.search.searchUsers.useQuery(
+    { query: searchQuery, limit: 20 },
+    { enabled: isAuthenticated && searchQuery.length > 0 }
+  );
 
-  const categories = [
-    { icon: "🎬", name: "Entertainment" },
-    { icon: "⚽", name: "Sports" },
-    { icon: "🎮", name: "Gaming" },
-    { icon: "🎵", name: "Music" },
-    { icon: "📚", name: "Education" },
-    { icon: "🍔", name: "Food" },
-    { icon: "✈️", name: "Travel" },
-    { icon: "💼", name: "Business" },
-  ];
+  // Search hashtags
+  const { data: hashtagsData, isLoading: hashtagsLoading } = trpc.search.searchHashtags.useQuery(
+    { query: searchQuery, limit: 20 },
+    { enabled: isAuthenticated && searchQuery.length > 0 }
+  );
 
   if (!isAuthenticated) {
     return (
@@ -109,32 +88,48 @@ export default function Explore() {
         {activeTab === "trending" && (
           <div className="trending-list">
             <h3>Trending Now</h3>
-            {trendingTopics.map((topic) => (
-              <div key={topic.id} className="trending-item">
-                <div className="trending-info">
-                  <p className="trending-topic">{topic.topic}</p>
-                  <p className="trending-posts">{topic.posts} posts</p>
-                </div>
-                <button className="follow-btn">Follow</button>
+            {trendingLoading ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <Loader className="animate-spin" size={24} />
               </div>
-            ))}
+            ) : (
+              (trendingData || []).map((topic: any) => (
+                <div key={topic.id} className="trending-item">
+                  <div className="trending-info">
+                    <p className="trending-topic">#{topic.name}</p>
+                    <p className="trending-posts">{topic.usageCount || 0} posts</p>
+                  </div>
+                  <button className="follow-btn">Follow</button>
+                </div>
+              ))
+            )}
           </div>
         )}
 
         {activeTab === "suggested" && (
           <div className="suggested-list">
             <h3>Suggested Users</h3>
-            {suggestedUsers.map((user) => (
-              <div key={user.id} className="suggested-item">
-                <div className="user-avatar">{user.avatar}</div>
-                <div className="user-info">
-                  <p className="user-name">{user.name}</p>
-                  <p className="user-username">{user.username}</p>
-                  <p className="user-followers">{user.followers} followers</p>
-                </div>
-                <button className="follow-btn">Follow</button>
+            {usersLoading ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <Loader className="animate-spin" size={24} />
               </div>
-            ))}
+            ) : searchQuery.length === 0 ? (
+              <p style={{ color: "#aaa", textAlign: "center", padding: "20px" }}>
+                Search for users
+              </p>
+            ) : (
+              (usersData || []).map((user: any) => (
+                <div key={user.id} className="suggested-item">
+                  <div className="user-avatar">{user.avatar || "👤"}</div>
+                  <div className="user-info">
+                    <p className="user-name">{user.name}</p>
+                    <p className="user-username">@{user.id}</p>
+                    <p className="user-followers">{user.followers || 0} followers</p>
+                  </div>
+                  <button className="follow-btn">Follow</button>
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -142,12 +137,29 @@ export default function Explore() {
           <div className="categories-list">
             <h3>Categories</h3>
             <div className="categories-grid">
-              {categories.map((category, index) => (
-                <div key={index} className="category-card">
-                  <div className="category-icon">{category.icon}</div>
-                  <p className="category-name">{category.name}</p>
+              {hashtagsLoading ? (
+                <div style={{ textAlign: "center", padding: "20px", gridColumn: "1/-1" }}>
+                  <Loader className="animate-spin" size={24} />
                 </div>
-              ))}
+              ) : searchQuery.length === 0 ? (
+                <p
+                  style={{
+                    color: "#aaa",
+                    textAlign: "center",
+                    padding: "20px",
+                    gridColumn: "1/-1",
+                  }}
+                >
+                  Search for hashtags
+                </p>
+              ) : (
+                (hashtagsData || []).map((hashtag: any) => (
+                  <div key={hashtag.id} className="category-card">
+                    <div className="category-icon">#{hashtag.name.charAt(0).toUpperCase()}</div>
+                    <p className="category-name">#{hashtag.name}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

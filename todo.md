@@ -61,8 +61,8 @@
 
 ## Frontend-Backend Integration - In Progress
 - [x] Wire Feed.tsx to trpc.feed API (getFeed, createPost, likePost, unlikePost)
-- [ ] Wire Explore.tsx to trpc.search and trpc.users API
-- [ ] Wire Messages.tsx to trpc.messages API (getConversations, sendMessage)
+- [x] Wire Explore.tsx to trpc.search API (trending hashtags, search users, search hashtags)
+- [x] Wire Messages.tsx to trpc.messages API (getConversations, sendMessage, getMessages)
 - [ ] Wire Videos.tsx to trpc.videos API
 - [ ] Wire Stories.tsx to trpc.stories API
 - [ ] Wire Profile.tsx to trpc.users API

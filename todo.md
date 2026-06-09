@@ -15,6 +15,7 @@
 - [x] Create Notifications page with notification list
 - [x] Create Marketplace page with product grid and cart
 - [x] Create Creator Dashboard with analytics
+- [x] Create Settings page with preferences and account management
 - [ ] Create Login page (separate from OAuth redirect)
 
 ## Core Features - UI Complete

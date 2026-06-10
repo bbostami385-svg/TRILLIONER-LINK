@@ -100,23 +100,28 @@
 - [x] Recommendation engine (personalized, collaborative filtering)
 - [x] Payment page with subscription plans
 - [x] Live Streaming page with video player and chat
-- [ ] Creator Fund analytics
-- [ ] Dark mode toggle
+- [x] Creator Fund analytics (dashboard created)
+- [x] Dark mode toggle (ThemeToggle component)
+- [x] Language Selector (EN/BN/HI)
 - [ ] Save/bookmark posts
 - [ ] Advanced search with filters
 
-## Implementation Gaps - TODO
+## Implementation Gaps - In Progress
+- [x] Wire ThemeToggle into app layout/navigation (added to App header)
+- [x] Mount LanguageSelector in UI (added to App header)
+- [ ] Apply i18n translations across all pages
+- [ ] Implement real Creator Fund analytics with data
+- [ ] Replace profile backend placeholders (stats, followers, posts, delete)
 - [ ] Register Socket.io server in app startup
 - [ ] Wire Messages.tsx to useWebSocket for real-time updates
-- [ ] Implement real DB-backed live stream handlers (replace mocks)
+- [ ] Implement real DB-backed live stream handlers
 - [ ] Implement real DB-backed moderation workflows
-- [ ] Implement real recommendation algorithm (replace mocks)
+- [ ] Implement real recommendation algorithm
 - [ ] Complete SSLCommerz payment flow end-to-end
-- [ ] Implement profile editing/management UI and backend
-- [ ] Apply i18n across all pages and initialize globally
-- [ ] Add integration tests for payment, WebSocket, live stream, moderation
+- [ ] Apply i18n translations across all pages
 - [ ] Implement real HLS video player integration
-- [ ] Add real chat persistence and broadcast for live streams
+- [ ] Add real chat persistence for live streams
+- [ ] Add integration tests for all features
 - [ ] Implement subscription cancellation and payment history
 
 ## Deployment

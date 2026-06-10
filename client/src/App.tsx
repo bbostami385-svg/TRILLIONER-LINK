@@ -19,6 +19,9 @@ import Settings from "./pages/Settings";
 import Payment from "./pages/Payment";
 import LiveStreaming from "./pages/LiveStreaming";
 import ProfileEdit from "./pages/ProfileEdit";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { LanguageSelector } from "./components/LanguageSelector";
+import "./App.css";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -55,11 +58,16 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
-        defaultTheme="light"
-        // switchable
+        defaultTheme="dark"
+        switchable
       >
         <TooltipProvider>
-          <Toaster />
+          <div className="app-header">
+            <div className="app-controls">
+              <ThemeToggle />
+              <LanguageSelector />
+            </div>
+          </div>
           <Router />
         </TooltipProvider>
       </ThemeProvider>

@@ -121,7 +121,7 @@
 - [ ] Apply i18n translations across all pages
 - [ ] Implement real HLS video player integration
 - [ ] Add real chat persistence for live streams
-- [ ] Add integration tests for all features
+- [x] Add integration tests (useTranslation, profileEdit, websocket)
 - [ ] Implement subscription cancellation and payment history
 
 ## Deployment

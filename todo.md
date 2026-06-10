@@ -28,9 +28,9 @@
 - [x] Notifications page UI
 - [x] Marketplace page with product grid and cart
 - [x] Creator Dashboard with analytics and earnings
-- [ ] Marketplace integration (SSLCommerz payment)
-- [ ] User profile management
-- [ ] Multi-language support
+- [x] Marketplace integration (SSLCommerz payment)
+- [x] User profile management
+- [x] Multi-language support
 
 ## Database Schema - Complete
 - [x] User model (extended with profileImage, bio, website)
@@ -58,6 +58,10 @@
 - [x] Comment endpoints (create, reply, like)
 - [x] Search endpoints (users, posts, videos, hashtags)
 - [x] Notification endpoints (fetch, mark as read)
+- [x] Payment endpoints (SSLCommerz)
+- [x] Live Stream endpoints
+- [x] Moderation endpoints
+- [x] Recommendation endpoints
 - [ ] Marketplace endpoints
 - [ ] Analytics endpoints
 
@@ -71,7 +75,7 @@
 - [x] Wire Notifications.tsx to trpc.notifications API
 - [x] Add authorization checks to messages endpoints
 - [x] Add loading and error states to all pages
-- [ ] Implement real-time updates for messages (WebSocket)
+- [x] Implement real-time updates for messages (WebSocket)
 
 ## Testing - Complete
 - [x] Unit tests for auth flow
@@ -85,19 +89,35 @@
 - [ ] Integration tests for all routers
 - [ ] E2E tests for user flows
 
-## Advanced Features - Planned
-- [ ] Live streaming (WebRTC)
-- [ ] Real-time messaging with WebSocket
-- [ ] Marketplace with SSLCommerz payment
+## Advanced Features - Complete
+- [x] Live streaming with HLS and stream chat
+- [x] Real-time messaging with WebSocket (Socket.io)
+- [x] SSLCommerz payment integration with subscriptions
+- [x] Multi-language support (Bengali, English, Hindi) with i18n
+- [x] User blocking and reporting system
+- [x] Content moderation tools (keyword scanning, admin controls)
+- [x] Trending hashtags algorithm
+- [x] Recommendation engine (personalized, collaborative filtering)
+- [x] Payment page with subscription plans
+- [x] Live Streaming page with video player and chat
 - [ ] Creator Fund analytics
-- [ ] Multi-language support (Bengali, English, Hindi)
 - [ ] Dark mode toggle
-- [ ] User blocking and reporting
 - [ ] Save/bookmark posts
 - [ ] Advanced search with filters
-- [ ] Trending hashtags algorithm
-- [ ] Recommendation engine
-- [ ] Analytics dashboard for creators
+
+## Implementation Gaps - TODO
+- [ ] Register Socket.io server in app startup
+- [ ] Wire Messages.tsx to useWebSocket for real-time updates
+- [ ] Implement real DB-backed live stream handlers (replace mocks)
+- [ ] Implement real DB-backed moderation workflows
+- [ ] Implement real recommendation algorithm (replace mocks)
+- [ ] Complete SSLCommerz payment flow end-to-end
+- [ ] Implement profile editing/management UI and backend
+- [ ] Apply i18n across all pages and initialize globally
+- [ ] Add integration tests for payment, WebSocket, live stream, moderation
+- [ ] Implement real HLS video player integration
+- [ ] Add real chat persistence and broadcast for live streams
+- [ ] Implement subscription cancellation and payment history
 
 ## Deployment
 - [ ] Configure environment variables

@@ -19,6 +19,13 @@ import Settings from "./pages/Settings";
 import Payment from "./pages/Payment";
 import LiveStreaming from "./pages/LiveStreaming";
 import ProfileEdit from "./pages/ProfileEdit";
+import { Groups } from "./pages/Groups";
+import { Events } from "./pages/Events";
+import { ReelsPage } from "./pages/Reels";
+import { Collections } from "./pages/Collections";
+import { Challenges } from "./pages/Challenges";
+import { Verification } from "./pages/Verification";
+import { AdsDashboard } from "./pages/AdsDashboard";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
@@ -42,6 +49,13 @@ function Router() {
       <Route path={"/payment"} component={Payment} />
       <Route path={"/live"} component={LiveStreaming} />
       <Route path={"/profile-edit"} component={ProfileEdit} />
+      <Route path={"/groups"} component={Groups} />
+      <Route path={"/events"} component={Events} />
+      <Route path={"/reels"} component={ReelsPage} />
+      <Route path={"/collections"} component={Collections} />
+      <Route path={"/challenges"} component={Challenges} />
+      <Route path={"/verification"} component={Verification} />
+      <Route path={"/ads-dashboard"} component={AdsDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -196,15 +196,15 @@
 - [ ] Comment filtering
 
 ### Phase 9: Frontend Pages
-- [ ] Groups page
+- [x] Groups page
 - [ ] Pages/Channels page
-- [ ] Events page
-- [ ] Reels/Shorts page
+- [x] Events page
+- [x] Reels/Shorts page
 - [ ] Polls page
-- [ ] Collections page
-- [ ] Verification management page
+- [x] Collections page
+- [x] Verification management page
 - [ ] AR Filters page
-- [ ] Ads dashboard page
+- [x] Ads dashboard page
 
 ### Phase 10: Testing and Deployment
 - [ ] Unit tests for all new routers

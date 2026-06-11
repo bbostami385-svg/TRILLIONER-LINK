@@ -119,6 +119,9 @@ export async function createVideo(userId: number, title: string, description: st
     videoUrl,
     thumbnailUrl: thumbnailUrl || null,
     duration: duration || null,
+    views: 0,
+    likes: 0,
+    comments: 0,
   });
 
   if (result[0].insertId) {
@@ -191,6 +194,7 @@ export async function createStory(userId: number, mediaUrl: string, mediaType: "
     mediaType,
     caption: caption || null,
     expiresAt,
+    views: 0,
   });
 
   if (result[0].insertId) {
@@ -250,6 +254,7 @@ export async function createComment(userId: number, content: string, postId?: nu
     postId: postId || null,
     videoId: videoId || null,
     parentCommentId: parentCommentId || null,
+    likes: 0,
   });
 
   if (result[0].insertId) {
@@ -438,6 +443,9 @@ export async function createPost(userId: number, content: string, imageUrl?: str
     content,
     imageUrl: imageUrl || null,
     videoUrl: videoUrl || null,
+    likes: 0,
+    comments: 0,
+    shares: 0,
   });
 
   if (result[0].insertId) {
@@ -599,6 +607,7 @@ export async function createMessage(conversationId: number, senderId: number, co
     senderId,
     content,
     imageUrl: imageUrl || null,
+    isRead: 0,
   });
 
   if (result[0].insertId) {

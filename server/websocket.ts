@@ -71,6 +71,7 @@ export function setupWebSocket(app: express.Application) {
           conversationId,
           senderId,
           content,
+          isRead: 0,
           createdAt: new Date(),
         });
 

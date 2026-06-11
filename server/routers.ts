@@ -15,6 +15,18 @@ import { liveStreamRouter } from "./routers/liveStream";
 import { moderationRouter } from "./routers/moderation";
 import { recommendationsRouter } from "./routers/recommendations";
 import { profileEditRouter } from "./routers/profileEdit";
+import { groupsRouter } from "./routers/groups";
+import { eventsRouter } from "./routers/events";
+import { reelsRouter } from "./routers/reels";
+import { pollsRouter } from "./routers/polls";
+import { reactionsRouter } from "./routers/reactions";
+import { collectionsRouter } from "./routers/collections";
+import { verificationRouter } from "./routers/verification";
+import { mentionsRouter } from "./routers/mentions";
+import { duetsRouter } from "./routers/duets";
+import { challengesRouter } from "./routers/challenges";
+import { adsRouter } from "./routers/ads";
+import { arFiltersRouter } from "./routers/arFilters";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -42,6 +54,18 @@ export const appRouter = router({
   moderation: moderationRouter,
   recommendations: recommendationsRouter,
   profileEdit: profileEditRouter,
+  groups: groupsRouter,
+  events: eventsRouter,
+  reels: reelsRouter,
+  polls: pollsRouter,
+  reactions: reactionsRouter,
+  collections: collectionsRouter,
+  verification: verificationRouter,
+  mentions: mentionsRouter,
+  duets: duetsRouter,
+  challenges: challengesRouter,
+  ads: adsRouter,
+  arFilters: arFiltersRouter,
 });
 
 export type AppRouter = typeof appRouter;

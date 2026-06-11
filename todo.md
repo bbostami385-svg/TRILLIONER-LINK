@@ -128,3 +128,87 @@
 - [ ] Deploy to production
 - [ ] Setup monitoring and logging
 - [ ] Configure CDN for media files
+
+
+## Missing Features to Add (Facebook, YouTube, Instagram Comparison)
+
+### Phase 1: Groups/Communities and Pages
+- [x] Groups database table and schema
+- [x] Pages/Channels database table
+- [x] Groups API router (create, join, leave, post in group)
+- [ ] Pages API router (create, manage, followers)
+- [ ] Groups frontend page
+- [ ] Pages frontend page
+
+### Phase 2: Events Management
+- [x] Events database table
+- [x] Event RSVP system
+- [x] Events API router
+- [ ] Events frontend page
+- [ ] Event calendar view
+- [ ] Event notifications
+
+### Phase 3: Reels/Shorts and Sounds
+- [x] Reels database table (short videos)
+- [x] Trending Sounds database table
+- [x] Reels API router
+- [x] Sounds API router
+- [ ] Reels frontend page (vertical video feed)
+- [ ] Sound library page
+
+### Phase 4: Polls, Challenges, Reactions
+- [x] Polls database table
+- [x] Hashtag Challenges table
+- [x] Reactions system (heart, laugh, sad, angry, wow)
+- [x] Polls API router
+- [x] Challenges API router
+- [x] Reactions API router
+
+### Phase 5: Collections and History
+- [x] Saved Collections database table
+- [x] Watch History database table
+- [x] Collections API router
+- [ ] History API router
+- [ ] Collections frontend page
+- [ ] Watch history view
+
+### Phase 6: Verification and Mentions
+- [x] User Verification Badges system
+- [x] Mentions/Tags in posts
+- [x] User mentions database
+- [x] Verification API router
+- [x] Mentions API router
+
+### Phase 7: AR Filters, Duets, Share
+- [x] AR Filters database table
+- [x] Duets/Collaborations table
+- [ ] Share to Stories feature
+- [x] AR Filters API router
+- [x] Duets API router
+- [ ] Story sharing API
+
+### Phase 8: Ads and Moderation
+- [x] Sponsored Posts/Ads database table
+- [ ] Comment moderation rules
+- [x] Ads API router
+- [ ] Moderation API router
+- [ ] Ads dashboard page
+- [ ] Comment filtering
+
+### Phase 9: Frontend Pages
+- [ ] Groups page
+- [ ] Pages/Channels page
+- [ ] Events page
+- [ ] Reels/Shorts page
+- [ ] Polls page
+- [ ] Collections page
+- [ ] Verification management page
+- [ ] AR Filters page
+- [ ] Ads dashboard page
+
+### Phase 10: Testing and Deployment
+- [ ] Unit tests for all new routers
+- [ ] Integration tests
+- [ ] E2E tests
+- [ ] Push to GitHub
+- [ ] Final checkpoint

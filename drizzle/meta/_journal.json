@@ -15,6 +15,13 @@
       "when": 1780770966664,
       "tag": "0001_sad_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781093929724,
+      "tag": "0002_bouncy_famine",
+      "breakpoints": true
     }
   ]
 }

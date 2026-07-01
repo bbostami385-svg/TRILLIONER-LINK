@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
+import { UsersManagement } from "./pages/UsersManagement";
 import Feed from "./pages/Feed";
 import Explore from "./pages/Explore";
 import Messages from "./pages/Messages";
@@ -29,6 +30,7 @@ import { Polls } from "./pages/Polls";
 import { ARFiltersPage } from "./pages/ARFilters";
 import { SoundLibrary } from "./pages/SoundLibrary";
 import { PagesPage } from "./pages/Pages";
+import { AdsDashboard } from "./pages/AdsDashboard";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
@@ -47,8 +49,9 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
-      <Route path={"/creator-dashboard"} component={CreatorDashboard} />
-      <Route path={"/settings"} component={Settings} />
+      <Route path="/ads-dashboard" component={AdsDashboard} />
+      <Route path="/users-management" component={UsersManagement} />
+      <Route path="*" component={NotFound} />
       <Route path={"/payment"} component={Payment} />
       <Route path={"/live"} component={LiveStreaming} />
       <Route path={"/profile-edit"} component={ProfileEdit} />

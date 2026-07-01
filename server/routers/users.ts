@@ -160,4 +160,22 @@ export const usersRouter = router({
 
       return result;
     }),
+
+  // Get all users
+  getAllUsers: publicProcedure
+    .input(z.object({ limit: z.number().default(100), offset: z.number().default(0) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        return [];
+      }
+
+      const result = await db
+        .select()
+        .from(users)
+        .limit(input.limit)
+        .offset(input.offset);
+
+      return result;
+    }),
 });

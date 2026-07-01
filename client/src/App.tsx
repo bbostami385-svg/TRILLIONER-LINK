@@ -28,6 +28,7 @@ import { Verification } from "./pages/Verification";
 import { Polls } from "./pages/Polls";
 import { ARFiltersPage } from "./pages/ARFilters";
 import { SoundLibrary } from "./pages/SoundLibrary";
+import { PagesPage } from "./pages/Pages";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
@@ -60,6 +61,7 @@ function Router() {
       <Route path={"/polls"} component={Polls} />
       <Route path={"/ar-filters"} component={ARFiltersPage} />
       <Route path={"/sound-library"} component={SoundLibrary} />
+      <Route path={"/pages"} component={PagesPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

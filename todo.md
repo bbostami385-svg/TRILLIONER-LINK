@@ -136,9 +136,9 @@
 - [x] Groups database table and schema
 - [x] Pages/Channels database table
 - [x] Groups API router (create, join, leave, post in group)
-- [ ] Pages API router (create, manage, followers)
-- [ ] Groups frontend page
-- [ ] Pages frontend page
+- [x] Pages API router (create, manage, followers)
+- [x] Groups frontend page
+- [x] Pages frontend page
 
 ### Phase 2: Events Management
 - [x] Events database table
@@ -197,7 +197,7 @@
 
 ### Phase 9: Frontend Pages
 - [x] Groups page
-- [ ] Pages/Channels page
+- [x] Pages/Channels page
 - [x] Events page
 - [x] Reels/Shorts page
 - [x] Polls page

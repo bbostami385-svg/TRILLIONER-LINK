@@ -29,6 +29,7 @@ import { adsRouter } from "./routers/ads";
 import { arFiltersRouter } from "./routers/arFilters";
 import { soundsRouter } from "./routers/sounds";
 import { historyRouter } from "./routers/history";
+import { pagesRouter } from "./routers/pages";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -70,6 +71,7 @@ export const appRouter = router({
   arFilters: arFiltersRouter,
   sounds: soundsRouter,
   history: historyRouter,
+  pages: pagesRouter,
 });
 
 export type AppRouter = typeof appRouter;

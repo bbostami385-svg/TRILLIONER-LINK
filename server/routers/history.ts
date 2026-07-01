@@ -66,10 +66,15 @@ export const historyRouter = router({
         .where(eq(watchHistory.id, input.historyId))
         .limit(1);
 
-      if (history[0] && history[0].userId === ctx.user.id) {
-        await db.delete(watchHistory).where(eq(watchHistory.id, input.historyId));
+      if (!history[0]) {
+        throw new Error("History item not found");
       }
 
+      if (history[0].userId !== ctx.user.id) {
+        throw new Error("Unauthorized");
+      }
+
+      await db.delete(watchHistory).where(eq(watchHistory.id, input.historyId));
       return { success: true };
     }),
 });

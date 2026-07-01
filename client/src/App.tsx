@@ -25,7 +25,9 @@ import { ReelsPage } from "./pages/Reels";
 import { Collections } from "./pages/Collections";
 import { Challenges } from "./pages/Challenges";
 import { Verification } from "./pages/Verification";
-import { AdsDashboard } from "./pages/AdsDashboard";
+import { Polls } from "./pages/Polls";
+import { ARFiltersPage } from "./pages/ARFilters";
+import { SoundLibrary } from "./pages/SoundLibrary";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
@@ -55,7 +57,9 @@ function Router() {
       <Route path={"/collections"} component={Collections} />
       <Route path={"/challenges"} component={Challenges} />
       <Route path={"/verification"} component={Verification} />
-      <Route path={"/ads-dashboard"} component={AdsDashboard} />
+      <Route path={"/polls"} component={Polls} />
+      <Route path={"/ar-filters"} component={ARFiltersPage} />
+      <Route path={"/sound-library"} component={SoundLibrary} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -153,8 +153,8 @@
 - [x] Trending Sounds database table
 - [x] Reels API router
 - [x] Sounds API router
-- [ ] Reels frontend page (vertical video feed)
-- [ ] Sound library page
+- [x] Reels frontend page (vertical video feed)
+- [x] Sound library page
 
 ### Phase 4: Polls, Challenges, Reactions
 - [x] Polls database table
@@ -168,8 +168,8 @@
 - [x] Saved Collections database table
 - [x] Watch History database table
 - [x] Collections API router
-- [ ] History API router
-- [ ] Collections frontend page
+- [x] History API router
+- [x] Collections frontend page
 - [ ] Watch history view
 
 ### Phase 6: Verification and Mentions
@@ -200,10 +200,10 @@
 - [ ] Pages/Channels page
 - [x] Events page
 - [x] Reels/Shorts page
-- [ ] Polls page
+- [x] Polls page
 - [x] Collections page
 - [x] Verification management page
-- [ ] AR Filters page
+- [x] AR Filters page
 - [x] Ads dashboard page
 
 ### Phase 10: Testing and Deployment
@@ -212,3 +212,25 @@
 - [ ] E2E tests
 - [ ] Push to GitHub
 - [ ] Final checkpoint
+
+
+## Implementation Gaps to Fix
+
+### Phase 2 Gaps (Frontend Pages)
+- [ ] Reels page: Implement real vertical video feed with loading/empty/error states
+- [ ] Polls page: Fetch and display polls, options, results, and voting UI with proper error handling
+- [ ] AR Filters page: Replace hardcoded search with real searchable/listable filters flow
+- [ ] Watch history view: Create page to display user's watch history
+
+### Phase 3 Gaps (Backend Fixes)
+- [ ] History router: Fix duplicate check to scope per user (userId + videoId)
+- [ ] Pages router: Add real page-followers relationship table and implement follower management
+- [ ] Moderation router: Implement proper comment filtering and content scanning
+- [ ] Event notifications: Add notification system for event RSVPs
+- [ ] Story sharing: Implement share to stories feature
+
+### Phase 4 Gaps (Error Handling & Cache)
+- [ ] Add proper error handling to all mutation pages
+- [ ] Implement cache invalidation on successful mutations
+- [ ] Add loading states and success/error toasts
+- [ ] Implement optimistic updates for list operations

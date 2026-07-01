@@ -29,13 +29,24 @@ export function PagesPage() {
   const handleCreatePage = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createPageMutation.mutateAsync({
-        name: formData.name,
-        description: formData.description,
-      });
-
-      setFormData({ name: "", description: "" });
-      setShowCreateForm(false);
+      const utils = trpc.useUtils();
+      await createPageMutation.mutateAsync(
+        {
+          name: formData.name,
+          description: formData.description,
+        },
+        {
+          onSuccess: () => {
+            setFormData({ name: "", description: "" });
+            setShowCreateForm(false);
+            utils.pages.getPopularPages.invalidate();
+            alert("Page created successfully!");
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to create page:", error);
     }
@@ -43,7 +54,19 @@ export function PagesPage() {
 
   const handleFollowPage = async (pageId: number) => {
     try {
-      await followPageMutation.mutateAsync({ pageId });
+      const utils = trpc.useUtils();
+      await followPageMutation.mutateAsync(
+        { pageId },
+        {
+          onSuccess: () => {
+            utils.pages.getPopularPages.invalidate();
+            alert("Page followed!");
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to follow page:", error);
     }

@@ -26,18 +26,26 @@ export function Polls() {
         return;
       }
 
-      await createPollMutation.mutateAsync({
-        postId: formData.postId,
-        question: formData.question,
-        options: validOptions,
-      });
-
-      setFormData({
-        postId: 0,
-        question: "",
-        options: ["", ""],
-      });
-      setShowCreateForm(false);
+      await createPollMutation.mutateAsync(
+        {
+          postId: formData.postId,
+          question: formData.question,
+          options: validOptions,
+        },
+        {
+          onSuccess: () => {
+            setFormData({
+              postId: 0,
+              question: "",
+              options: ["", ""],
+            });
+            setShowCreateForm(false);
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to create poll:", error);
     }
@@ -45,7 +53,17 @@ export function Polls() {
 
   const handleVote = async (optionId: number) => {
     try {
-      await votePollMutation.mutateAsync({ optionId });
+      await votePollMutation.mutateAsync(
+        { optionId },
+        {
+          onSuccess: () => {
+            alert("Vote recorded!");
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to vote:", error);
     }

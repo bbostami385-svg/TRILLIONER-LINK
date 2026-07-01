@@ -26,7 +26,17 @@ export function SoundLibrary() {
 
   const handlePlaySound = async (soundId: number) => {
     try {
-      await incrementUsesMutation.mutateAsync({ soundId });
+      await incrementUsesMutation.mutateAsync(
+        { soundId },
+        {
+          onSuccess: () => {
+            alert("Sound added to your library!");
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to play sound:", error);
     }

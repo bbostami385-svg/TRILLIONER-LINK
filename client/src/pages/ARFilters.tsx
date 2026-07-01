@@ -20,7 +20,17 @@ export function ARFiltersPage() {
 
   const handleUseFilter = async (filterId: number) => {
     try {
-      await useFilterMutation.mutateAsync({ filterId });
+      await useFilterMutation.mutateAsync(
+        { filterId },
+        {
+          onSuccess: () => {
+            alert("Filter added to your library!");
+          },
+          onError: (error) => {
+            alert(`Error: ${error.message}`);
+          },
+        }
+      );
     } catch (error) {
       console.error("Failed to use filter:", error);
     }

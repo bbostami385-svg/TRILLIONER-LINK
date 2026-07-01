@@ -163,6 +163,11 @@
 - [x] Polls API router
 - [x] Challenges API router
 - [x] Reactions API router
+- [x] Error handling for Polls page
+- [x] Error handling for Sound Library page
+- [x] Error handling for Pages page
+- [x] Error handling for AR Filters page
+- [x] Cache invalidation on mutations
 
 ### Phase 5: Collections and History
 - [x] Saved Collections database table

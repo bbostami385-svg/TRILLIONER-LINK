@@ -1,6 +1,6 @@
-# NovaPlus Social
+# TRILLIONER LINK
 
-একটি সম্পূর্ণ YouTube, Facebook, Instagram স্টাইলের সোশ্যাল মিডিয়া প্ল্যাটফর্ম।
+একটি সম্পূর্ণ YouTube, Facebook, Instagram স্টাইলের সোশ্যাল মিডিয়া প্ল্যাটফর্ম - TRILLIONER LINK দ্বারা তৈরি।
 
 ## 🚀 ফিচার
 

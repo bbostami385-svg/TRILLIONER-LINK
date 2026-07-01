@@ -14,7 +14,7 @@ export default function SignUp() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold">Join NovaPlus Social</CardTitle>
+          <CardTitle className="text-3xl font-bold">Join TRILLIONER LINK</CardTitle>
           <CardDescription>
             Create an account to connect, share, and create with the world
           </CardDescription>

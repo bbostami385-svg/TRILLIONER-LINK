@@ -1,4 +1,4 @@
-# NovaPlus Social - TODO
+# TRILLIONER LINK - TODO
 
 ## Authentication & Pages
 - [x] Fix Sign Up page blank screen issue

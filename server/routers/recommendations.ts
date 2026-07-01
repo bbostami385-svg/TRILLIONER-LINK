@@ -188,7 +188,7 @@ export const recommendationsRouter = router({
         return {
           hashtags: [
             {
-              tag: "#NovaPlus",
+              tag: "#TRILLIONER",
               count: 50000,
               trend: "up",
               trendingRank: 1,

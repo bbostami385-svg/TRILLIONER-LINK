@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { ArrowRight, Zap, Users, Sparkles } from "lucide-react";
 
 /**
- * Home page - Landing page for NovaPlus Social
+ * Home page - Landing page for TRILLIONER LINK
  */
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -31,7 +31,7 @@ export default function Home() {
         <div className="container max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">NovaPlus Social</span>
+            <span className="text-xl font-bold">TRILLIONER LINK</span>
           </div>
           <div className="flex items-center gap-4">
             {isAuthenticated && user ? (
@@ -58,7 +58,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="container max-w-6xl mx-auto px-4 py-20 text-center">
         <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-          Welcome to NovaPlus Social
+          Welcome to TRILLIONER LINK
         </h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
           Connect, share, and create with the world. A comprehensive social media platform
@@ -140,7 +140,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-muted bg-muted/30 mt-20">
         <div className="container max-w-6xl mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 NovaPlus Social. All rights reserved.</p>
+          <p>&copy; 2026 TRILLIONER LINK. All rights reserved.</p>
         </div>
       </footer>
     </div>

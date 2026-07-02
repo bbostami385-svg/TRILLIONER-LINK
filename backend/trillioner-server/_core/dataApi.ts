@@ -1,7 +1,7 @@
 /**
  * Quick example (matches curl usage):
  *   await callDataApi("Youtube/search", {
- *     query: { gl: "US", hl: "en", q: "trillioner" },
+ *     query: { gl: "US", hl: "en", q: "trillioner link" },
  *   })
  */
 import { ENV } from "./env";

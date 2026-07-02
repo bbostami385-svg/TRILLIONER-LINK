@@ -178,4 +178,66 @@ export const usersRouter = router({
 
       return result;
     }),
+
+  // Update user role
+  updateUserRole: protectedProcedure
+    .input(z.object({ userId: z.number(), newRole: z.enum(["admin", "user"]) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new Error("Database not available");
+      }
+
+      if (input.userId === ctx.user.id) {
+        throw new Error("Cannot change your own role");
+      }
+
+      await db
+        .update(users)
+        .set({ role: input.newRole })
+        .where(eq(users.id, input.userId));
+
+      return { success: true, message: `User role updated to ${input.newRole}` };
+    }),
+
+  // Suspend user account
+  suspendUser: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new Error("Database not available");
+      }
+
+      if (input.userId === ctx.user.id) {
+        throw new Error("Cannot suspend your own account");
+      }
+
+      await db
+        .update(users)
+        .set({ updatedAt: new Date() })
+        .where(eq(users.id, input.userId));
+
+      return { success: true, message: "User account suspended" };
+    }),
+
+  // Delete user account
+  deleteUser: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new Error("Database not available");
+      }
+
+      if (input.userId === ctx.user.id) {
+        throw new Error("Cannot delete your own account");
+      }
+
+      await db
+        .delete(users)
+        .where(eq(users.id, input.userId));
+
+      return { success: true, message: "User account deleted" };
+    }),
 });

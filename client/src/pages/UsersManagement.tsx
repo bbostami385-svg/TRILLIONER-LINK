@@ -17,8 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Edit2, Trash2, Ban } from "lucide-react";
+import { toast } from "sonner";
 
 interface User {
   id: number;
@@ -34,10 +44,50 @@ export function UsersManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [verificationFilter, setVerificationFilter] = useState<"all" | "verified" | "unverified">("all");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [dialogType, setDialogType] = useState<"role" | "suspend" | "delete" | null>(null);
+  const [newRole, setNewRole] = useState<"admin" | "user">("user");
 
   // Fetch all users
-  const { data: users = [], isLoading } = trpc.users.getAllUsers.useQuery({
+  const { data: users = [], isLoading, refetch } = trpc.users.getAllUsers.useQuery({
     limit: 1000,
+  });
+
+  // Mutations
+  const updateRoleMutation = trpc.users.updateUserRole.useMutation({
+    onSuccess: () => {
+      toast.success("User role updated successfully");
+      refetch();
+      setDialogType(null);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update user role");
+    },
+  });
+
+  const suspendUserMutation = trpc.users.suspendUser.useMutation({
+    onSuccess: () => {
+      toast.success("User account suspended");
+      refetch();
+      setDialogType(null);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to suspend user");
+    },
+  });
+
+  const deleteUserMutation = trpc.users.deleteUser.useMutation({
+    onSuccess: () => {
+      toast.success("User account deleted");
+      refetch();
+      setDialogType(null);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete user");
+    },
   });
 
   // Filter and search users
@@ -86,13 +136,52 @@ export function UsersManagement() {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleChangeRole = (user: User) => {
+    setSelectedUser(user);
+    setNewRole(user.role === "admin" ? "user" : "admin");
+    setDialogType("role");
+  };
+
+  const handleSuspendUser = (user: User) => {
+    setSelectedUser(user);
+    setDialogType("suspend");
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user);
+    setDialogType("delete");
+  };
+
+  const confirmAction = () => {
+    if (!selectedUser) return;
+
+    switch (dialogType) {
+      case "role":
+        updateRoleMutation.mutate({
+          userId: selectedUser.id,
+          newRole: newRole,
+        });
+        break;
+      case "suspend":
+        suspendUserMutation.mutate({
+          userId: selectedUser.id,
+        });
+        break;
+      case "delete":
+        deleteUserMutation.mutate({
+          userId: selectedUser.id,
+        });
+        break;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Users Management</h1>
-          <p className="text-purple-200">Search and manage all users in the system</p>
+          <p className="text-purple-200">Search, filter, and manage all users in TRILLIONER LINK</p>
         </div>
 
         {/* Search and Filters */}
@@ -186,6 +275,7 @@ export function UsersManagement() {
                     <TableHead className="text-purple-200">Role</TableHead>
                     <TableHead className="text-purple-200">Verified</TableHead>
                     <TableHead className="text-purple-200">Joined</TableHead>
+                    <TableHead className="text-purple-200">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -223,6 +313,37 @@ export function UsersManagement() {
                       </TableCell>
                       <TableCell className="text-slate-300">
                         {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-blue-600/20 border-blue-500 hover:bg-blue-600/40 text-blue-300"
+                            onClick={() => handleChangeRole(user)}
+                          >
+                            <Edit2 className="w-3 h-3 mr-1" />
+                            Role
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-yellow-600/20 border-yellow-500 hover:bg-yellow-600/40 text-yellow-300"
+                            onClick={() => handleSuspendUser(user)}
+                          >
+                            <Ban className="w-3 h-3 mr-1" />
+                            Suspend
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-600/20 border-red-500 hover:bg-red-600/40 text-red-300"
+                            onClick={() => handleDeleteUser(user)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -262,6 +383,75 @@ export function UsersManagement() {
           </Card>
         </div>
       </div>
+
+      {/* Alert Dialogs */}
+      <AlertDialog open={dialogType !== null} onOpenChange={() => setDialogType(null)}>
+        <AlertDialogContent className="bg-slate-800 border-purple-500">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              {dialogType === "role" && "Change User Role"}
+              {dialogType === "suspend" && "Suspend User Account"}
+              {dialogType === "delete" && "Delete User Account"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-purple-200">
+              {dialogType === "role" && (
+                <div className="space-y-4">
+                  <p>
+                    Are you sure you want to change {selectedUser?.name || selectedUser?.email}'s role from{" "}
+                    <span className="font-bold">{selectedUser?.role}</span> to{" "}
+                    <span className="font-bold">{newRole}</span>?
+                  </p>
+                  <Select value={newRole} onValueChange={(value: any) => setNewRole(value)}>
+                    <SelectTrigger className="bg-slate-700 border-purple-500 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-purple-500">
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {dialogType === "suspend" && (
+                <p>
+                  This will suspend the account for {selectedUser?.name || selectedUser?.email}. They will not be
+                  able to log in until the suspension is lifted.
+                </p>
+              )}
+              {dialogType === "delete" && (
+                <p className="text-red-300">
+                  This action is permanent and cannot be undone. All data associated with{" "}
+                  {selectedUser?.name || selectedUser?.email} will be deleted.
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel className="bg-slate-700 border-purple-500 text-white hover:bg-slate-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAction}
+              disabled={updateRoleMutation.isPending || suspendUserMutation.isPending || deleteUserMutation.isPending}
+              className={`${
+                dialogType === "delete"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : dialogType === "suspend"
+                    ? "bg-yellow-600 hover:bg-yellow-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {updateRoleMutation.isPending || suspendUserMutation.isPending || deleteUserMutation.isPending
+                ? "Processing..."
+                : dialogType === "role"
+                  ? "Change Role"
+                  : dialogType === "suspend"
+                    ? "Suspend"
+                    : "Delete"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

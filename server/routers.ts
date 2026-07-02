@@ -75,3 +75,10 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
+export { playlistsRouter } from "./routers/playlists";
+export { subscriptionsRouter } from "./routers/subscriptions";
+export { reportingRouter } from "./routers/reporting";
+export { blockingRouter } from "./routers/blocking";
+export { storyHighlightsRouter } from "./routers/storyHighlights";
+export { shoppingRouter } from "./routers/shopping";

@@ -1,133 +1,80 @@
+import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { db } from "../db";
 import { reactions } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
-import { getDb } from "../db";
 
 export const reactionsRouter = router({
   // Add reaction to post
-  addReactionToPost: protectedProcedure
+  addReaction: protectedProcedure
     .input(
       z.object({
-        postId: z.number(),
-        type: z.enum(["heart", "laugh", "sad", "angry", "wow"]),
+        postId: z.string(),
+        emoji: z.enum(["❤️", "😘", "🤔", "🤣", "😡", "😱", "🥵", "🥶", "🤢"]),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      
-      // Check if already reacted
-      const existing = await db
-        .select()
-        .from(reactions)
-        .where(
-          and(
-            eq(reactions.postId, input.postId),
-            eq(reactions.userId, ctx.user.id),
-            eq(reactions.type, input.type)
-          )
-        )
-        .limit(1);
-
-      if (existing.length === 0) {
-        await db.insert(reactions).values({
+      const [reaction] = await db
+        .insert(reactions)
+        .values({
           userId: ctx.user.id,
           postId: input.postId,
-          type: input.type,
-        });
-      }
-
-      return { success: true };
-    }),
-
-  // Add reaction to comment
-  addReactionToComment: protectedProcedure
-    .input(
-      z.object({
-        commentId: z.number(),
-        type: z.enum(["heart", "laugh", "sad", "angry", "wow"]),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      
-      // Check if already reacted
-      const existing = await db
-        .select()
-        .from(reactions)
-        .where(
-          and(
-            eq(reactions.commentId, input.commentId),
-            eq(reactions.userId, ctx.user.id),
-            eq(reactions.type, input.type)
-          )
-        )
-        .limit(1);
-
-      if (existing.length === 0) {
-        await db.insert(reactions).values({
-          userId: ctx.user.id,
-          commentId: input.commentId,
-          type: input.type,
-        });
-      }
-
-      return { success: true };
+          emoji: input.emoji,
+        })
+        .returning();
+      return reaction;
     }),
 
   // Remove reaction
   removeReaction: protectedProcedure
-    .input(z.object({ reactionId: z.number() }))
+    .input(z.object({ postId: z.string(), emoji: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      
-      await db.delete(reactions).where(eq(reactions.id, input.reactionId));
+      await db
+        .delete(reactions)
+        .where(
+          and(
+            eq(reactions.userId, ctx.user.id),
+            eq(reactions.postId, input.postId),
+            eq(reactions.emoji, input.emoji)
+          )
+        );
       return { success: true };
     }),
 
-  // Get post reactions
-  getPostReactions: publicProcedure
-    .input(z.object({ postId: z.number() }))
-    .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      return db.select().from(reactions).where(eq(reactions.postId, input.postId));
+  // Get reactions for post
+  getPostReactions: protectedProcedure
+    .input(z.object({ postId: z.string() }))
+    .query(async ({ input }) => {
+      const postReactions = await db
+        .select()
+        .from(reactions)
+        .where(eq(reactions.postId, input.postId));
+
+      // Group by emoji and count
+      const grouped = new Map<string, number>();
+      postReactions.forEach((r) => {
+        grouped.set(r.emoji, (grouped.get(r.emoji) || 0) + 1);
+      });
+
+      return Array.from(grouped.entries()).map(([emoji, count]) => ({
+        emoji,
+        count,
+      }));
     }),
 
-  // Get comment reactions
-  getCommentReactions: publicProcedure
-    .input(z.object({ commentId: z.number() }))
+  // Get user's reaction on post
+  getUserReaction: protectedProcedure
+    .input(z.object({ postId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      return db.select().from(reactions).where(eq(reactions.commentId, input.commentId));
-    }),
-
-  // Get reaction summary
-  getReactionSummary: publicProcedure
-    .input(z.object({ postId: z.number() }))
-    .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      
-      const allReactions = await db.select().from(reactions).where(eq(reactions.postId, input.postId));
-      
-      const summary = {
-        heart: 0,
-        laugh: 0,
-        sad: 0,
-        angry: 0,
-        wow: 0,
-        total: allReactions.length,
-      };
-
-      for (const reaction of allReactions) {
-        summary[reaction.type]++;
-      }
-
-      return summary;
+      const [userReaction] = await db
+        .select()
+        .from(reactions)
+        .where(
+          and(
+            eq(reactions.userId, ctx.user.id),
+            eq(reactions.postId, input.postId)
+          )
+        );
+      return userReaction || null;
     }),
 });

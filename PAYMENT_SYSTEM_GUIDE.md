@@ -1,8 +1,8 @@
-# NovaPlus Social - Payment System Guide
+# TRILLIONER LINK - Payment System Guide
 
 ## Overview
 
-NovaPlus Social uses a **modular, scalable payment architecture** designed for:
+TRILLIONER LINK uses a **modular, scalable payment architecture** designed for:
 - ✅ **Bangladesh Launch:** SSLCommerz (bKash, Nagad, Rocket, Card)
 - ✅ **Global Expansion:** Stripe-ready (future implementation)
 - ✅ **Easy Switching:** Abstract payment gateway interface

@@ -1,8 +1,8 @@
-# NovaPlus Social API Documentation
+# TRILLIONER LINK API Documentation
 
 ## Overview
 
-NovaPlus Social is a comprehensive social media platform API built with Node.js, Express, and MongoDB. This documentation covers all available endpoints, authentication methods, and usage examples.
+TRILLIONER LINK is a comprehensive social media platform API built with Node.js, Express, and MongoDB. This documentation covers all available endpoints, authentication methods, and usage examples.
 
 **Base URL:** `http://localhost:5000/api`
 

@@ -1,6 +1,6 @@
-# NovaPlus Social - Frontend
+# TRILLIONER LINK - Frontend
 
-React + Vite frontend for NovaPlus Social platform.
+React + Vite frontend for TRILLIONER LINK platform.
 
 ## Setup
 

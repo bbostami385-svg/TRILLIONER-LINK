@@ -1,8 +1,8 @@
-# NovaPlus Social - Deployment Guide
+# TRILLIONER LINK - Deployment Guide
 
 ## Overview
 
-This guide covers the complete deployment process for the NovaPlus Social platform, including backend (Render), frontend (Vercel), and mobile app deployment.
+This guide covers the complete deployment process for the TRILLIONER LINK platform, including backend (Render), frontend (Vercel), and mobile app deployment.
 
 ---
 

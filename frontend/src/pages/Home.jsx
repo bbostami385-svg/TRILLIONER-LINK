@@ -7,7 +7,7 @@ function Home() {
       {/* Navigation */}
       <nav className="header">
         <div className="header-content">
-          <div className="logo">✨ NovaPlus Social</div>
+          <div className="logo">✨ TRILLIONER LINK</div>
           <ul className="nav">
             <li><a href="#features">Features</a></li>
             <li><a href="#about">About</a></li>
@@ -17,7 +17,7 @@ function Home() {
 
       {/* Hero Section */}
       <div className="hero">
-        <h1>Welcome to NovaPlus Social</h1>
+        <h1>Welcome to TRILLIONER LINK</h1>
         <p>Connect, share, and create with the world. A comprehensive social media platform built for creators, communities, and businesses.</p>
         <div className="cta-buttons">
           <Link to="/login" className="button button-primary">
@@ -146,7 +146,7 @@ function Home() {
         marginTop: '40px'
       }}>
         <div className="container">
-          <p>&copy; 2026 NovaPlus Social. All rights reserved.</p>
+          <p>&copy; 2026 TRILLIONER LINK. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -87,7 +87,7 @@ function SignUp() {
       <div className="container">
         <div className="signup-form">
           <h2>Create Account</h2>
-          <p className="subtitle">Join NovaPlus Social and start connecting</p>
+          <p className="subtitle">Join TRILLIONER LINK and start connecting</p>
           
           {error && <div className="error">{error}</div>}
           

@@ -1,7 +1,7 @@
 {
   "name": "novaplus-mobile",
   "version": "1.0.0",
-  "description": "NovaPlus Social Mobile App - React Native",
+  "description": "TRILLIONER LINK Mobile App - React Native",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "type-check": "tsc --noEmit",
     "build:android": "cd android && ./gradlew assembleRelease",
-    "build:ios": "cd ios && xcodebuild -workspace NovaPlus.xcworkspace -scheme NovaPlus -configuration Release"
+    "build:ios": "cd ios && xcodebuild -workspace TRILLIONER.xcworkspace -scheme TRILLIONER -configuration Release"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.17.11",

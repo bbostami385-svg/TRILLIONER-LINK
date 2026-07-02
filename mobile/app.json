@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "NovaPlus Social",
+    "name": "TRILLIONER LINK",
     "slug": "novaplus-social",
     "version": "1.0.0",
     "assetBundlePatterns": ["**/*"],
@@ -24,21 +24,21 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow NovaPlus to access your photos.",
-          "cameraPermission": "Allow NovaPlus to access your camera."
+          "photosPermission": "Allow TRILLIONER to access your photos.",
+          "cameraPermission": "Allow TRILLIONER to access your camera."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow NovaPlus to access your camera."
+          "cameraPermission": "Allow TRILLIONER to access your camera."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow NovaPlus to access your photos.",
-          "savePhotosPermission": "Allow NovaPlus to save photos."
+          "photosPermission": "Allow TRILLIONER to access your photos.",
+          "savePhotosPermission": "Allow TRILLIONER to save photos."
         }
       ],
       [

@@ -10,7 +10,11 @@ export const reactionsRouter = router({
     .input(
       z.object({
         postId: z.string(),
-        emoji: z.enum(["❤️", "😘", "🤔", "🤣", "😡", "😱", "🥵", "🥶", "🤢"]),
+        emoji: z.enum([
+          "❤️", "😘", "🤔", "🤣", "😡", "😱", "🥵", "🥶", "🤢",
+          "👍", "👎", "🔥", "💯", "😂", "😍", "🤩", "😎", "🥳",
+          "💪", "🙌", "👏", "🎉", "✨", "🚀", "💖", "⭐", "🌟"
+        ]),
       })
     )
     .mutation(async ({ ctx, input }) => {

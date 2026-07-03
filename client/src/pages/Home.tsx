@@ -21,7 +21,7 @@ export default function Home() {
   };
 
   const handleLogin = () => {
-    window.location.href = getLoginUrl();
+    setLocation("/login");
   };
 
   return (

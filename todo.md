@@ -17,6 +17,7 @@
 - [x] Create Creator Dashboard with analytics
 - [x] Create Settings page with preferences and account management
 - [x] Create Login page (separate from OAuth redirect) - Modern centered design with Google, Microsoft, GitHub buttons
+- [x] Add password visibility toggle with Eye icon in password field
 
 ## Core Features - UI Complete
 - [x] Feed page UI with post creation and display

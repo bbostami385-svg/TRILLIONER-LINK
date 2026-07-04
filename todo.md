@@ -22,6 +22,7 @@
 - [x] Add "Remember Me" checkbox with localStorage persistence
 - [x] Add "Forgot Password?" link below password field
 - [x] Create Forgot Password modal with email input and success state
+- [x] Add smooth transition from Login to Sign Up form with animation
 
 ## Core Features - UI Complete
 - [x] Feed page UI with post creation and display

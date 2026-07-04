@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "wouter";
 import { useAuth } from "../lib/auth";
 import { getLoginUrl } from "../const";
@@ -6,6 +6,60 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
+
+// Password strength calculator
+const calculatePasswordStrength = (password: string) => {
+  let strength = 0;
+  let feedback = [];
+
+  if (!password) {
+    return { strength: 0, label: "", feedback: [], color: "bg-gray-400" };
+  }
+
+  // Length check
+  if (password.length >= 8) strength += 20;
+  if (password.length >= 12) strength += 10;
+  if (password.length < 8) feedback.push("At least 8 characters");
+
+  // Lowercase check
+  if (/[a-z]/.test(password)) strength += 20;
+  else feedback.push("Add lowercase letters");
+
+  // Uppercase check
+  if (/[A-Z]/.test(password)) strength += 20;
+  else feedback.push("Add uppercase letters");
+
+  // Number check
+  if (/[0-9]/.test(password)) strength += 15;
+  else feedback.push("Add numbers");
+
+  // Special character check
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 15;
+  else feedback.push("Add special characters");
+
+  // Determine label and color
+  let label = "";
+  let color = "";
+
+  if (strength < 20) {
+    label = "Very Weak";
+    color = "bg-red-500";
+  } else if (strength < 40) {
+    label = "Weak";
+    color = "bg-orange-500";
+  } else if (strength < 60) {
+    label = "Fair";
+    color = "bg-yellow-500";
+  } else if (strength < 80) {
+    label = "Good";
+    color = "bg-lime-500";
+  } else {
+    label = "Strong";
+    color = "bg-green-500";
+  }
+
+  return { strength: Math.min(strength, 100), label, feedback, color };
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,6 +69,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
   const { login } = useAuth();
+
+  // Calculate password strength
+  const passwordStrength = useMemo(() => calculatePasswordStrength(password), [password]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +167,50 @@ export default function Login() {
                   )}
                 </button>
               </div>
+
+              {/* Password Strength Meter */}
+              {password && (
+                <div className="mt-3 space-y-2">
+                  {/* Strength Bar */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-slate-600 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                        style={{ width: `${passwordStrength.strength}%` }}
+                      ></div>
+                    </div>
+                    <span className={`text-xs font-semibold ${
+                      passwordStrength.strength < 20 ? 'text-red-400' :
+                      passwordStrength.strength < 40 ? 'text-orange-400' :
+                      passwordStrength.strength < 60 ? 'text-yellow-400' :
+                      passwordStrength.strength < 80 ? 'text-lime-400' :
+                      'text-green-400'
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+
+                  {/* Feedback */}
+                  {passwordStrength.feedback.length > 0 && (
+                    <div className="text-xs text-gray-400 space-y-1">
+                      {passwordStrength.feedback.map((tip, index) => (
+                        <div key={index} className="flex items-center gap-1">
+                          <span className="text-gray-500">•</span>
+                          <span>{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Success Message */}
+                  {passwordStrength.strength >= 80 && (
+                    <div className="text-xs text-green-400 flex items-center gap-1">
+                      <span>✓</span>
+                      <span>Password is strong!</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <Button

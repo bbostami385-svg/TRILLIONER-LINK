@@ -65,6 +65,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
@@ -80,6 +81,14 @@ export default function Login() {
 
     try {
       await login(email, password);
+      
+      // Save to localStorage if Remember Me is checked
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+      
       navigate("/feed");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -92,6 +101,15 @@ export default function Login() {
     // Redirect to OAuth provider
     window.location.href = getLoginUrl();
   };
+
+  // Load remembered email on mount
+  React.useEffect(() => {
+    const rememberedEmail = localStorage.getItem("rememberedEmail");
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
@@ -211,6 +229,30 @@ export default function Login() {
                   )}
                 </div>
               )}
+
+              {/* Remember Me & Forgot Password */}
+              <div className="mt-4 flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border border-purple-500/30 bg-slate-700/50 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                  />
+                  <span className="text-sm text-gray-300 select-none">Remember me</span>
+                </label>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // TODO: Implement forgot password flow
+                    alert("Forgot password feature coming soon!");
+                  }}
+                  className="text-sm text-purple-400 hover:text-purple-300 transition font-medium"
+                >
+                  Forgot password?
+                </a>
+              </div>
             </div>
 
             <Button

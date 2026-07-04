@@ -19,6 +19,8 @@
 - [x] Create Login page (separate from OAuth redirect) - Modern centered design with Google, Microsoft, GitHub buttons
 - [x] Add password visibility toggle with Eye icon in password field
 - [x] Add real-time password strength meter with visual progress bar and feedback
+- [x] Add "Remember Me" checkbox with localStorage persistence
+- [x] Add "Forgot Password?" link below password field
 
 ## Core Features - UI Complete
 - [x] Feed page UI with post creation and display

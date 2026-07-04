@@ -5,7 +5,7 @@ import { getLoginUrl } from "../const";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X, Mail, CheckCircle } from "lucide-react";
 
 // Password strength calculator
 const calculatePasswordStrength = (password: string) => {
@@ -61,11 +61,136 @@ const calculatePasswordStrength = (password: string) => {
   return { strength: Math.min(strength, 100), label, feedback, color };
 };
 
+// Forgot Password Modal Component
+const ForgotPasswordModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [resetEmail, setResetEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // TODO: Replace with actual API call
+      // await trpc.auth.requestPasswordReset.mutate({ email: resetEmail });
+      
+      setIsSuccess(true);
+      setTimeout(() => {
+        setResetEmail("");
+        setIsSuccess(false);
+        onClose();
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send reset link");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <Card className="w-full max-w-md shadow-2xl border border-purple-500/20 bg-slate-800/95 backdrop-blur-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-purple-500/10">
+          <div className="flex items-center gap-2">
+            <Mail className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-bold text-white">Reset Password</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-300 transition"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {isSuccess ? (
+            // Success State
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <CheckCircle className="w-16 h-16 text-green-400" />
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-2">Check your email</h4>
+                <p className="text-gray-400 text-sm">
+                  We've sent a password reset link to <span className="font-medium text-purple-300">{resetEmail}</span>
+                </p>
+              </div>
+              <p className="text-xs text-gray-500">
+                The link will expire in 24 hours. If you don't see the email, check your spam folder.
+              </p>
+            </div>
+          ) : (
+            // Form State
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-gray-400 text-sm">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 bg-slate-700/50 border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition disabled:opacity-50"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  variant="outline"
+                  className="flex-1 py-2 border border-purple-500/30 rounded-lg hover:bg-slate-700/50 transition bg-slate-700/30 text-white font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !resetEmail}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-2 rounded-lg transition disabled:opacity-50"
+                >
+                  {isSubmitting ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
@@ -241,17 +366,13 @@ export default function Login() {
                   />
                   <span className="text-sm text-gray-300 select-none">Remember me</span>
                 </label>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // TODO: Implement forgot password flow
-                    alert("Forgot password feature coming soon!");
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordModal(true)}
                   className="text-sm text-purple-400 hover:text-purple-300 transition font-medium"
                 >
                   Forgot password?
-                </a>
+                </button>
               </div>
             </div>
 
@@ -330,6 +451,12 @@ export default function Login() {
           </div>
         </Card>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+      />
 
       <style>{`
         @keyframes blob {

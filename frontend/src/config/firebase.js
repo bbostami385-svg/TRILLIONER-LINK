@@ -7,13 +7,13 @@ import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAQ1wNehf7efchAliA1ZTJdnKEiqbTww08",
-  authDomain: "novaplus-app.firebaseapp.com",
-  projectId: "novaplus-app",
-  storageBucket: "novaplus-app.firebasestorage.app",
-  messagingSenderId: "967183591469",
-  appId: "1:967183591469:web:dc4a5e01aa767bf265b0a4",
-  measurementId: "G-4QXRE8K8KY"
+  apiKey: "AIzaSyDsZD3OIeL7i_svUV2aiAeS0fOnZKpbgO8",
+  authDomain: "trillioner-link.firebaseapp.com",
+  projectId: "trillioner-link",
+  storageBucket: "trillioner-link.firebasestorage.app",
+  messagingSenderId: "364286702954",
+  appId: "1:364286702954:web:2783a137af5ad42cac6113",
+  measurementId: "G-N0HHT3FD1W"
 };
 
 // Initialize Firebase

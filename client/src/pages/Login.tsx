@@ -240,7 +240,9 @@ const ForgotPasswordModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [error, setError] = useState("");
@@ -254,6 +256,15 @@ export default function Login() {
   
   // Validate email
   const emailValidation = useMemo(() => validateEmail(email), [email]);
+  
+  // Validate confirm password
+  const confirmPasswordValidation = useMemo(() => {
+    if (!confirmPassword) return { isValid: false, message: "" };
+    if (confirmPassword !== password) {
+      return { isValid: false, message: "Passwords do not match" };
+    }
+    return { isValid: true, message: "" };
+  }, [confirmPassword, password]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -696,6 +707,61 @@ export default function Login() {
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className={`w-full px-4 py-3 pr-10 bg-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:border-transparent transition ${
+                        confirmPassword && confirmPasswordValidation.isValid
+                          ? "border border-green-500/50 focus:ring-green-500"
+                          : confirmPassword && !confirmPasswordValidation.isValid
+                          ? "border border-red-500/50 focus:ring-red-500"
+                          : "border border-purple-500/30 focus:ring-purple-500"
+                      }`}
+                    />
+                    {confirmPassword && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {confirmPasswordValidation.isValid ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-400" />
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition focus:outline-none"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {confirmPassword && !confirmPasswordValidation.isValid && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {confirmPasswordValidation.message}
+                    </p>
+                  )}
+                  {confirmPassword && confirmPasswordValidation.isValid && (
+                    <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Passwords match
+                    </p>
                   )}
                 </div>
 

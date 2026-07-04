@@ -5,7 +5,20 @@ import { getLoginUrl } from "../const";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+
+// Email validation function
+const validateEmail = (email: string) => {
+  if (!email) return { isValid: false, message: "" };
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!emailRegex.test(email)) {
+    return { isValid: false, message: "Please enter a valid email address" };
+  }
+  
+  return { isValid: true, message: "" };
+};
 
 // Loading Spinner Component
 const LoadingSpinner = ({ size = "sm" }: { size?: "sm" | "md" | "lg" }) => {
@@ -238,6 +251,9 @@ export default function Login() {
 
   // Calculate password strength
   const passwordStrength = useMemo(() => calculatePasswordStrength(password), [password]);
+  
+  // Validate email
+  const emailValidation = useMemo(() => validateEmail(email), [email]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,14 +356,43 @@ export default function Login() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Email Address
                   </label>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-slate-700/50 border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className={`w-full px-4 py-3 pr-10 bg-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:border-transparent transition ${
+                        email && emailValidation.isValid
+                          ? "border border-green-500/50 focus:ring-green-500"
+                          : email && !emailValidation.isValid
+                          ? "border border-red-500/50 focus:ring-red-500"
+                          : "border border-purple-500/30 focus:ring-purple-500"
+                      }`}
+                    />
+                    {email && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {emailValidation.isValid ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {email && !emailValidation.isValid && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {emailValidation.message}
+                    </p>
+                  )}
+                  {email && emailValidation.isValid && (
+                    <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Email looks good
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -546,14 +591,43 @@ export default function Login() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Email Address
                   </label>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-slate-700/50 border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className={`w-full px-4 py-3 pr-10 bg-slate-700/50 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:border-transparent transition ${
+                        email && emailValidation.isValid
+                          ? "border border-green-500/50 focus:ring-green-500"
+                          : email && !emailValidation.isValid
+                          ? "border border-red-500/50 focus:ring-red-500"
+                          : "border border-purple-500/30 focus:ring-purple-500"
+                      }`}
+                    />
+                    {email && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {emailValidation.isValid ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {email && !emailValidation.isValid && (
+                    <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {emailValidation.message}
+                    </p>
+                  )}
+                  {email && emailValidation.isValid && (
+                    <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Email looks good
+                    </p>
+                  )}
                 </div>
 
                 <div>

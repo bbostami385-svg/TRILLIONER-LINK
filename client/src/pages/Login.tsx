@@ -5,7 +5,52 @@ import { getLoginUrl } from "../const";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight, AlertCircle, CheckCircle2, Check } from "lucide-react";
+
+// Toast Notification Component
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+const Toast = ({ toast, onClose }: { toast: Toast; onClose: () => void }) => {
+  React.useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = {
+    success: 'bg-green-500/20 border-green-500/50',
+    error: 'bg-red-500/20 border-red-500/50',
+    info: 'bg-blue-500/20 border-blue-500/50',
+  }[toast.type];
+
+  const textColor = {
+    success: 'text-green-400',
+    error: 'text-red-400',
+    info: 'text-blue-400',
+  }[toast.type];
+
+  const Icon = {
+    success: Check,
+    error: AlertCircle,
+    info: Mail,
+  }[toast.type];
+
+  return (
+    <div className={`fixed top-4 right-4 p-4 rounded-lg border ${bgColor} backdrop-blur-sm flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 z-50`}>
+      <Icon className={`w-5 h-5 ${textColor}`} />
+      <p className={`${textColor} text-sm font-medium`}>{toast.message}</p>
+      <button
+        onClick={onClose}
+        className="ml-2 text-gray-400 hover:text-gray-300 transition"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
 
 // Email validation function
 const validateEmail = (email: string) => {
@@ -248,6 +293,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [, navigate] = useLocation();
   const { login } = useAuth();
 
@@ -266,6 +312,15 @@ export default function Login() {
     return { isValid: true, message: "" };
   }, [confirmPassword, password]);
 
+  // Show toast notification
+  const showToastNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({
+      id: Date.now().toString(),
+      message,
+      type,
+    });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -281,9 +336,12 @@ export default function Login() {
         localStorage.removeItem("rememberedEmail");
       }
       
-      navigate("/feed");
+      showToastNotification("Login successful! Redirecting...", "success");
+      setTimeout(() => navigate("/feed"), 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      setError(errorMessage);
+      showToastNotification(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -300,9 +358,12 @@ export default function Login() {
       
       // For now, just show success and redirect
       await new Promise(resolve => setTimeout(resolve, 1000));
-      navigate("/feed");
+      showToastNotification("Account created successfully! Redirecting...", "success");
+      setTimeout(() => navigate("/feed"), 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
+      const errorMessage = err instanceof Error ? err.message : "Signup failed";
+      setError(errorMessage);
+      showToastNotification(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -867,6 +928,14 @@ export default function Login() {
         isOpen={showForgotPasswordModal}
         onClose={() => setShowForgotPasswordModal(false)}
       />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          toast={toast}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       <style>{`
         @keyframes blob {

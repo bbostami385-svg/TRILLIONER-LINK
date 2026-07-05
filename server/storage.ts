@@ -1,4 +1,4 @@
-// Preconfigured storage helpers for TRILLIONER LINK templates
+// Preconfigured storage helpers for Manus WebDev templates
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 
 import { ENV } from './_core/env';

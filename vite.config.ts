@@ -1,18 +1,19 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
+import type { Plugin } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { defineConfig, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 // =============================================================================
-// TRILLIONER LINK Debug Collector - Vite Plugin
+// Manus Debug Collector - Vite Plugin
 // Writes browser logs directly to files, trimmed when exceeding size limit
 // =============================================================================
 
 const PROJECT_ROOT = import.meta.dirname;
-const LOG_DIR = path.join(PROJECT_ROOT, ".trillioner-logs");
+const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024; // 1MB per log file
 const TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6); // Trim to 60% to avoid constant re-trimming
 
@@ -70,13 +71,13 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
 
 /**
  * Vite plugin to collect browser debug logs
- * - POST /__trillioner__/logs: Browser sends logs, written directly to files
+ * - POST /__manus__/logs: Browser sends logs, written directly to files
  * - Files: browserConsole.log, networkRequests.log, sessionReplay.log
  * - Auto-trimmed when exceeding 1MB (keeps newest entries)
  */
-function vitePluginTrillionerDebugCollector(): Plugin {
+function vitePluginManusDebugCollector(): Plugin {
   return {
-    name: "trillioner-debug-collector",
+    name: "manus-debug-collector",
 
     transformIndexHtml(html) {
       if (process.env.NODE_ENV === "production") {
@@ -88,7 +89,7 @@ function vitePluginTrillionerDebugCollector(): Plugin {
           {
             tag: "script",
             attrs: {
-              src: "/__trillioner__/debug-collector.js",
+              src: "/__manus__/debug-collector.js",
               defer: true,
             },
             injectTo: "head",
@@ -98,8 +99,8 @@ function vitePluginTrillionerDebugCollector(): Plugin {
     },
 
     configureServer(server: ViteDevServer) {
-      // POST /__trillioner__/logs: Browser sends logs (written directly to files)
-      server.middlewares.use("/__trillioner__/logs", (req, res, next) => {
+      // POST /__manus__/logs: Browser sends logs (written directly to files)
+      server.middlewares.use("/__manus__/logs", (req, res, next) => {
         if (req.method !== "POST") {
           return next();
         }
@@ -150,7 +151,7 @@ function vitePluginTrillionerDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginTrillionerDebugCollector()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,

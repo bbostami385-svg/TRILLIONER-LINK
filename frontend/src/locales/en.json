@@ -1,0 +1,61 @@
+{
+  "common": {
+    "appName": "TRILLIONER LINK",
+    "welcome": "Welcome to TRILLIONER LINK",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "navigation": {
+    "feed": "Feed",
+    "explore": "Explore",
+    "messages": "Messages",
+    "videos": "Videos",
+    "stories": "Stories",
+    "notifications": "Notifications",
+    "marketplace": "Marketplace",
+    "creatorDashboard": "Creator Dashboard",
+    "settings": "Settings",
+    "payment": "Payment"
+  },
+  "feed": {
+    "createPost": "Create a post",
+    "postContent": "What's on your mind?",
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "noPostsYet": "No posts yet"
+  },
+  "messages": {
+    "conversations": "Conversations",
+    "newMessage": "New Message",
+    "typeMessage": "Type your message...",
+    "sendMessage": "Send",
+    "noConversations": "No conversations yet"
+  },
+  "payment": {
+    "choosePlan": "Choose Your Plan",
+    "subscribeNow": "Subscribe Now",
+    "monthlyPrice": "/month",
+    "features": "Features",
+    "paymentMethods": "Accepted Payment Methods",
+    "faq": "Frequently Asked Questions"
+  },
+  "settings": {
+    "accountSettings": "Account Settings",
+    "privacySettings": "Privacy Settings",
+    "notificationSettings": "Notification Settings",
+    "appearanceSettings": "Appearance Settings",
+    "darkMode": "Dark Mode",
+    "language": "Language"
+  }
+}

@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
-import { vitePluginTrillionerRuntime } from "vite-plugin-manus-runtime";
+import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 // =============================================================================
 // TRILLIONER LINK Debug Collector - Vite Plugin
@@ -150,7 +150,7 @@ function vitePluginTrillionerDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginTrillionerRuntime(), vitePluginTrillionerDebugCollector()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginTrillionerDebugCollector()];
 
 export default defineConfig({
   plugins,

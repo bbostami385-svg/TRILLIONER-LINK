@@ -1,5 +1,7 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { ArrowRight, Zap, Users, Sparkles } from "lucide-react";
 
@@ -7,7 +9,12 @@ import { ArrowRight, Zap, Users, Sparkles } from "lucide-react";
  * Home page - Landing page for TRILLIONER LINK
  */
 export default function Home() {
+  const { user, loading, isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   const handleSignUp = () => {
     setLocation("/signup");
@@ -27,12 +34,23 @@ export default function Home() {
             <span className="text-xl font-bold">TRILLIONER LINK</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={handleLogin}>
-              Login
-            </Button>
-            <Button size="sm" onClick={handleSignUp}>
-              Sign Up
-            </Button>
+            {isAuthenticated && user ? (
+              <>
+                <span className="text-sm text-muted-foreground">Welcome, {user.email}</span>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={handleLogin}>
+                  Login
+                </Button>
+                <Button size="sm" onClick={handleSignUp}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -47,12 +65,16 @@ export default function Home() {
           built for creators, communities, and businesses.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" onClick={handleSignUp} className="gap-2">
-            Get Started <ArrowRight className="h-4 w-4" />
-          </Button>
-          <Button size="lg" variant="outline" onClick={handleLogin}>
-            Sign In
-          </Button>
+          {!isAuthenticated && (
+            <>
+              <Button size="lg" onClick={handleSignUp} className="gap-2">
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button size="lg" variant="outline" onClick={handleLogin}>
+                Sign In
+              </Button>
+            </>
+          )}
         </div>
       </section>
 
@@ -97,21 +119,23 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="container max-w-4xl mx-auto px-4 py-20 text-center">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-2xl">Ready to join?</CardTitle>
-            <CardDescription>
-              Sign up now and start connecting with millions of creators and users.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button size="lg" onClick={handleSignUp}>
-              Create Account
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
+      {!isAuthenticated && (
+        <section className="container max-w-4xl mx-auto px-4 py-20 text-center">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-2xl">Ready to join?</CardTitle>
+              <CardDescription>
+                Sign up now and start connecting with millions of creators and users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" onClick={handleSignUp}>
+                Create Account
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-muted bg-muted/30 mt-20">

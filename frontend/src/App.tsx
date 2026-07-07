@@ -53,7 +53,6 @@ function Router() {
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />
       <Route path="/users-management" component={UsersManagement} />
-      <Route path="*" component={NotFound} />
       <Route path={"/payment"} component={Payment} />
       <Route path={"/live"} component={LiveStreaming} />
       <Route path={"/profile-edit"} component={ProfileEdit} />
@@ -68,8 +67,7 @@ function Router() {
       <Route path={"/sound-library"} component={SoundLibrary} />
       <Route path={"/pages"} component={PagesPage} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
+      <Route path="*" component={NotFound} />
     </Switch>
   );
 }
@@ -87,6 +85,7 @@ function App() {
         switchable
       >
         <TooltipProvider>
+          <Toaster />
           <div className="app-header">
             <div className="app-controls">
               <ThemeToggle />

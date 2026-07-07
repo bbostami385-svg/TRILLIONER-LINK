@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "364286702954",
+    "firebase_url": "https://trillioner-link-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "trillioner-link",
+    "storage_bucket": "trillioner-link.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364286702954:android:f4e23f933eaf82bbac6113",
+        "android_client_info": {
+          "package_name": "com.trillionerlink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "364286702954-sckjhqv39j5cc4t0eoeruchn679audm4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvyEQoOqjLi6feDBbgU1wiJi7tb_x8zgY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "364286702954-sckjhqv39j5cc4t0eoeruchn679audm4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

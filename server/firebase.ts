@@ -2,6 +2,7 @@ import admin from 'firebase-admin';
 
 /**
  * Initialize Firebase Admin SDK
+ * Project: trillioner-link (from Android google-services.json)
  * Requires FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable
  */
 export function initializeFirebase() {
@@ -19,10 +20,12 @@ export function initializeFirebase() {
     // Initialize Firebase Admin SDK
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: serviceAccount.project_id,
+      projectId: serviceAccount.project_id || 'trillioner-link',
+      databaseURL: 'https://trillioner-link-default-rtdb.asia-southeast1.firebasedatabase.app',
     });
 
     console.log('✅ Firebase Admin SDK initialized successfully');
+    console.log('📱 Project:', serviceAccount.project_id);
     return true;
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
@@ -42,6 +45,13 @@ export function getAuth() {
  */
 export function getFirestore() {
   return admin.firestore();
+}
+
+/**
+ * Get Realtime Database instance
+ */
+export function getDatabase() {
+  return admin.database();
 }
 
 /**
@@ -151,6 +161,26 @@ export async function updateUserProfile(uid: string, updates: any) {
     return true;
   } catch (error) {
     console.error('Error updating user profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user data
+ * @param uid - Firebase UID
+ */
+export async function getUser(uid: string) {
+  try {
+    const db = getFirestore();
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      return null;
+    }
+    
+    return userDoc.data();
+  } catch (error) {
+    console.error('Error getting user:', error);
     throw error;
   }
 }

@@ -1,4 +1,5 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex } from "drizzle-orm/mysql-core";
+import { relations } from "drizzle-orm";
 
 /**
  * Core user table backing auth flow.
@@ -20,6 +21,10 @@ export const users = mysqlTable("users", {
   profileImage: text("profileImage"),
   bio: text("bio"),
   website: varchar("website", { length: 255 }),
+  /** Account mode: 'social' (Follow/Followers) or 'creator' (Subscribe/Subscribers) */
+  accountMode: mysqlEnum("accountMode", ["social", "creator"]).default("social").notNull(),
+  /** Whether user has completed initial mode selection */
+  modeSelected: boolean("modeSelected").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -27,6 +32,73 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+/**
+ * User Mode Preferences table
+ * Stores user preferences and statistics for each mode
+ */
+export const userModePreferences = mysqlTable("userModePreferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mode: mysqlEnum("mode", ["social", "creator"]).notNull(),
+  followers: int("followers").default(0).notNull(),
+  following: int("following").default(0).notNull(),
+  subscribers: int("subscribers").default(0).notNull(),
+  totalViews: int("totalViews").default(0).notNull(),
+  totalPosts: int("totalPosts").default(0).notNull(),
+  totalVideos: int("totalVideos").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserModePreference = typeof userModePreferences.$inferSelect;
+export type InsertUserModePreference = typeof userModePreferences.$inferInsert;
+
+/**
+ * Subscriptions table for Creator Mode (Subscribe/Subscribers)
+ */
+export const subscriptions = mysqlTable(
+  "subscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    subscriberId: int("subscriberId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    creatorId: int("creatorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subscriptionTier: mysqlEnum("subscriptionTier", ["free", "basic", "premium"]).default("free").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueSubscription: uniqueIndex("unique_subscription").on(table.subscriberId, table.creatorId),
+  })
+);
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+/**
+ * User Levels table for Follower-based leveling system
+ * Levels 1-20 based on follower count
+ */
+export const userLevels = mysqlTable("userLevels", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  currentLevel: int("currentLevel").default(1).notNull(),
+  totalFollowers: int("totalFollowers").default(0).notNull(),
+  levelUpCount: int("levelUpCount").default(0).notNull(),
+  lastLevelUpAt: timestamp("lastLevelUpAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserLevel = typeof userLevels.$inferSelect;
+export type InsertUserLevel = typeof userLevels.$inferInsert;
 
 /**
  * Posts table for feed functionality

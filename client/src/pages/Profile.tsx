@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, Settings, Edit2, UserPlus, UserCheck } from 'lucide-react';
+import { LevelBadge } from '@/components/LevelBadge';
+import { LevelProgressBar } from '@/components/LevelProgressBar';
+import { ModeIndicator } from '@/components/ModeIndicator';
+import { DualModeButton } from '@/components/DualModeButton';
+import { trpc } from '@/lib/trpc';
 import './Profile.css';
 
 interface UserProfile {
@@ -22,6 +27,9 @@ interface Post {
 }
 
 export default function Profile() {
+  const { data: currentMode } = trpc.dualMode.getCurrentMode.useQuery();
+  const { data: levelStats } = trpc.levels.getLevelStats.useQuery();
+
   const [user] = useState<UserProfile>({
     id: 1,
     name: 'Sarah Ahmed',
@@ -57,11 +65,22 @@ export default function Profile() {
           
           <div className="profile-details">
             <div className="profile-name-section">
-              <h1>{user.name}</h1>
+              <div className="flex items-center gap-3">
+                <h1>{user.name}</h1>
+                {levelStats && (
+                  <LevelBadge level={levelStats.currentLevel} size="md" />
+                )}
+              </div>
               <button className="settings-btn">
                 <Settings size={20} />
               </button>
             </div>
+            
+            {currentMode && (
+              <div className="mb-2">
+                <ModeIndicator mode={currentMode.currentMode} size="md" />
+              </div>
+            )}
             
             <p className="profile-bio">{user.bio}</p>
             
@@ -87,20 +106,12 @@ export default function Profile() {
             </div>
             
             <div className="profile-actions">
-              <button 
-                className={`action-btn ${isFollowing ? 'following' : ''}`}
-                onClick={() => setIsFollowing(!isFollowing)}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserCheck size={18} /> Following
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={18} /> Follow
-                  </>
-                )}
-              </button>
+              {currentMode && (
+                <DualModeButton
+                  targetUserId={user.id}
+                  currentMode={currentMode.currentMode}
+                />
+              )}
               <button className="action-btn secondary">
                 <MessageCircle size={18} /> Message
               </button>
@@ -108,6 +119,16 @@ export default function Profile() {
                 <Share2 size={18} /> Share
               </button>
             </div>
+            
+            {levelStats && (
+              <div className="mt-4">
+                <LevelProgressBar
+                  currentLevel={levelStats.currentLevel}
+                  followers={levelStats.totalFollowers}
+                  showDetails={true}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -133,6 +154,20 @@ export default function Profile() {
           🔖 Saved
         </button>
       </div>
+
+      {/* Level Info */}
+      {levelStats && (
+        <div className="level-info-section">
+          <div className="level-badge-large">
+            <LevelBadge 
+              level={levelStats.currentLevel} 
+              size="lg" 
+              showDescription={true}
+              followers={levelStats.totalFollowers}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Posts Grid */}
       {activeTab === 'posts' && (

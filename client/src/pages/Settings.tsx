@@ -1,8 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Bell, Lock, Globe, Palette, LogOut, ChevronRight } from "lucide-react";
+import { Bell, Lock, Globe, Palette, LogOut, ChevronRight, Zap, Trophy } from "lucide-react";
+import { ModeSelector } from "@/components/ModeSelector";
+import { ModeIndicator } from "@/components/ModeIndicator";
+import { LevelBadge } from "@/components/LevelBadge";
+import { LevelProgressBar } from "@/components/LevelProgressBar";
+import { Leaderboard } from "@/components/Leaderboard";
+import { trpc } from "@/lib/trpc";
 import "./Settings.css";
 
 export default function Settings() {
@@ -10,12 +17,33 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("en");
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [activeTab, setActiveTab] = useState("account");
   const [notifications, setNotifications] = useState({
     likes: true,
     comments: true,
     messages: true,
     follows: true,
   });
+
+  // Queries
+  const { data: currentMode, isLoading: modeLoading } =
+    trpc.dualMode.getCurrentMode.useQuery();
+  const { data: levelStats, isLoading: levelLoading } =
+    trpc.levels.getLevelStats.useQuery();
+
+  // Mutations
+  const logoutMutation = trpc.auth.logout.useMutation();
+
+  const handleLogout = async () => {
+    await logoutMutation.mutateAsync();
+    window.location.href = "/";
+  };
+
+  const handleModeChanged = () => {
+    setShowModeSelector(false);
+    trpc.useUtils().dualMode.getCurrentMode.invalidate();
+  };
 
   if (!isAuthenticated) {
     return (
@@ -78,7 +106,7 @@ export default function Settings() {
       {/* Header */}
       <div className="settings-header">
         <h1>Settings</h1>
-        <p>Manage your account and preferences</p>
+        <p>Manage your account, mode, and level</p>
       </div>
 
       {/* Account Overview */}
@@ -93,113 +121,337 @@ export default function Settings() {
         <Button className="edit-profile-btn">Edit Profile</Button>
       </div>
 
-      {/* Notification Settings */}
+      {/* Tab Navigation */}
       <div className="settings-section">
-        <div className="section-header">
-          <Bell size={20} />
-          <h2>Notifications</h2>
-        </div>
-        <div className="settings-list">
-          {Object.entries(notifications).map(([key, value]) => (
-            <div key={key} className="setting-item">
-              <div className="setting-info">
-                <h4>{key.charAt(0).toUpperCase() + key.slice(1)} Notifications</h4>
-                <p>Get notified when someone {key}s your content</p>
-              </div>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={value}
-                  onChange={(e) =>
-                    setNotifications({
-                      ...notifications,
-                      [key]: e.target.checked,
-                    })
-                  }
-                />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-          ))}
+        <div className="tab-navigation">
+          <button
+            className={`tab-button ${activeTab === "account" ? "active" : ""}`}
+            onClick={() => setActiveTab("account")}
+          >
+            Account
+          </button>
+          <button
+            className={`tab-button ${activeTab === "mode" ? "active" : ""}`}
+            onClick={() => setActiveTab("mode")}
+          >
+            <Zap size={18} />
+            Mode
+          </button>
+          <button
+            className={`tab-button ${activeTab === "level" ? "active" : ""}`}
+            onClick={() => setActiveTab("level")}
+          >
+            <Trophy size={18} />
+            Level
+          </button>
         </div>
       </div>
 
-      {/* Theme Settings */}
-      <div className="settings-section">
-        <div className="section-header">
-          <Palette size={20} />
-          <h2>Appearance</h2>
-        </div>
-        <div className="settings-list">
-          <div className="setting-item">
-            <div className="setting-info">
-              <h4>Dark Mode</h4>
-              <p>Use dark theme for better visibility at night</p>
-            </div>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={darkMode}
-                onChange={(e) => setDarkMode(e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <h4>Language</h4>
-              <p>Choose your preferred language</p>
-            </div>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="language-select"
-            >
-              <option value="en">English</option>
-              <option value="bn">বাংলা</option>
-              <option value="hi">हिन्दी</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Settings Sections */}
-      {settingsSections.map((section, index) => {
-        const Icon = section.icon;
-        return (
-          <div key={index} className="settings-section">
+      {/* Account Tab */}
+      {activeTab === "account" && (
+        <>
+          {/* Notification Settings */}
+          <div className="settings-section">
             <div className="section-header">
-              <Icon size={20} />
-              <h2>{section.title}</h2>
+              <Bell size={20} />
+              <h2>Notifications</h2>
             </div>
             <div className="settings-list">
-              {section.items.map((item, itemIndex) => (
-                <button
-                  key={itemIndex}
-                  className="setting-link"
-                  onClick={() => console.log(`Navigate to ${item.action}`)}
-                >
-                  <span>{item.label}</span>
-                  <ChevronRight size={18} />
-                </button>
+              {Object.entries(notifications).map(([key, value]) => (
+                <div key={key} className="setting-item">
+                  <div className="setting-info">
+                    <h4>{key.charAt(0).toUpperCase() + key.slice(1)} Notifications</h4>
+                    <p>Get notified when someone {key}s your content</p>
+                  </div>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={value}
+                      onChange={(e) =>
+                        setNotifications({
+                          ...notifications,
+                          [key]: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
               ))}
             </div>
           </div>
-        );
-      })}
 
-      {/* Danger Zone */}
-      <div className="settings-section danger-zone">
-        <h2>Danger Zone</h2>
-        <div className="danger-actions">
-          <button className="danger-btn">
-            <LogOut size={18} />
-            Log Out
-          </button>
-          <button className="danger-btn delete">Delete Account</button>
+          {/* Theme Settings */}
+          <div className="settings-section">
+            <div className="section-header">
+              <Palette size={20} />
+              <h2>Appearance</h2>
+            </div>
+            <div className="settings-list">
+              <div className="setting-item">
+                <div className="setting-info">
+                  <h4>Dark Mode</h4>
+                  <p>Use dark theme for better visibility at night</p>
+                </div>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={darkMode}
+                    onChange={(e) => setDarkMode(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-info">
+                  <h4>Language</h4>
+                  <p>Choose your preferred language</p>
+                </div>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="language-select"
+                >
+                  <option value="en">English</option>
+                  <option value="bn">বাংলা</option>
+                  <option value="hi">हिन्दी</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Sections */}
+          {settingsSections.map((section, index) => {
+            const Icon = section.icon;
+            return (
+              <div key={index} className="settings-section">
+                <div className="section-header">
+                  <Icon size={20} />
+                  <h2>{section.title}</h2>
+                </div>
+                <div className="settings-list">
+                  {section.items.map((item, itemIndex) => (
+                    <button
+                      key={itemIndex}
+                      className="setting-link"
+                      onClick={() => console.log(`Navigate to ${item.action}`)}
+                    >
+                      <span>{item.label}</span>
+                      <ChevronRight size={18} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Danger Zone */}
+          <div className="settings-section danger-zone">
+            <h2>Danger Zone</h2>
+            <div className="danger-actions">
+              <button className="danger-btn" onClick={handleLogout}>
+                <LogOut size={18} />
+                Log Out
+              </button>
+              <button className="danger-btn delete">Delete Account</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mode Tab */}
+      {activeTab === "mode" && (
+        <div className="settings-section">
+          <div className="section-header">
+            <Zap size={20} />
+            <h2>Platform Mode</h2>
+          </div>
+
+          {modeLoading ? (
+            <div className="loading">Loading mode settings...</div>
+          ) : (
+            <>
+              {/* Current Mode */}
+              <div className="mode-card">
+                <div className="mode-header">
+                  <div>
+                    <h3>Current Mode</h3>
+                    <p>
+                      You're currently using{" "}
+                      <span className="font-semibold">
+                        {currentMode?.currentMode === "social" ? "Social Mode" : "Creator Mode"}
+                      </span>
+                    </p>
+                  </div>
+                  {currentMode && (
+                    <ModeIndicator mode={currentMode.currentMode} size="lg" />
+                  )}
+                </div>
+
+                {/* Mode Statistics */}
+                {currentMode?.statistics && (
+                  <div className="mode-stats">
+                    <div className="stat-item">
+                      <div className="stat-value">
+                        {currentMode.currentMode === "social"
+                          ? currentMode.statistics.followers
+                          : currentMode.statistics.subscribers}
+                      </div>
+                      <div className="stat-label">
+                        {currentMode.currentMode === "social" ? "Followers" : "Subscribers"}
+                      </div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">
+                        {currentMode.currentMode === "social"
+                          ? currentMode.statistics.following
+                          : currentMode.statistics.totalVideos}
+                      </div>
+                      <div className="stat-label">
+                        {currentMode.currentMode === "social" ? "Following" : "Videos"}
+                      </div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">
+                        {currentMode.statistics.totalPosts || currentMode.statistics.totalViews}
+                      </div>
+                      <div className="stat-label">
+                        {currentMode.currentMode === "social" ? "Posts" : "Views"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Switch Mode Button */}
+              <Button
+                onClick={() => setShowModeSelector(true)}
+                className="mode-switch-btn"
+              >
+                <Zap size={18} />
+                Switch to {currentMode?.currentMode === "social" ? "Creator" : "Social"} Mode
+              </Button>
+
+              {/* Mode Selector Modal */}
+              {showModeSelector && (
+                <div className="mode-modal-overlay">
+                  <Card className="mode-modal">
+                    <div className="mode-modal-header">
+                      <h3>Switch Platform Mode</h3>
+                      <button
+                        onClick={() => setShowModeSelector(false)}
+                        className="close-btn"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="mode-modal-content">
+                      <ModeSelector onModeSelected={handleModeChanged} />
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Mode Information */}
+              <div className="mode-info-grid">
+                <Card className="mode-info-card social">
+                  <h4>Social Mode</h4>
+                  <ul>
+                    <li>✓ Follow & Followers</li>
+                    <li>✓ Share Posts & Photos</li>
+                    <li>✓ Stories & Reels</li>
+                    <li>✓ Like & Comment</li>
+                  </ul>
+                </Card>
+
+                <Card className="mode-info-card creator">
+                  <h4>Creator Mode</h4>
+                  <ul>
+                    <li>✓ Subscribe & Subscribers</li>
+                    <li>✓ Upload Videos</li>
+                    <li>✓ View Analytics</li>
+                    <li>✓ Monetization Options</li>
+                  </ul>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Level Tab */}
+      {activeTab === "level" && (
+        <div className="settings-section">
+          <div className="section-header">
+            <Trophy size={20} />
+            <h2>Your Level</h2>
+          </div>
+
+          {levelLoading ? (
+            <div className="loading">Loading level data...</div>
+          ) : (
+            <>
+              {/* Current Level */}
+              <div className="level-card">
+                <div className="level-header">
+                  <div>
+                    <h3>Current Level</h3>
+                    <p>Keep growing to unlock higher levels and special features</p>
+                  </div>
+                  {levelStats && (
+                    <LevelBadge
+                      level={levelStats.currentLevel}
+                      size="lg"
+                      showDescription
+                      followers={levelStats.totalFollowers}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              {levelStats && (
+                <div className="level-progress">
+                  <LevelProgressBar
+                    currentLevel={levelStats.currentLevel}
+                    followers={levelStats.totalFollowers}
+                    showDetails
+                  />
+                </div>
+              )}
+
+              {/* Level Statistics */}
+              {levelStats && (
+                <div className="level-stats-grid">
+                  <Card className="level-stat-card">
+                    <div className="stat-number">{levelStats.currentLevel}</div>
+                    <div className="stat-text">Current Level</div>
+                  </Card>
+
+                  <Card className="level-stat-card">
+                    <div className="stat-number">{levelStats.totalFollowers}</div>
+                    <div className="stat-text">Total Followers</div>
+                  </Card>
+
+                  <Card className="level-stat-card">
+                    <div className="stat-number">
+                      {levelStats.currentLevel === 20 ? "∞" : levelStats.nextLevelThreshold}
+                    </div>
+                    <div className="stat-text">Next Target</div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Leaderboard */}
+              <div className="leaderboard-section">
+                <h3>Top Creators</h3>
+                <Leaderboard limit={10} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

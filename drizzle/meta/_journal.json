@@ -22,6 +22,20 @@
       "when": 1781093929724,
       "tag": "0002_bouncy_famine",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1785549737546,
+      "tag": "0003_oval_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1785550383456,
+      "tag": "0004_rainy_shiva",
+      "breakpoints": true
     }
   ]
 }

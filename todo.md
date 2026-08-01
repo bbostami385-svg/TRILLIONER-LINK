@@ -249,3 +249,131 @@
 - [x] Implement cache invalidation on successful mutations
 - [x] Add loading states and success/error toasts
 - [ ] Implement optimistic updates for list operations
+
+
+## Dual Mode System (Follow & Subscribe) - NEW
+
+### Phase 1: Database & Backend ✅
+- [x] Add accountMode field to users table (social/creator)
+- [x] Add modeSelected field to users table
+- [x] Create userModePreferences table for mode-specific stats
+- [x] Create subscriptions table for Creator Mode
+- [x] Database migration generated and applied
+
+### Phase 2: Backend API Routers ✅
+- [x] Create dualModeRouter with all procedures
+- [x] Implement initializeModePreferences mutation
+- [x] Implement switchMode mutation
+- [x] Implement getCurrentMode query
+- [x] Implement getModeStatistics query
+- [x] Implement followUser/unfollowUser mutations (Social Mode)
+- [x] Implement getFollowers/getFollowing queries (Social Mode)
+- [x] Implement isFollowing query (Social Mode)
+- [x] Implement subscribeToCreator/unsubscribeFromCreator mutations (Creator Mode)
+- [x] Implement getSubscribers query (Creator Mode)
+- [x] Implement isSubscribed query (Creator Mode)
+- [x] Implement getSubscriptions query (Creator Mode)
+- [x] Integrate dualModeRouter into appRouter
+
+### Phase 3: Frontend Components ✅
+- [x] Create DualModeButton component (Follow/Subscribe button)
+- [x] Create ModeStatistics component (display mode-specific stats)
+- [x] Create ModeIndicator component (show current mode badge)
+- [x] Create ModeSelector component (choose between modes)
+
+### Phase 4: Welcome Screen & First-Time Setup
+- [ ] Create WelcomeScreen page with ModeSelector
+- [ ] Add route to App.tsx for /welcome
+- [ ] Check modeSelected flag on app load
+- [ ] Redirect to welcome if modeSelected is false
+
+### Phase 5: Settings Page Integration
+- [ ] Add Mode Switching section to Settings page
+- [ ] Display current mode with ModeIndicator
+- [ ] Add ModeSelector component to settings
+- [ ] Show mode-specific statistics in settings
+
+### Phase 6: Profile Page Integration
+- [ ] Update Profile page to use ModeStatistics
+- [ ] Display Follow/Subscribe button based on mode
+- [ ] Show followers/subscribers list based on mode
+- [ ] Update profile header with ModeIndicator
+
+### Phase 7: Testing & Verification
+- [ ] Write unit tests for dualModeRouter
+- [ ] Test Follow/Unfollow functionality
+- [ ] Test Subscribe/Unsubscribe functionality
+- [ ] Test mode switching
+- [ ] Test statistics updates
+- [ ] Test first-time setup flow
+
+### Phase 8: Checkpoint & Delivery
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
+- [ ] Document API changes
+- [ ] Prepare user guide
+
+
+## Follower Level System (Levels 1-20) - NEW
+
+### Phase 4: Level System Database ✅
+- [x] Create userLevels table with level tracking
+- [x] Add currentLevel, totalFollowers, levelUpCount fields
+- [x] Add lastLevelUpAt timestamp for tracking
+- [x] Database migration generated and applied
+
+### Phase 5: Level Up Animation & Celebration ✅
+- [x] Create levelUtils.ts with all level thresholds (1-20)
+- [x] Create LevelBadge component with emoji and color coding
+- [x] Create LevelProgressBar component with progress visualization
+- [x] Create LevelUpAnimation component with confetti effect
+- [x] Add sound effect for level up celebration
+- [x] Create achievement messages for each level
+
+### Phase 6: Backend Level System ✅
+- [x] Create levelsRouter with procedures
+- [x] Implement getUserLevel query
+- [x] Implement updateUserLevel mutation
+- [x] Implement getLevelStats query
+- [x] Implement getTopUsersByLevel query
+- [x] Implement getLeaderboard query
+- [x] Integrate levelsRouter into appRouter
+
+### Phase 7: Frontend Level Components ✅
+- [x] Create Leaderboard component
+- [x] Display top users with medals (🥇🥈🥉)
+- [x] Show level, followers, and level-up count
+- [x] Add pagination with "Load More" button
+
+### Phase 8: Settings Page Integration ✅
+- [x] Add Mode Switching section to Settings page
+- [x] Display current mode with ModeIndicator
+- [x] Add ModeSelector component to settings
+- [x] Show mode-specific statistics in settings
+- [x] Add Level section to Settings
+- [x] Display current level and progress
+- [x] Add Leaderboard to Settings
+- [x] Tab navigation for Account, Mode, Level
+
+### Phase 9: Profile Page Integration ✅
+- [x] Update Profile page to use ModeStatistics
+- [x] Display Follow/Subscribe button based on mode
+- [x] Show followers/subscribers list based on mode
+- [x] Update profile header with ModeIndicator
+- [x] Add LevelBadge to profile header
+- [x] Add LevelProgressBar to profile
+- [x] Show level-up history
+
+### Phase 10: Testing & Verification
+- [ ] Write unit tests for levelsRouter
+- [ ] Test level calculation logic
+- [ ] Test level up notifications
+- [ ] Test leaderboard functionality
+- [ ] Test animation and confetti effects
+- [ ] Test integration with follow/subscribe system
+
+### Phase 11: Checkpoint & Deployment
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
+- [ ] Document API changes
+- [ ] Prepare user guide

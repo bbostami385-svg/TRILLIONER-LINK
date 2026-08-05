@@ -32,6 +32,7 @@ import { ARFiltersPage } from "./pages/ARFilters";
 import { SoundLibrary } from "./pages/SoundLibrary";
 import { PagesPage } from "./pages/Pages";
 import { AdsDashboard } from "./pages/AdsDashboard";
+import { VerificationFlow } from "./pages/VerificationFlow";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
@@ -43,6 +44,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"signup"} component={SignUp} />
       <Route path={"login"} component={Login} />
+      <Route path={"verify"} component={VerificationFlow} />
       <Route path={"/feed"} component={Feed} />
       <Route path={"/explore"} component={Explore} />
       <Route path={"/messages"} component={Messages} />

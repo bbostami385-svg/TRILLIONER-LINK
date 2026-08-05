@@ -377,3 +377,86 @@
 - [ ] Push to GitHub
 - [ ] Document API changes
 - [ ] Prepare user guide
+
+
+## Age & Face Verification System - NEW
+
+### Phase 1: Database Schema ✅
+- [x] Add dateOfBirth field to users table
+- [x] Add age field to users table
+- [x] Add ageVerified boolean field to users table
+- [x] Add ageVerificationAt timestamp to users table
+- [x] Add faceVerificationRequired boolean field to users table
+- [x] Add faceVerified boolean field to users table
+- [x] Add faceVerificationAt timestamp to users table
+- [x] Add faceVerificationImageUrl text field to users table
+- [x] Add faceVerificationStatus enum field to users table
+- [x] Create ageVerificationRecords table with full audit trail
+- [x] Create faceVerificationRecords table with confidence scores
+- [x] Database migration generated and applied
+
+### Phase 2: Backend API ✅
+- [x] Create ageVerificationRouter with all procedures
+- [x] Implement verifyAge mutation (public, 13+ minimum check)
+- [x] Implement submitAgeVerification mutation (protected)
+- [x] Implement getAgeVerificationStatus query (protected)
+- [x] Implement getAgeVerificationHistory query (protected)
+- [x] Implement submitFaceVerification mutation (18+ only)
+- [x] Implement getFaceVerificationStatus query (protected)
+- [x] Implement getFaceVerificationHistory query (protected)
+- [x] Implement isAccountActive query (checks both age and face verification)
+- [x] Implement retryFaceVerification mutation (for rejected submissions)
+- [x] Integrate ageVerificationRouter into appRouter
+- [x] Add age calculation utility function
+- [x] Add age validation (13+ minimum)
+- [x] Add face verification requirement logic (18+)
+
+### Phase 3: Frontend Components ✅
+- [x] Create AgeVerificationForm component
+- [x] Add date picker with min/max validation
+- [x] Add verification method selector (manual_dob, id_document, email_verification)
+- [x] Add error handling and validation messages
+- [x] Create FaceVerificationForm component
+- [x] Add camera capture functionality
+- [x] Add file upload option
+- [x] Add photo preview and retake option
+- [x] Add loading states and error handling
+
+### Phase 4: Verification Flow Page ✅
+- [x] Create VerificationFlow page with step-by-step flow
+- [x] Add progress indicator showing current step
+- [x] Implement age verification step
+- [x] Implement conditional face verification step (18+ only)
+- [x] Add completion screen with success message
+- [x] Add pending status screen for face verification review
+- [x] Add route to App.tsx (/verify)
+
+### Phase 5: Registration Flow Integration
+- [ ] Update SignUp page to redirect to /verify after account creation
+- [ ] Add verification status check on app load
+- [ ] Redirect unverified users to /verify page
+- [ ] Add verification status badge to profile
+- [ ] Add verification reminder notifications
+
+### Phase 6: Admin Panel & Review
+- [ ] Create admin panel for verification review
+- [ ] Add face verification approval/rejection interface
+- [ ] Add audit log for all verification attempts
+- [ ] Add bulk approval/rejection tools
+- [ ] Add analytics dashboard for verification metrics
+
+### Phase 7: Testing
+- [ ] Write unit tests for age calculation
+- [ ] Write unit tests for age validation
+- [ ] Write tests for face verification flow
+- [ ] Write integration tests for verification router
+- [ ] Test age restriction enforcement (13+ minimum)
+- [ ] Test face verification requirement (18+)
+- [ ] Test camera permissions handling
+- [ ] Test file upload validation
+
+### Phase 8: Checkpoint & Delivery
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
+- [ ] Document API changes
+- [ ] Prepare user guide

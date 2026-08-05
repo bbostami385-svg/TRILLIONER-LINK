@@ -32,6 +32,7 @@ import { historyRouter } from "./routers/history";
 import { pagesRouter } from "./routers/pages";
 import { dualModeRouter } from "./routers/dualMode";
 import { levelsRouter } from "./routers/levels";
+import { ageVerificationRouter } from "./routers/ageVerification";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -76,6 +77,7 @@ export const appRouter = router({
   pages: pagesRouter,
   dualMode: dualModeRouter,
   levels: levelsRouter,
+  ageVerification: ageVerificationRouter,
 });
 
 export type AppRouter = typeof appRouter;

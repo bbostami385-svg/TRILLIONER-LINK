@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex, date, decimal, json } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -25,6 +25,20 @@ export const users = mysqlTable("users", {
   accountMode: mysqlEnum("accountMode", ["social", "creator"]).default("social").notNull(),
   /** Whether user has completed initial mode selection */
   modeSelected: boolean("modeSelected").default(false).notNull(),
+  
+  /** Age Verification Fields */
+  dateOfBirth: date("dateOfBirth"),
+  age: int("age"),
+  ageVerified: boolean("ageVerified").default(false).notNull(),
+  ageVerificationAt: timestamp("ageVerificationAt"),
+  
+  /** Face Verification Fields (18+ only) */
+  faceVerificationRequired: boolean("faceVerificationRequired").default(false).notNull(),
+  faceVerified: boolean("faceVerified").default(false).notNull(),
+  faceVerificationAt: timestamp("faceVerificationAt"),
+  faceVerificationImageUrl: text("faceVerificationImageUrl"),
+  faceVerificationStatus: mysqlEnum("faceVerificationStatus", ["pending", "approved", "rejected", "not_required"]).default("not_required").notNull(),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -668,3 +682,46 @@ export const arFilters = mysqlTable("arFilters", {
 
 export type ArFilter = typeof arFilters.$inferSelect;
 export type InsertArFilter = typeof arFilters.$inferInsert;
+
+/**
+ * Age Verification Records table
+ * Stores history of age verification attempts
+ */
+export const ageVerificationRecords = mysqlTable("ageVerificationRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  dateOfBirth: date("dateOfBirth").notNull(),
+  age: int("age").notNull(),
+  verificationMethod: mysqlEnum("verificationMethod", ["manual_dob", "id_document", "email_verification"]).notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  rejectionReason: text("rejectionReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AgeVerificationRecord = typeof ageVerificationRecords.$inferSelect;
+export type InsertAgeVerificationRecord = typeof ageVerificationRecords.$inferInsert;
+
+/**
+ * Face Verification Records table
+ * Stores history of face verification attempts (18+ only)
+ */
+export const faceVerificationRecords = mysqlTable("faceVerificationRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  imageUrl: text("imageUrl").notNull(),
+  verificationProvider: varchar("verificationProvider", { length: 50 }).default("aws_rekognition"),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  rejectionReason: text("rejectionReason"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FaceVerificationRecord = typeof faceVerificationRecords.$inferSelect;
+export type InsertFaceVerificationRecord = typeof faceVerificationRecords.$inferInsert;

@@ -39,6 +39,20 @@ export const users = mysqlTable("users", {
   faceVerificationImageUrl: text("faceVerificationImageUrl"),
   faceVerificationStatus: mysqlEnum("faceVerificationStatus", ["pending", "approved", "rejected", "not_required"]).default("not_required").notNull(),
   
+  /** Human Verification (Liveness Detection) - All new users */
+  livenessVerified: boolean("livenessVerified").default(false).notNull(),
+  livenessVerificationAt: timestamp("livenessVerificationAt"),
+  livenessAttempts: int("livenessAttempts").default(0).notNull(),
+  
+  /** KYC (Identity Verification) - For monetization */
+  kycVerified: boolean("kycVerified").default(false).notNull(),
+  kycVerificationAt: timestamp("kycVerificationAt"),
+  kycStatus: mysqlEnum("kycStatus", ["not_started", "pending", "approved", "rejected"]).default("not_started").notNull(),
+  kycDocumentType: varchar("kycDocumentType", { length: 50 }),
+  
+  /** Social Account Linking */
+  linkedAccounts: json("linkedAccounts"),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -725,3 +739,135 @@ export const faceVerificationRecords = mysqlTable("faceVerificationRecords", {
 
 export type FaceVerificationRecord = typeof faceVerificationRecords.$inferSelect;
 export type InsertFaceVerificationRecord = typeof faceVerificationRecords.$inferInsert;
+
+
+/**
+ * Face Liveness Records table
+ * Stores history of face liveness verification attempts (Human verification - Bot prevention)
+ */
+export const faceLivenessRecords = mysqlTable("faceLivenessRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  videoUrl: text("videoUrl").notNull(),
+  challengeType: varchar("challengeType", { length: 50 }).notNull(), // nod, turn_left, turn_right, blink
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }),
+  rejectionReason: text("rejectionReason"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FaceLivenessRecord = typeof faceLivenessRecords.$inferSelect;
+export type InsertFaceLivenessRecord = typeof faceLivenessRecords.$inferInsert;
+
+/**
+ * Liveness Challenge table
+ * Stores random movement challenges for face liveness verification
+ */
+export const livenessChallenge = mysqlTable("livenessChallenge", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  challenges: json("challenges").notNull(), // Array of challenge types
+  status: mysqlEnum("status", ["active", "completed", "expired"]).default("active").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LivenessChallenge = typeof livenessChallenge.$inferSelect;
+export type InsertLivenessChallenge = typeof livenessChallenge.$inferInsert;
+
+/**
+ * KYC Documents table
+ * Stores identity verification documents for monetization
+ */
+export const kycDocuments = mysqlTable("kycDocuments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  documentType: mysqlEnum("documentType", ["passport", "driver_license", "national_id", "other"]).notNull(),
+  frontImageUrl: text("frontImageUrl").notNull(),
+  backImageUrl: text("backImageUrl"),
+  selfieImageUrl: text("selfieImageUrl"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  rejectionReason: text("rejectionReason"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KYCDocument = typeof kycDocuments.$inferSelect;
+export type InsertKYCDocument = typeof kycDocuments.$inferInsert;
+
+/**
+ * KYC Verification Records table
+ * Audit trail for KYC verification attempts
+ */
+export const kycVerificationRecords = mysqlTable("kycVerificationRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  documentId: int("documentId")
+    .notNull()
+    .references(() => kycDocuments.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  reviewedBy: int("reviewedBy").references(() => users.id),
+  rejectionReason: text("rejectionReason"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KYCVerificationRecord = typeof kycVerificationRecords.$inferSelect;
+export type InsertKYCVerificationRecord = typeof kycVerificationRecords.$inferInsert;
+
+/**
+ * Linked Accounts table
+ * Stores social platform account links (YouTube, Google, Facebook, Instagram, TikTok)
+ */
+export const linkedAccounts = mysqlTable("linkedAccounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: mysqlEnum("provider", ["google", "youtube", "facebook", "instagram", "tiktok"]).notNull(),
+  providerId: varchar("providerId", { length: 255 }).notNull(),
+  providerUsername: varchar("providerUsername", { length: 255 }),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  profileData: json("profileData"), // Store profile info from provider
+  isVerified: boolean("isVerified").default(false).notNull(),
+  lastSyncedAt: timestamp("lastSyncedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LinkedAccount = typeof linkedAccounts.$inferSelect;
+export type InsertLinkedAccount = typeof linkedAccounts.$inferInsert;
+
+/**
+ * Account Linking Records table
+ * Audit trail for social account linking
+ */
+export const accountLinkingRecords = mysqlTable("accountLinkingRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  linkedAccountId: int("linkedAccountId")
+    .notNull()
+    .references(() => linkedAccounts.id, { onDelete: "cascade" }),
+  action: mysqlEnum("action", ["linked", "unlinked", "synced"]).notNull(),
+  details: json("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AccountLinkingRecord = typeof accountLinkingRecords.$inferSelect;
+export type InsertAccountLinkingRecord = typeof accountLinkingRecords.$inferInsert;

@@ -460,3 +460,116 @@
 - [ ] Push to GitHub
 - [ ] Document API changes
 - [ ] Prepare user guide
+
+
+## Human Verification (Face Liveness Detection) - NEW
+
+### Phase 1: Database Schema
+- [ ] Add liveness_verified boolean field to users table
+- [ ] Add liveness_verification_at timestamp to users table
+- [ ] Add liveness_attempts int field to users table
+- [ ] Create faceLinessRecords table with video/image data
+- [ ] Create livenessChallenge table (random head movements)
+- [ ] Add indexes for performance
+
+### Phase 2: Backend API
+- [ ] Create livenessVerificationRouter
+- [ ] Implement startLivenessChallenge mutation (generate random movements)
+- [ ] Implement submitLivenessVideo mutation (process video)
+- [ ] Implement verifyLiveness mutation (check head movements)
+- [ ] Implement getLivenessStatus query
+- [ ] Implement getLivenessHistory query
+- [ ] Add liveness detection algorithm (head pose detection)
+- [ ] Add bot detection logic
+
+### Phase 3: Frontend Components
+- [ ] Create LivenessChallenge component
+- [ ] Add video recording with constraints
+- [ ] Display random movement instructions (nod, turn left, turn right, blink)
+- [ ] Add real-time feedback during recording
+- [ ] Add retry logic for failed attempts
+- [ ] Add progress indicator
+
+### Phase 4: Integration
+- [ ] Add liveness verification to registration flow
+- [ ] Make it required for all new users
+- [ ] Add liveness status check on app load
+- [ ] Add liveness badge to verified profiles
+
+
+## KYC (Identity Verification) System - NEW
+
+### Phase 1: Database Schema
+- [ ] Create kyc_documents table (ID type, image URL, status)
+- [ ] Create kyc_verification_records table (audit trail)
+- [ ] Add kyc_verified boolean field to users table
+- [ ] Add kyc_verification_at timestamp to users table
+- [ ] Add kyc_document_type field to users table
+- [ ] Add kyc_status enum field (pending, approved, rejected)
+
+### Phase 2: Backend API
+- [ ] Create kycRouter
+- [ ] Implement submitKYCDocument mutation
+- [ ] Implement getKYCStatus query
+- [ ] Implement getKYCHistory query
+- [ ] Implement approveKYC admin procedure
+- [ ] Implement rejectKYC admin procedure
+- [ ] Add document validation logic
+- [ ] Add OCR integration for ID extraction
+
+### Phase 3: Frontend Components
+- [ ] Create KYCForm component
+- [ ] Add document type selector (Passport, Driver License, National ID)
+- [ ] Add document upload (front & back)
+- [ ] Add selfie with document verification
+- [ ] Add status display (pending, approved, rejected)
+- [ ] Add retry logic
+
+### Phase 4: Integration
+- [ ] Add KYC check before monetization features
+- [ ] Add KYC status to profile
+- [ ] Add KYC requirement notification
+- [ ] Link to monetization features (YouTube Partner style)
+
+
+## Social Account Linking (OAuth Integration) - NEW
+
+### Phase 1: Database Schema
+- [ ] Create linkedAccounts table (provider, provider_id, access_token)
+- [ ] Add linked_accounts json field to users table
+- [ ] Create accountLinkingRecords table (audit trail)
+- [ ] Add indexes for provider lookups
+
+### Phase 2: Backend API
+- [ ] Create socialLinkingRouter
+- [ ] Implement generateOAuthURL mutation (for each provider)
+- [ ] Implement handleOAuthCallback mutation
+- [ ] Implement linkAccount mutation
+- [ ] Implement unlinkAccount mutation
+- [ ] Implement getLinkedAccounts query
+- [ ] Implement getProviderInfo query
+- [ ] Add OAuth state validation
+
+### Phase 3: OAuth Providers Setup
+- [ ] Google OAuth configuration
+- [ ] YouTube OAuth configuration
+- [ ] Facebook OAuth configuration
+- [ ] Instagram OAuth configuration
+- [ ] TikTok OAuth configuration
+- [ ] Store OAuth credentials securely
+
+### Phase 4: Frontend Components
+- [ ] Create SocialLinking page
+- [ ] Add provider buttons (Google, YouTube, Facebook, Instagram, TikTok)
+- [ ] Add OAuth popup/redirect flow
+- [ ] Display linked accounts list
+- [ ] Add unlink functionality
+- [ ] Add verification status for each provider
+- [ ] Add sync data option (import followers, videos, etc.)
+
+### Phase 5: Integration
+- [ ] Add Social Linking to Settings page
+- [ ] Add linked account display to profile
+- [ ] Add cross-platform sharing options
+- [ ] Add data sync from linked accounts
+- [ ] Add notification for new linked accounts

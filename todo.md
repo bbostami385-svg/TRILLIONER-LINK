@@ -583,7 +583,7 @@
 - [x] Add secure document/media upload handling instead of storing large data URLs in database fields
 - [x] Add unit tests for age rules, verification status transitions, and social-linking validation
 - [x] Run typecheck, tests, production build, and browser smoke verification
-- [ ] Save a final checkpoint and synchronize the active project to the selected GitHub repository
+- [x] Save a final checkpoint and synchronize the active project to the selected GitHub repository
 
 
 ## Provider Linking Hardening (credentials deferred by user)

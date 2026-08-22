@@ -1,13 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { kycDocuments, kycVerificationRecords, users } from "../../drizzle/schema";
 
-const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
+export const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
+export const reviewStatusSchema = z.enum(["all", "pending", "approved", "rejected"]);
+export const reviewSortSchema = z.enum(["newest", "oldest"]);
 const documentInputSchema = z.object({
   documentType: documentTypeSchema,
   frontImageUrl: z.string().min(1).max(12_000_000),
@@ -167,16 +169,45 @@ export const kycRouter = router({
     }),
 
   getPendingKYCSubmissions: adminProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(100).default(10), offset: z.number().int().nonnegative().default(0) }))
+    .input(z.object({
+      limit: z.number().int().min(1).max(100).default(10),
+      offset: z.number().int().nonnegative().default(0),
+      status: reviewStatusSchema.default("pending"),
+      search: z.string().trim().max(120).optional(),
+      documentType: documentTypeSchema.optional(),
+      sort: reviewSortSchema.default("newest"),
+    }))
     .query(async ({ input }) => {
       const db = await getRequiredDb();
-      const documents = await db.select().from(kycDocuments)
-        .where(eq(kycDocuments.status, "pending"))
-        .orderBy(desc(kycDocuments.createdAt))
+      const filters = [
+        input.status === "all" ? undefined : eq(kycDocuments.status, input.status),
+        input.documentType ? eq(kycDocuments.documentType, input.documentType) : undefined,
+        input.search ? or(like(users.name, `%${input.search}%`), like(users.email, `%${input.search}%`)) : undefined,
+      ].filter(Boolean);
+      const whereClause = filters.length ? and(...filters) : undefined;
+      const order = input.sort === "oldest" ? asc(kycDocuments.createdAt) : desc(kycDocuments.createdAt);
+      const documents = await db.select({
+        id: kycDocuments.id,
+        userId: kycDocuments.userId,
+        documentType: kycDocuments.documentType,
+        frontImageUrl: kycDocuments.frontImageUrl,
+        backImageUrl: kycDocuments.backImageUrl,
+        selfieImageUrl: kycDocuments.selfieImageUrl,
+        status: kycDocuments.status,
+        rejectionReason: kycDocuments.rejectionReason,
+        createdAt: kycDocuments.createdAt,
+        userName: users.name,
+        userEmail: users.email,
+      }).from(kycDocuments)
+        .innerJoin(users, eq(kycDocuments.userId, users.id))
+        .where(whereClause)
+        .orderBy(order)
         .limit(input.limit)
         .offset(input.offset);
-      const allPending = await db.select({ id: kycDocuments.id }).from(kycDocuments).where(eq(kycDocuments.status, "pending"));
-      return { documents, total: allPending.length, limit: input.limit, offset: input.offset };
+      const allMatches = await db.select({ id: kycDocuments.id }).from(kycDocuments)
+        .innerJoin(users, eq(kycDocuments.userId, users.id))
+        .where(whereClause);
+      return { documents, total: allMatches.length, limit: input.limit, offset: input.offset };
     }),
 
   canAccessMonetization: protectedProcedure.query(async ({ ctx }) => {

@@ -1,13 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { faceLivenessRecords, livenessChallenge, users } from "../../drizzle/schema";
 
-const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
+export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
+export const reviewStatusSchema = z.enum(["all", "pending", "approved", "rejected"]);
+export const reviewSortSchema = z.enum(["newest", "oldest"]);
 
 function generateChallenges(): Array<z.infer<typeof challengeSchema>> {
   const challenges: Array<z.infer<typeof challengeSchema>> = ["nod", "turn_left", "turn_right", "blink"];
@@ -161,9 +163,23 @@ export const humanVerificationRouter = router({
   }),
 
   getPendingLiveness: adminProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(100).default(25), offset: z.number().int().nonnegative().default(0) }))
+    .input(z.object({
+      limit: z.number().int().min(1).max(100).default(25),
+      offset: z.number().int().nonnegative().default(0),
+      status: reviewStatusSchema.default("pending"),
+      search: z.string().trim().max(120).optional(),
+      challengeType: challengeSchema.optional(),
+      sort: reviewSortSchema.default("newest"),
+    }))
     .query(async ({ input }) => {
       const db = await getRequiredDb();
+      const filters = [
+        input.status === "all" ? undefined : eq(faceLivenessRecords.status, input.status),
+        input.challengeType ? eq(faceLivenessRecords.challengeType, input.challengeType) : undefined,
+        input.search ? or(like(users.name, `%${input.search}%`), like(users.email, `%${input.search}%`)) : undefined,
+      ].filter(Boolean);
+      const whereClause = filters.length ? and(...filters) : undefined;
+      const order = input.sort === "oldest" ? asc(faceLivenessRecords.createdAt) : desc(faceLivenessRecords.createdAt);
       const records = await db.select({
         id: faceLivenessRecords.id,
         userId: faceLivenessRecords.userId,
@@ -175,12 +191,13 @@ export const humanVerificationRouter = router({
         userEmail: users.email,
       }).from(faceLivenessRecords)
         .innerJoin(users, eq(faceLivenessRecords.userId, users.id))
-        .where(eq(faceLivenessRecords.status, "pending"))
-        .orderBy(desc(faceLivenessRecords.createdAt))
+        .where(whereClause)
+        .orderBy(order)
         .limit(input.limit)
         .offset(input.offset);
       const totalRows = await db.select({ id: faceLivenessRecords.id }).from(faceLivenessRecords)
-        .where(eq(faceLivenessRecords.status, "pending"));
+        .innerJoin(users, eq(faceLivenessRecords.userId, users.id))
+        .where(whereClause);
       return { records, total: totalRows.length, limit: input.limit, offset: input.offset };
     }),
 

@@ -591,3 +591,12 @@
 - [x] Add signed, expiring OAuth state with a server callback and safe return URL
 - [x] Keep provider linking disabled with a clear configuration message until credentials are supplied
 - [x] Add provider credential and redirect-URI setup documentation for Vercel
+
+
+## Admin Verification Filters and Sorting
+- [x] Add status, verification type, provider, user search, and date sorting inputs to admin verification queries
+- [x] Preserve admin authorization and avoid exposing verification media or provider tokens in list responses
+- [x] Add filter and sort controls to the Admin Verification console with clear empty/loading/error states
+- [x] Add tests for filtered and sorted admin verification results
+- [ ] Run typecheck, tests, build, preview verification, checkpoint, and GitHub synchronization
+- [x] Allow unverified users to access Settings verification controls and allow administrators to access the review console without being redirected to onboarding

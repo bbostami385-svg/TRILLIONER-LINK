@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate, useLocation } from "wouter";
-import { useAuth } from "../lib/auth";
+import { useLocation } from "wouter";
 import { getLoginUrl } from "../const";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,7 +294,9 @@ export default function Login() {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [, navigate] = useLocation();
-  const { login } = useAuth();
+  const login = async (_email: string, _password: string) => {
+    window.location.assign(getLoginUrl());
+  };
 
   // Calculate password strength
   const passwordStrength = useMemo(() => calculatePasswordStrength(password), [password]);

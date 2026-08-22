@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,7 +11,7 @@ import { trpc } from "@/lib/trpc";
 type VerificationStep = "age" | "face" | "pending" | "complete";
 
 export function VerificationFlow() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [step, setStep] = useState<VerificationStep>("age");
   const [faceVerificationRequired, setFaceVerificationRequired] = useState(false);
   const [age, setAge] = useState<number | null>(null);

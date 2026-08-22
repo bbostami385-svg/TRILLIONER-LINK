@@ -7,11 +7,11 @@ import { Play, Users, Zap, Share2 } from "lucide-react";
 
 export default function ModeSelection() {
   const [, navigate] = useLocation();
-  const setModeMutation = trpc.accountMode.setMode.useMutation();
+  const setModeMutation = trpc.dualMode.initializeModePreferences.useMutation();
 
-  const handleModeSelect = (mode: "youtube" | "social") => {
+  const handleModeSelect = (mode: "creator" | "social") => {
     setModeMutation.mutate(
-      { mode },
+      { selectedMode: mode },
       {
         onSuccess: () => {
           navigate("/");
@@ -31,7 +31,7 @@ export default function ModeSelection() {
       <div className="relative z-10 w-full max-w-6xl">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-4">
-            Choose Your Mode
+            Choose Creator Mode
           </h1>
           <p className="text-xl text-gray-600">
             Select how you want to use TRILLIONER LINK
@@ -39,13 +39,13 @@ export default function ModeSelection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* YouTube Mode */}
+          {/* Creator Mode */}
           <Card className="p-8 shadow-2xl border-0 bg-white/95 backdrop-blur hover:shadow-3xl transition transform hover:scale-105 cursor-pointer">
             <div className="text-center">
               <div className="inline-block p-4 bg-red-100 rounded-full mb-6">
                 <Play className="w-12 h-12 text-red-600" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">YouTube Mode</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Creator Mode</h2>
               <p className="text-gray-600 mb-6">
                 Create channels, upload videos, and gain subscribers
               </p>
@@ -70,11 +70,11 @@ export default function ModeSelection() {
               </div>
 
               <Button
-                onClick={() => handleModeSelect("youtube")}
+                onClick={() => handleModeSelect("creator")}
                 disabled={setModeMutation.isPending}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition"
               >
-                {setModeMutation.isPending ? "Selecting..." : "Choose YouTube Mode"}
+                {setModeMutation.isPending ? "Selecting..." : "Choose Creator Mode"}
               </Button>
             </div>
           </Card>

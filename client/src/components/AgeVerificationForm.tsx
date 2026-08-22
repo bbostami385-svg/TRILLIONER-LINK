@@ -17,6 +17,7 @@ export function AgeVerificationForm({ onSuccess, onError }: AgeVerificationFormP
   const [loading, setLoading] = useState(false);
 
   const verifyAgeMutation = trpc.ageVerification.verifyAge.useMutation();
+  const submitAgeMutation = trpc.ageVerification.submitAgeVerification.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +31,17 @@ export function AgeVerificationForm({ onSuccess, onError }: AgeVerificationFormP
     }
 
     try {
-      const result = await verifyAgeMutation.mutateAsync({
-        dateOfBirth: new Date(dateOfBirth).toISOString(),
+      const payload = {
+        dateOfBirth: new Date(`${dateOfBirth}T00:00:00.000Z`).toISOString(),
         verificationMethod,
-      });
+      } as const;
+      const preview = await verifyAgeMutation.mutateAsync(payload);
+      const result = await submitAgeMutation.mutateAsync(payload);
 
-      onSuccess?.(result);
+      onSuccess?.({
+        age: result.age ?? preview.age,
+        faceVerificationRequired: result.faceVerificationRequired ?? preview.faceVerificationRequired,
+      });
     } catch (err: any) {
       const errorMessage = err?.message || "Age verification failed";
       setError(errorMessage);
@@ -45,13 +51,12 @@ export function AgeVerificationForm({ onSuccess, onError }: AgeVerificationFormP
     }
   };
 
-  // Calculate max date (today) and min date (13 years ago)
+  // A date of birth must be no later than the 13th-birthday cutoff.
   const today = new Date();
-  const maxDate = today.toISOString().split("T")[0];
-  
-  const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 13);
-  const minDateString = minDate.toISOString().split("T")[0];
+  const minimumAgeDate = new Date(today);
+  minimumAgeDate.setFullYear(minimumAgeDate.getFullYear() - 13);
+  const maxDate = minimumAgeDate.toISOString().split("T")[0];
+  const minDateString = "1900-01-01";
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -85,7 +90,7 @@ export function AgeVerificationForm({ onSuccess, onError }: AgeVerificationFormP
               required
             />
             <p className="text-xs text-gray-500">
-              You must be at least 13 years old
+              You must be at least 13 years old. After age confirmation, every new account completes human liveness verification.
             </p>
           </div>
 
@@ -104,7 +109,7 @@ export function AgeVerificationForm({ onSuccess, onError }: AgeVerificationFormP
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-900">
-              <strong>Note:</strong> If you're 18 or older, you'll need to complete face verification after age verification.
+              <strong>Privacy note:</strong> Human verification checks that a real person is present. Identity/KYC documents are not required here and are requested only for monetization or payouts.
             </p>
           </div>
 

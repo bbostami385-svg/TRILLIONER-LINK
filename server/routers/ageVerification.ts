@@ -1,426 +1,183 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
-import { getDb } from "../db";
-import { users, ageVerificationRecords, faceVerificationRecords } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { getRequiredDb } from "../db";
+import { ageVerificationRecords, faceVerificationRecords, users } from "../../drizzle/schema";
 
-/**
- * Calculate age from date of birth
- */
-function calculateAge(dateOfBirth: Date): number {
+export function calculateAge(dateOfBirth: Date): number {
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
   const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
-    age--;
-  }
-  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) age -= 1;
   return age;
 }
 
-/**
- * Validate age restrictions
- */
-function validateAge(age: number): { valid: boolean; reason?: string } {
-  if (age < 13) {
-    return { valid: false, reason: "You must be at least 13 years old to create an account" };
+export function validateDateOfBirth(value: string): Date {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime()) || date > new Date()) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Please provide a valid date of birth." });
   }
-  return { valid: true };
+  return date;
 }
 
-/**
- * Check if face verification is required (18+)
- */
-function isFaceVerificationRequired(age: number): boolean {
-  return age >= 18;
-}
+const ageInput = z.object({
+  dateOfBirth: z.string().datetime(),
+  verificationMethod: z.enum(["manual_dob", "id_document", "email_verification"]),
+});
 
 export const ageVerificationRouter = router({
-  /**
-   * Verify user's age during registration
-   * Minimum age: 13 years
-   * 18+ requires face verification
-   */
-  verifyAge: publicProcedure
-    .input(
-      z.object({
-        dateOfBirth: z.string().datetime(),
-        verificationMethod: z.enum(["manual_dob", "id_document", "email_verification"]),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-      const dateOfBirth = new Date(input.dateOfBirth);
-      const age = calculateAge(dateOfBirth);
-
-      // Validate age restriction
-      const ageValidation = validateAge(age);
-      if (!ageValidation.valid) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: ageValidation.reason,
-        });
-      }
-
-      // Check if face verification is required
-      const faceVerificationRequired = isFaceVerificationRequired(age);
-
-      return {
-        age,
-        ageVerified: true,
-        faceVerificationRequired,
-        message: faceVerificationRequired
-          ? "Age verified. Face verification required for 18+ users."
-          : "Age verified successfully.",
-      };
-    }),
-
-  /**
-   * Submit age verification for a user
-   */
-  submitAgeVerification: protectedProcedure
-    .input(
-      z.object({
-        dateOfBirth: z.string().datetime(),
-        verificationMethod: z.enum(["manual_dob", "id_document", "email_verification"]),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-      const dateOfBirth = new Date(input.dateOfBirth);
-      const age = calculateAge(dateOfBirth);
-
-      // Validate age
-      const ageValidation = validateAge(age);
-      if (!ageValidation.valid) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: ageValidation.reason,
-        });
-      }
-
-      // Create age verification record
-      const record = await db
-        .insert(ageVerificationRecords)
-        .values({
-          userId: ctx.user.id,
-          dateOfBirth,
-          age,
-          verificationMethod: input.verificationMethod,
-          status: "approved",
-        })
-        .returning();
-
-      // Update user record
-      const faceVerificationRequired = isFaceVerificationRequired(age);
-      await db
-        .update(users)
-        .set({
-          dateOfBirth,
-          age,
-          ageVerified: true,
-          ageVerificationAt: new Date(),
-          faceVerificationRequired,
-          faceVerificationStatus: faceVerificationRequired ? "pending" : "not_required",
-        })
-        .where(eq(users.id, ctx.user.id));
-
-      return {
-        success: true,
-        age,
-        ageVerified: true,
-        faceVerificationRequired,
-        message: faceVerificationRequired
-          ? "Age verified. Please complete face verification to activate your account."
-          : "Age verified successfully. Your account is now active.",
-      };
-    }),
-
-  /**
-   * Get age verification status for current user
-   */
-  getAgeVerificationStatus: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-    
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const userData = user[0];
-    const faceVerificationRequired = userData.faceVerificationRequired;
-
+  verifyAge: publicProcedure.input(ageInput).mutation(({ input }) => {
+    const dateOfBirth = validateDateOfBirth(input.dateOfBirth);
+    const age = calculateAge(dateOfBirth);
+    if (age < 13) throw new TRPCError({ code: "BAD_REQUEST", message: "You must be at least 13 years old to create an account." });
+    // Universal human-liveness verification is handled by humanVerificationRouter.
+    // Keep the legacy field false so adult users are not sent into identity-face verification.
+    const faceVerificationRequired = false;
     return {
-      userId: userData.id,
-      age: userData.age,
-      dateOfBirth: userData.dateOfBirth,
-      ageVerified: userData.ageVerified,
-      ageVerificationAt: userData.ageVerificationAt,
+      age,
+      ageVerified: true,
       faceVerificationRequired,
-      faceVerified: userData.faceVerified,
-      faceVerificationStatus: userData.faceVerificationStatus,
-      accountActive: userData.ageVerified && (!faceVerificationRequired || userData.faceVerified),
+      message: faceVerificationRequired ? "Age verified. Human face verification is required for adults." : "Age verified successfully.",
     };
   }),
 
-  /**
-   * Get age verification history
-   */
-  getAgeVerificationHistory: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-    
-    const records = await db
-      .select()
-      .from(ageVerificationRecords)
-      .where(eq(ageVerificationRecords.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt]);
+  submitAgeVerification: protectedProcedure.input(ageInput).mutation(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const dateOfBirth = validateDateOfBirth(input.dateOfBirth);
+    const age = calculateAge(dateOfBirth);
+    if (age < 13) throw new TRPCError({ code: "BAD_REQUEST", message: "You must be at least 13 years old to create an account." });
+    // Universal human-liveness verification is handled by humanVerificationRouter.
+    // Keep the legacy field false so adult users are not sent into identity-face verification.
+    const faceVerificationRequired = false;
 
-    return records;
+    const result = await db.insert(ageVerificationRecords).values({
+      userId: ctx.user.id,
+      dateOfBirth,
+      age,
+      verificationMethod: input.verificationMethod,
+      status: "approved",
+    });
+    await db.update(users).set({
+      dateOfBirth,
+      age,
+      ageVerified: true,
+      ageVerificationAt: new Date(),
+      faceVerificationRequired,
+      faceVerificationStatus: faceVerificationRequired ? "pending" : "not_required",
+    }).where(eq(users.id, ctx.user.id));
+
+    return {
+      success: true,
+      recordId: Number(result[0].insertId),
+      age,
+      ageVerified: true,
+      faceVerificationRequired,
+      message: "Age verified. Complete human-liveness verification to activate your account.",
+    };
   }),
 
-  /**
-   * Submit face verification image (18+ only)
-   */
+  getAgeVerificationStatus: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+    return {
+      userId: user.id,
+      age: user.age,
+      dateOfBirth: user.dateOfBirth,
+      ageVerified: user.ageVerified,
+      ageVerificationAt: user.ageVerificationAt,
+      faceVerificationRequired: user.faceVerificationRequired,
+      faceVerified: user.faceVerified,
+      faceVerificationStatus: user.faceVerificationStatus,
+      accountActive: user.ageVerified && user.livenessVerified,
+      livenessVerified: user.livenessVerified,
+    };
+  }),
+
+  getAgeVerificationHistory: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getRequiredDb();
+    return db.select().from(ageVerificationRecords)
+      .where(eq(ageVerificationRecords.userId, ctx.user.id))
+      .orderBy(desc(ageVerificationRecords.createdAt));
+  }),
+
   submitFaceVerification: protectedProcedure
-    .input(
-      z.object({
-        imageUrl: z.string().url(),
-        verificationProvider: z.string().default("aws_rekognition"),
-      })
-    )
+    .input(z.object({ imageUrl: z.string().url(), verificationProvider: z.string().min(1).max(50).default("manual_review") }))
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
+      const db = await getRequiredDb();
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      if (!user.faceVerificationRequired) throw new TRPCError({ code: "BAD_REQUEST", message: "Face verification is not required for this account." });
+      if (!user.ageVerified) throw new TRPCError({ code: "BAD_REQUEST", message: "Please verify your age first." });
 
-      // Check if user is 18+
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, ctx.user.id))
-        .limit(1);
-
-      if (!user[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
-
-      const userData = user[0];
-
-      if (!userData.faceVerificationRequired) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Face verification is not required for your account",
-        });
-      }
-
-      if (!userData.ageVerified) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Please verify your age first",
-        });
-      }
-
-      // Create face verification record
-      const record = await db
-        .insert(faceVerificationRecords)
-        .values({
-          userId: ctx.user.id,
-          imageUrl: input.imageUrl,
-          verificationProvider: input.verificationProvider,
-          status: "pending",
-          confidence: null,
-          metadata: null,
-        })
-        .returning();
-
-      // Update user status
-      await db
-        .update(users)
-        .set({
-          faceVerificationImageUrl: input.imageUrl,
-          faceVerificationStatus: "pending",
-        })
-        .where(eq(users.id, ctx.user.id));
-
-      return {
-        success: true,
-        recordId: record[0].id,
+      const result = await db.insert(faceVerificationRecords).values({
+        userId: ctx.user.id,
+        imageUrl: input.imageUrl,
+        verificationProvider: input.verificationProvider,
         status: "pending",
-        message: "Face verification submitted. Please wait for approval.",
-      };
+        metadata: { submittedAt: new Date().toISOString() },
+      });
+      await db.update(users).set({ faceVerificationImageUrl: input.imageUrl, faceVerificationStatus: "pending" })
+        .where(eq(users.id, ctx.user.id));
+      return { success: true, recordId: Number(result[0].insertId), status: "pending", message: "Face verification submitted for review." };
     }),
 
-  /**
-   * Get face verification status
-   */
   getFaceVerificationStatus: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const userData = user[0];
-
-    if (!userData.faceVerificationRequired) {
-      return {
-        required: false,
-        message: "Face verification is not required for your account",
-      };
-    }
-
-    const latestRecord = await db
-      .select()
-      .from(faceVerificationRecords)
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+    if (!user.faceVerificationRequired) return { required: false, message: "Face verification is not required for this account." };
+    const [latest] = await db.select().from(faceVerificationRecords)
       .where(eq(faceVerificationRecords.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt])
-      .limit(1);
-
+      .orderBy(desc(faceVerificationRecords.createdAt)).limit(1);
     return {
       required: true,
-      verified: userData.faceVerified,
-      status: userData.faceVerificationStatus,
-      lastSubmittedAt: latestRecord[0]?.createdAt,
-      rejectionReason: latestRecord[0]?.rejectionReason,
-      message: userData.faceVerified
-        ? "Face verification completed"
-        : "Face verification pending",
+      verified: user.faceVerified,
+      status: user.faceVerificationStatus,
+      lastSubmittedAt: latest?.createdAt ?? null,
+      rejectionReason: latest?.rejectionReason ?? null,
+      message: user.faceVerified ? "Face verification completed." : "Face verification is pending review.",
     };
   }),
 
-  /**
-   * Get face verification history
-   */
   getFaceVerificationHistory: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const records = await db
-      .select()
-      .from(faceVerificationRecords)
+    const db = await getRequiredDb();
+    return db.select().from(faceVerificationRecords)
       .where(eq(faceVerificationRecords.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt]);
-
-    return records;
+      .orderBy(desc(faceVerificationRecords.createdAt));
   }),
 
-  /**
-   * Check if account is fully active
-   * (Age verified AND face verification completed if required)
-   */
   isAccountActive: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const userData = user[0];
-    const isActive =
-      userData.ageVerified &&
-      (!userData.faceVerificationRequired || userData.faceVerified);
-
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+    const isActive = user.ageVerified && (!user.faceVerificationRequired || user.faceVerified);
     return {
       isActive,
-      age: userData.age,
-      ageVerified: userData.ageVerified,
-      faceVerificationRequired: userData.faceVerificationRequired,
-      faceVerified: userData.faceVerified,
-      reason: !isActive
-        ? userData.ageVerified
-          ? "Face verification required"
-          : "Age verification required"
-        : "Account is active",
+      age: user.age,
+      ageVerified: user.ageVerified,
+      faceVerificationRequired: user.faceVerificationRequired,
+      faceVerified: user.faceVerified,
+      reason: isActive ? "Account is active." : user.ageVerified ? "Human face verification is required." : "Age verification is required.",
     };
   }),
 
-  /**
-   * Resend face verification (for retry after rejection)
-   */
   retryFaceVerification: protectedProcedure
-    .input(
-      z.object({
-        imageUrl: z.string().url(),
-      })
-    )
+    .input(z.object({ imageUrl: z.string().url() }))
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, ctx.user.id))
-        .limit(1);
-
-      if (!user[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
-
-      const userData = user[0];
-
-      if (userData.faceVerificationStatus !== "rejected") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Can only retry after rejection",
-        });
-      }
-
-      // Create new verification record
-      const record = await db
-        .insert(faceVerificationRecords)
-        .values({
-          userId: ctx.user.id,
-          imageUrl: input.imageUrl,
-          verificationProvider: "aws_rekognition",
-          status: "pending",
-        })
-        .returning();
-
-      // Update user status
-      await db
-        .update(users)
-        .set({
-          faceVerificationImageUrl: input.imageUrl,
-          faceVerificationStatus: "pending",
-        })
-        .where(eq(users.id, ctx.user.id));
-
-      return {
-        success: true,
-        recordId: record[0].id,
+      const db = await getRequiredDb();
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      if (user.faceVerificationStatus !== "rejected") throw new TRPCError({ code: "BAD_REQUEST", message: "Retry is available only after rejection." });
+      const result = await db.insert(faceVerificationRecords).values({
+        userId: ctx.user.id,
+        imageUrl: input.imageUrl,
+        verificationProvider: "manual_review",
         status: "pending",
-        message: "Face verification resubmitted. Please wait for approval.",
-      };
+      });
+      await db.update(users).set({ faceVerificationImageUrl: input.imageUrl, faceVerificationStatus: "pending" })
+        .where(eq(users.id, ctx.user.id));
+      return { success: true, recordId: Number(result[0].insertId), status: "pending", message: "Face verification resubmitted for review." };
     }),
 });

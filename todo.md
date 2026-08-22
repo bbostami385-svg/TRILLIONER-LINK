@@ -573,3 +573,21 @@
 - [ ] Add cross-platform sharing options
 - [ ] Add data sync from linked accounts
 - [ ] Add notification for new linked accounts
+
+
+## Verification Integration Continuation (2026-08-22)
+- [x] Wire the restored VerificationFlowPage into the active route without shadowing it with the wildcard route
+- [x] Add verification status and account-activation gating to the authenticated app shell
+- [x] Add Human Verification, KYC, and linked-account sections to Settings
+- [x] Create an admin-only verification review page with pending liveness and KYC queues
+- [x] Add secure document/media upload handling instead of storing large data URLs in database fields
+- [x] Add unit tests for age rules, verification status transitions, and social-linking validation
+- [x] Run typecheck, tests, production build, and browser smoke verification
+- [ ] Save a final checkpoint and synchronize the active project to the selected GitHub repository
+
+
+## Provider Linking Hardening (credentials deferred by user)
+- [x] Replace simulated provider tokens and profile data with real provider token exchange
+- [x] Add signed, expiring OAuth state with a server callback and safe return URL
+- [x] Keep provider linking disabled with a clear configuration message until credentials are supplied
+- [x] Add provider credential and redirect-URI setup documentation for Vercel

@@ -1,14 +1,11 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
-import { db } from "../db";
-import { userLevels, userModePreferences } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import { protectedProcedure, router } from "../_core/trpc";
+import { getRequiredDb } from "../db";
+import { userLevels } from "../../drizzle/schema";
 
-/**
- * Level thresholds for each level (1-20)
- */
-const LEVEL_THRESHOLDS: Record<number, number> = {
+export const LEVEL_THRESHOLDS: Record<number, number> = {
   1: 0,
   2: 50,
   3: 100,
@@ -31,236 +28,155 @@ const LEVEL_THRESHOLDS: Record<number, number> = {
   20: 5000000000,
 };
 
-/**
- * Calculate current level based on follower count
- */
-const calculateLevel = (followers: number): number => {
-  for (let level = 20; level >= 1; level--) {
-    if (followers >= LEVEL_THRESHOLDS[level]) {
-      return level;
-    }
+export const calculateLevel = (followers: number): number => {
+  for (let level = 20; level >= 1; level -= 1) {
+    if (followers >= LEVEL_THRESHOLDS[level]) return level;
   }
   return 1;
 };
 
-/**
- * Levels Router
- * Handles user level calculations and progression
- */
 export const levelsRouter = router({
-  /**
-   * Get user's current level and progress
-   */
   getUserLevel: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
-
+    const db = await getRequiredDb();
     try {
-      // Get user's level record
-      let userLevel = await db
+      let [record] = await db
         .select()
         .from(userLevels)
-        .where(eq(userLevels.userId, userId));
+        .where(eq(userLevels.userId, ctx.user.id))
+        .limit(1);
 
-      if (!userLevel || userLevel.length === 0) {
-        // Create initial level record
+      if (!record) {
         await db.insert(userLevels).values({
-          userId,
+          userId: ctx.user.id,
           currentLevel: 1,
           totalFollowers: 0,
           levelUpCount: 0,
         });
-
-        userLevel = await db
+        [record] = await db
           .select()
           .from(userLevels)
-          .where(eq(userLevels.userId, userId));
+          .where(eq(userLevels.userId, ctx.user.id))
+          .limit(1);
       }
 
-      return userLevel[0];
+      return record;
     } catch (error) {
       console.error("Error getting user level:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get user level",
-      });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get user level" });
     }
   }),
 
-  /**
-   * Update user level based on follower count
-   * Called when followers change
-   */
   updateUserLevel: protectedProcedure
-    .input(
-      z.object({
-        newFollowerCount: z.number(),
-      })
-    )
+    .input(z.object({ newFollowerCount: z.number().int().nonnegative() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
-      const { newFollowerCount } = input;
-
+      const db = await getRequiredDb();
       try {
-        // Get current level record
-        const currentLevelRecord = await db
+        const [record] = await db
           .select()
           .from(userLevels)
-          .where(eq(userLevels.userId, userId));
+          .where(eq(userLevels.userId, ctx.user.id))
+          .limit(1);
+        const newLevel = calculateLevel(input.newFollowerCount);
 
-        if (!currentLevelRecord || currentLevelRecord.length === 0) {
-          // Create initial record
+        if (!record) {
           await db.insert(userLevels).values({
-            userId,
-            currentLevel: 1,
-            totalFollowers: newFollowerCount,
+            userId: ctx.user.id,
+            currentLevel: newLevel,
+            totalFollowers: input.newFollowerCount,
             levelUpCount: 0,
+            lastLevelUpAt: newLevel > 1 ? new Date() : null,
           });
-
-          return {
-            success: true,
-            leveledUp: false,
-            newLevel: 1,
-            previousLevel: 1,
-          };
+          return { success: true, leveledUp: newLevel > 1, newLevel, previousLevel: 1, levelUpCount: 0 };
         }
 
-        const record = currentLevelRecord[0];
-        const previousLevel = record.currentLevel;
-        const newLevel = calculateLevel(newFollowerCount);
-
-        // Check if leveled up
-        const leveledUp = newLevel > previousLevel;
-
-        // Update level record
+        const leveledUp = newLevel > record.currentLevel;
+        const levelUpCount = record.levelUpCount + (leveledUp ? 1 : 0);
         await db
           .update(userLevels)
           .set({
             currentLevel: newLevel,
-            totalFollowers: newFollowerCount,
-            levelUpCount: leveledUp ? record.levelUpCount + 1 : record.levelUpCount,
+            totalFollowers: input.newFollowerCount,
+            levelUpCount,
             lastLevelUpAt: leveledUp ? new Date() : record.lastLevelUpAt,
             updatedAt: new Date(),
           })
-          .where(eq(userLevels.userId, userId));
+          .where(eq(userLevels.userId, ctx.user.id));
 
         return {
           success: true,
           leveledUp,
           newLevel,
-          previousLevel,
-          levelUpCount: leveledUp ? record.levelUpCount + 1 : record.levelUpCount,
+          previousLevel: record.currentLevel,
+          levelUpCount,
         };
       } catch (error) {
         console.error("Error updating user level:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update user level",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update user level" });
       }
     }),
 
-  /**
-   * Get level statistics
-   */
   getLevelStats: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
-
+    const db = await getRequiredDb();
     try {
-      const userLevel = await db
+      const [record] = await db
         .select()
         .from(userLevels)
-        .where(eq(userLevels.userId, userId));
-
-      if (!userLevel || userLevel.length === 0) {
-        return {
-          currentLevel: 1,
-          totalFollowers: 0,
-          levelUpCount: 0,
-          nextLevelThreshold: LEVEL_THRESHOLDS[2],
-          currentLevelThreshold: LEVEL_THRESHOLDS[1],
-        };
-      }
-
-      const record = userLevel[0];
-      const nextLevel = Math.min(record.currentLevel + 1, 20);
+        .where(eq(userLevels.userId, ctx.user.id))
+        .limit(1);
+      const currentLevel = record?.currentLevel ?? 1;
+      const nextLevel = Math.min(currentLevel + 1, 20);
 
       return {
-        currentLevel: record.currentLevel,
-        totalFollowers: record.totalFollowers,
-        levelUpCount: record.levelUpCount,
+        currentLevel,
+        totalFollowers: record?.totalFollowers ?? 0,
+        levelUpCount: record?.levelUpCount ?? 0,
         nextLevelThreshold: LEVEL_THRESHOLDS[nextLevel],
-        currentLevelThreshold: LEVEL_THRESHOLDS[record.currentLevel],
-        lastLevelUpAt: record.lastLevelUpAt,
+        currentLevelThreshold: LEVEL_THRESHOLDS[currentLevel],
+        lastLevelUpAt: record?.lastLevelUpAt ?? null,
       };
     } catch (error) {
       console.error("Error getting level stats:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get level stats",
-      });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get level stats" });
     }
   }),
 
-  /**
-   * Get top users by level
-   */
   getTopUsersByLevel: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().default(10),
-      })
-    )
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(10) }))
     .query(async ({ input }) => {
+      const db = await getRequiredDb();
       try {
-        const topUsers = await db
+        return await db
           .select()
           .from(userLevels)
-          .orderBy((t) => [t.currentLevel, t.totalFollowers])
+          .orderBy(desc(userLevels.currentLevel), desc(userLevels.totalFollowers))
           .limit(input.limit);
-
-        return topUsers;
       } catch (error) {
         console.error("Error getting top users:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get top users",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get top users" });
       }
     }),
 
-  /**
-   * Get leaderboard
-   */
   getLeaderboard: protectedProcedure
     .input(
       z.object({
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().int().min(1).max(100).default(20),
+        offset: z.number().int().nonnegative().default(0),
       })
     )
     .query(async ({ input }) => {
+      const db = await getRequiredDb();
       try {
-        const leaderboard = await db
+        const users = await db
           .select()
           .from(userLevels)
-          .orderBy((t) => [t.currentLevel, t.totalFollowers])
+          .orderBy(desc(userLevels.currentLevel), desc(userLevels.totalFollowers))
           .limit(input.limit)
           .offset(input.offset);
-
-        const totalCount = await db.select().from(userLevels);
-
-        return {
-          users: leaderboard,
-          total: totalCount.length,
-          limit: input.limit,
-          offset: input.offset,
-        };
+        const total = await db.select().from(userLevels);
+        return { users, total: total.length, limit: input.limit, offset: input.offset };
       } catch (error) {
         console.error("Error getting leaderboard:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get leaderboard",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get leaderboard" });
       }
     }),
 });

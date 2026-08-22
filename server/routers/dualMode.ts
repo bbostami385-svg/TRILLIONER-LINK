@@ -1,763 +1,207 @@
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
-import { db } from "../db";
-import { users, follows, subscriptions, userModePreferences } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
+import { protectedProcedure, router } from "../_core/trpc";
+import { getRequiredDb } from "../db";
+import { follows, subscriptions, userModePreferences, users } from "../../drizzle/schema";
 
-/**
- * Dual Mode Router
- * Handles Follow/Subscribe functionality for both Social and Creator modes
- */
+const modeSchema = z.enum(["social", "creator"]);
+const idSchema = z.number().int().positive();
+const pageSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(20),
+  offset: z.number().int().nonnegative().default(0),
+});
+
+async function ensureModePreferences(db: Awaited<ReturnType<typeof getRequiredDb>>, userId: number) {
+  const existing = await db.select({ mode: userModePreferences.mode })
+    .from(userModePreferences)
+    .where(eq(userModePreferences.userId, userId));
+  const existingModes = new Set(existing.map((row) => row.mode));
+  for (const mode of ["social", "creator"] as const) {
+    if (!existingModes.has(mode)) {
+      await db.insert(userModePreferences).values({ userId, mode });
+    }
+  }
+}
+
 export const dualModeRouter = router({
-  /**
-   * Initialize user mode preferences on first signup
-   * Creates default preferences for both social and creator modes
-   */
   initializeModePreferences: protectedProcedure
-    .input(
-      z.object({
-        selectedMode: z.enum(["social", "creator"]),
-      })
-    )
+    .input(z.object({ selectedMode: modeSchema }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
-
-      try {
-        // Update user's selected mode
-        await db
-          .update(users)
-          .set({
-            accountMode: input.selectedMode,
-            modeSelected: true,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, userId));
-
-        // Create mode preferences for both modes if they don't exist
-        const existingPrefs = await db
-          .select()
-          .from(userModePreferences)
-          .where(eq(userModePreferences.userId, userId));
-
-        if (existingPrefs.length === 0) {
-          // Create social mode preferences
-          await db.insert(userModePreferences).values({
-            userId,
-            mode: "social",
-            followers: 0,
-            following: 0,
-            subscribers: 0,
-            totalViews: 0,
-            totalPosts: 0,
-            totalVideos: 0,
-          });
-
-          // Create creator mode preferences
-          await db.insert(userModePreferences).values({
-            userId,
-            mode: "creator",
-            followers: 0,
-            following: 0,
-            subscribers: 0,
-            totalViews: 0,
-            totalPosts: 0,
-            totalVideos: 0,
-          });
-        }
-
-        return {
-          success: true,
-          mode: input.selectedMode,
-          message: `Successfully switched to ${input.selectedMode} mode`,
-        };
-      } catch (error) {
-        console.error("Error initializing mode preferences:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to initialize mode preferences",
-        });
-      }
+      const db = await getRequiredDb();
+      await db.update(users).set({ accountMode: input.selectedMode, modeSelected: true, updatedAt: new Date() })
+        .where(eq(users.id, ctx.user.id));
+      await ensureModePreferences(db, ctx.user.id);
+      return { success: true, mode: input.selectedMode, message: `Successfully selected ${input.selectedMode} mode.` };
     }),
 
-  /**
-   * Switch between Social and Creator modes
-   */
   switchMode: protectedProcedure
-    .input(
-      z.object({
-        newMode: z.enum(["social", "creator"]),
-      })
-    )
+    .input(z.object({ newMode: modeSchema }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
-
-      try {
-        // Update user's account mode
-        await db
-          .update(users)
-          .set({
-            accountMode: input.newMode,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, userId));
-
-        return {
-          success: true,
-          newMode: input.newMode,
-          message: `Successfully switched to ${input.newMode} mode`,
-        };
-      } catch (error) {
-        console.error("Error switching mode:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to switch mode",
-        });
-      }
+      const db = await getRequiredDb();
+      await db.update(users).set({ accountMode: input.newMode, modeSelected: true, updatedAt: new Date() })
+        .where(eq(users.id, ctx.user.id));
+      await ensureModePreferences(db, ctx.user.id);
+      return { success: true, newMode: input.newMode, message: `Successfully switched to ${input.newMode} mode.` };
     }),
 
-  /**
-   * Get current user's mode and statistics
-   */
   getCurrentMode: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
-
-    try {
-      const user = await db.select().from(users).where(eq(users.id, userId));
-
-      if (!user || user.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
-
-      const currentUser = user[0];
-      const modePrefs = await db
-        .select()
-        .from(userModePreferences)
-        .where(
-          and(
-            eq(userModePreferences.userId, userId),
-            eq(userModePreferences.mode, currentUser.accountMode)
-          )
-        );
-
-      return {
-        userId,
-        currentMode: currentUser.accountMode,
-        modeSelected: currentUser.modeSelected,
-        statistics: modePrefs[0] || null,
-      };
-    } catch (error) {
-      console.error("Error getting current mode:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get current mode",
-      });
-    }
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+    const [statistics] = await db.select().from(userModePreferences)
+      .where(and(eq(userModePreferences.userId, ctx.user.id), eq(userModePreferences.mode, user.accountMode)))
+      .limit(1);
+    return { userId: ctx.user.id, currentMode: user.accountMode, modeSelected: user.modeSelected, statistics: statistics ?? null };
   }),
 
-  /**
-   * Get user's statistics for both modes
-   */
   getModeStatistics: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
-
-    try {
-      const prefs = await db
-        .select()
-        .from(userModePreferences)
-        .where(eq(userModePreferences.userId, userId));
-
-      const socialMode = prefs.find((p) => p.mode === "social");
-      const creatorMode = prefs.find((p) => p.mode === "creator");
-
-      return {
-        social: socialMode || null,
-        creator: creatorMode || null,
-      };
-    } catch (error) {
-      console.error("Error getting mode statistics:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get mode statistics",
-      });
-    }
+    const db = await getRequiredDb();
+    const preferences = await db.select().from(userModePreferences).where(eq(userModePreferences.userId, ctx.user.id));
+    return {
+      social: preferences.find((preference) => preference.mode === "social") ?? null,
+      creator: preferences.find((preference) => preference.mode === "creator") ?? null,
+    };
   }),
 
-  /**
-   * SOCIAL MODE: Follow a user
-   */
   followUser: protectedProcedure
-    .input(
-      z.object({
-        targetUserId: z.number(),
-      })
-    )
+    .input(z.object({ targetUserId: idSchema }))
     .mutation(async ({ ctx, input }) => {
-      const followerId = ctx.user.id;
-      const { targetUserId } = input;
-
-      if (followerId === targetUserId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You cannot follow yourself",
-        });
-      }
-
-      try {
-        // Check if already following
-        const existingFollow = await db
-          .select()
-          .from(follows)
-          .where(
-            and(
-              eq(follows.followerId, followerId),
-              eq(follows.followingId, targetUserId)
-            )
-          );
-
-        if (existingFollow.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Already following this user",
-          });
-        }
-
-        // Create follow relationship
-        await db.insert(follows).values({
-          followerId,
-          followingId: targetUserId,
-        });
-
-        // Update follower's "following" count
-        const followingCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followerId, followerId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            following: followingCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, followerId),
-              eq(userModePreferences.mode, "social")
-            )
-          );
-
-        // Update target's "followers" count
-        const followerCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followingId, targetUserId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            followers: followerCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, targetUserId),
-              eq(userModePreferences.mode, "social")
-            )
-          );
-
-        return {
-          success: true,
-          message: "Successfully followed user",
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        console.error("Error following user:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to follow user",
-        });
-      }
+      if (ctx.user.id === input.targetUserId) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot follow yourself." });
+      const db = await getRequiredDb();
+      const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.targetUserId)).limit(1);
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      const [existing] = await db.select({ id: follows.id }).from(follows).where(and(
+        eq(follows.followerId, ctx.user.id), eq(follows.followingId, input.targetUserId)
+      )).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Already following this user." });
+      await db.insert(follows).values({ followerId: ctx.user.id, followingId: input.targetUserId });
+      await ensureModePreferences(db, ctx.user.id);
+      await ensureModePreferences(db, input.targetUserId);
+      const following = await db.select({ id: follows.id }).from(follows).where(eq(follows.followerId, ctx.user.id));
+      const followers = await db.select({ id: follows.id }).from(follows).where(eq(follows.followingId, input.targetUserId));
+      await db.update(userModePreferences).set({ following: following.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, ctx.user.id), eq(userModePreferences.mode, "social")
+      ));
+      await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
+      ));
+      return { success: true, message: "Successfully followed user." };
     }),
 
-  /**
-   * SOCIAL MODE: Unfollow a user
-   */
   unfollowUser: protectedProcedure
-    .input(
-      z.object({
-        targetUserId: z.number(),
-      })
-    )
+    .input(z.object({ targetUserId: idSchema }))
     .mutation(async ({ ctx, input }) => {
-      const followerId = ctx.user.id;
-      const { targetUserId } = input;
-
-      try {
-        // Delete follow relationship
-        await db
-          .delete(follows)
-          .where(
-            and(
-              eq(follows.followerId, followerId),
-              eq(follows.followingId, targetUserId)
-            )
-          );
-
-        // Update follower's "following" count
-        const followingCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followerId, followerId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            following: followingCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, followerId),
-              eq(userModePreferences.mode, "social")
-            )
-          );
-
-        // Update target's "followers" count
-        const followerCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followingId, targetUserId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            followers: followerCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, targetUserId),
-              eq(userModePreferences.mode, "social")
-            )
-          );
-
-        return {
-          success: true,
-          message: "Successfully unfollowed user",
-        };
-      } catch (error) {
-        console.error("Error unfollowing user:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to unfollow user",
-        });
-      }
+      const db = await getRequiredDb();
+      await db.delete(follows).where(and(eq(follows.followerId, ctx.user.id), eq(follows.followingId, input.targetUserId)));
+      const following = await db.select({ id: follows.id }).from(follows).where(eq(follows.followerId, ctx.user.id));
+      const followers = await db.select({ id: follows.id }).from(follows).where(eq(follows.followingId, input.targetUserId));
+      await db.update(userModePreferences).set({ following: following.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, ctx.user.id), eq(userModePreferences.mode, "social")
+      ));
+      await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
+      ));
+      return { success: true, message: "Successfully unfollowed user." };
     }),
 
-  /**
-   * SOCIAL MODE: Get followers list
-   */
   getFollowers: protectedProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
-      })
-    )
+    .input(z.object({ userId: idSchema }).merge(pageSchema))
     .query(async ({ input }) => {
-      const { userId, limit, offset } = input;
-
-      try {
-        const followersList = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            profileImage: users.profileImage,
-            bio: users.bio,
-          })
-          .from(follows)
-          .innerJoin(users, eq(follows.followerId, users.id))
-          .where(eq(follows.followingId, userId))
-          .limit(limit)
-          .offset(offset);
-
-        const totalCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followingId, userId));
-
-        return {
-          followers: followersList,
-          total: totalCount.length,
-          limit,
-          offset,
-        };
-      } catch (error) {
-        console.error("Error getting followers:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get followers",
-        });
-      }
+      const db = await getRequiredDb();
+      const followers = await db.select({ id: users.id, name: users.name, profileImage: users.profileImage, bio: users.bio })
+        .from(follows).innerJoin(users, eq(follows.followerId, users.id))
+        .where(eq(follows.followingId, input.userId)).limit(input.limit).offset(input.offset);
+      const total = await db.select({ id: follows.id }).from(follows).where(eq(follows.followingId, input.userId));
+      return { followers, total: total.length, limit: input.limit, offset: input.offset };
     }),
 
-  /**
-   * SOCIAL MODE: Get following list
-   */
   getFollowing: protectedProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
-      })
-    )
+    .input(z.object({ userId: idSchema }).merge(pageSchema))
     .query(async ({ input }) => {
-      const { userId, limit, offset } = input;
-
-      try {
-        const followingList = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            profileImage: users.profileImage,
-            bio: users.bio,
-          })
-          .from(follows)
-          .innerJoin(users, eq(follows.followingId, users.id))
-          .where(eq(follows.followerId, userId))
-          .limit(limit)
-          .offset(offset);
-
-        const totalCount = await db
-          .select()
-          .from(follows)
-          .where(eq(follows.followerId, userId));
-
-        return {
-          following: followingList,
-          total: totalCount.length,
-          limit,
-          offset,
-        };
-      } catch (error) {
-        console.error("Error getting following:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get following",
-        });
-      }
+      const db = await getRequiredDb();
+      const following = await db.select({ id: users.id, name: users.name, profileImage: users.profileImage, bio: users.bio })
+        .from(follows).innerJoin(users, eq(follows.followingId, users.id))
+        .where(eq(follows.followerId, input.userId)).limit(input.limit).offset(input.offset);
+      const total = await db.select({ id: follows.id }).from(follows).where(eq(follows.followerId, input.userId));
+      return { following, total: total.length, limit: input.limit, offset: input.offset };
     }),
 
-  /**
-   * SOCIAL MODE: Check if following a user
-   */
   isFollowing: protectedProcedure
-    .input(
-      z.object({
-        targetUserId: z.number(),
-      })
-    )
+    .input(z.object({ targetUserId: idSchema }))
     .query(async ({ ctx, input }) => {
-      const followerId = ctx.user.id;
-      const { targetUserId } = input;
-
-      try {
-        const follow = await db
-          .select()
-          .from(follows)
-          .where(
-            and(
-              eq(follows.followerId, followerId),
-              eq(follows.followingId, targetUserId)
-            )
-          );
-
-        return {
-          isFollowing: follow.length > 0,
-        };
-      } catch (error) {
-        console.error("Error checking follow status:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to check follow status",
-        });
-      }
+      const db = await getRequiredDb();
+      const [follow] = await db.select({ id: follows.id }).from(follows).where(and(
+        eq(follows.followerId, ctx.user.id), eq(follows.followingId, input.targetUserId)
+      )).limit(1);
+      return { isFollowing: Boolean(follow) };
     }),
 
-  /**
-   * CREATOR MODE: Subscribe to a creator
-   */
   subscribeToCreator: protectedProcedure
-    .input(
-      z.object({
-        creatorId: z.number(),
-        tier: z.enum(["free", "basic", "premium"]).default("free"),
-      })
-    )
+    .input(z.object({ creatorId: idSchema, tier: z.enum(["free", "basic", "premium"]).default("free") }))
     .mutation(async ({ ctx, input }) => {
-      const subscriberId = ctx.user.id;
-      const { creatorId, tier } = input;
-
-      if (subscriberId === creatorId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You cannot subscribe to yourself",
-        });
-      }
-
-      try {
-        // Check if already subscribed
-        const existingSubscription = await db
-          .select()
-          .from(subscriptions)
-          .where(
-            and(
-              eq(subscriptions.subscriberId, subscriberId),
-              eq(subscriptions.creatorId, creatorId)
-            )
-          );
-
-        if (existingSubscription.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Already subscribed to this creator",
-          });
-        }
-
-        // Create subscription
-        await db.insert(subscriptions).values({
-          subscriberId,
-          creatorId,
-          subscriptionTier: tier,
-        });
-
-        // Update creator's subscriber count
-        const creatorSubscriberCount = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.creatorId, creatorId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            subscribers: creatorSubscriberCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, creatorId),
-              eq(userModePreferences.mode, "creator")
-            )
-          );
-
-        return {
-          success: true,
-          message: `Successfully subscribed to creator (${tier} tier)`,
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        console.error("Error subscribing to creator:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to subscribe to creator",
-        });
-      }
+      if (ctx.user.id === input.creatorId) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot subscribe to yourself." });
+      const db = await getRequiredDb();
+      const [creator] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.creatorId)).limit(1);
+      if (!creator) throw new TRPCError({ code: "NOT_FOUND", message: "Creator not found." });
+      const [existing] = await db.select({ id: subscriptions.id }).from(subscriptions).where(and(
+        eq(subscriptions.subscriberId, ctx.user.id), eq(subscriptions.creatorId, input.creatorId)
+      )).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Already subscribed to this creator." });
+      await db.insert(subscriptions).values({ subscriberId: ctx.user.id, creatorId: input.creatorId, subscriptionTier: input.tier });
+      await ensureModePreferences(db, input.creatorId);
+      const count = await db.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.creatorId, input.creatorId));
+      await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
+      ));
+      return { success: true, message: `Successfully subscribed to creator (${input.tier} tier).` };
     }),
 
-  /**
-   * CREATOR MODE: Unsubscribe from a creator
-   */
   unsubscribeFromCreator: protectedProcedure
-    .input(
-      z.object({
-        creatorId: z.number(),
-      })
-    )
+    .input(z.object({ creatorId: idSchema }))
     .mutation(async ({ ctx, input }) => {
-      const subscriberId = ctx.user.id;
-      const { creatorId } = input;
-
-      try {
-        // Delete subscription
-        await db
-          .delete(subscriptions)
-          .where(
-            and(
-              eq(subscriptions.subscriberId, subscriberId),
-              eq(subscriptions.creatorId, creatorId)
-            )
-          );
-
-        // Update creator's subscriber count
-        const creatorSubscriberCount = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.creatorId, creatorId));
-
-        await db
-          .update(userModePreferences)
-          .set({
-            subscribers: creatorSubscriberCount.length,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userModePreferences.userId, creatorId),
-              eq(userModePreferences.mode, "creator")
-            )
-          );
-
-        return {
-          success: true,
-          message: "Successfully unsubscribed from creator",
-        };
-      } catch (error) {
-        console.error("Error unsubscribing from creator:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to unsubscribe from creator",
-        });
-      }
+      const db = await getRequiredDb();
+      await db.delete(subscriptions).where(and(
+        eq(subscriptions.subscriberId, ctx.user.id), eq(subscriptions.creatorId, input.creatorId)
+      ));
+      const count = await db.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.creatorId, input.creatorId));
+      await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
+        eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
+      ));
+      return { success: true, message: "Successfully unsubscribed from creator." };
     }),
 
-  /**
-   * CREATOR MODE: Get subscribers list
-   */
   getSubscribers: protectedProcedure
-    .input(
-      z.object({
-        creatorId: z.number(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
-      })
-    )
+    .input(z.object({ creatorId: idSchema }).merge(pageSchema))
     .query(async ({ input }) => {
-      const { creatorId, limit, offset } = input;
-
-      try {
-        const subscribersList = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            profileImage: users.profileImage,
-            bio: users.bio,
-            tier: subscriptions.subscriptionTier,
-          })
-          .from(subscriptions)
-          .innerJoin(users, eq(subscriptions.subscriberId, users.id))
-          .where(eq(subscriptions.creatorId, creatorId))
-          .limit(limit)
-          .offset(offset);
-
-        const totalCount = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.creatorId, creatorId));
-
-        return {
-          subscribers: subscribersList,
-          total: totalCount.length,
-          limit,
-          offset,
-        };
-      } catch (error) {
-        console.error("Error getting subscribers:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get subscribers",
-        });
-      }
+      const db = await getRequiredDb();
+      const subscribers = await db.select({
+        id: users.id, name: users.name, profileImage: users.profileImage, bio: users.bio, tier: subscriptions.subscriptionTier,
+      }).from(subscriptions).innerJoin(users, eq(subscriptions.subscriberId, users.id))
+        .where(eq(subscriptions.creatorId, input.creatorId)).limit(input.limit).offset(input.offset);
+      const total = await db.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.creatorId, input.creatorId));
+      return { subscribers, total: total.length, limit: input.limit, offset: input.offset };
     }),
 
-  /**
-   * CREATOR MODE: Check if subscribed to a creator
-   */
   isSubscribed: protectedProcedure
-    .input(
-      z.object({
-        creatorId: z.number(),
-      })
-    )
+    .input(z.object({ creatorId: idSchema }))
     .query(async ({ ctx, input }) => {
-      const subscriberId = ctx.user.id;
-      const { creatorId } = input;
-
-      try {
-        const subscription = await db
-          .select()
-          .from(subscriptions)
-          .where(
-            and(
-              eq(subscriptions.subscriberId, subscriberId),
-              eq(subscriptions.creatorId, creatorId)
-            )
-          );
-
-        return {
-          isSubscribed: subscription.length > 0,
-          tier: subscription[0]?.subscriptionTier || null,
-        };
-      } catch (error) {
-        console.error("Error checking subscription status:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to check subscription status",
-        });
-      }
+      const db = await getRequiredDb();
+      const [subscription] = await db.select({ tier: subscriptions.subscriptionTier }).from(subscriptions).where(and(
+        eq(subscriptions.subscriberId, ctx.user.id), eq(subscriptions.creatorId, input.creatorId)
+      )).limit(1);
+      return { isSubscribed: Boolean(subscription), tier: subscription?.tier ?? null };
     }),
 
-  /**
-   * Get user's subscriptions (creators they follow)
-   */
   getSubscriptions: protectedProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
-      })
-    )
+    .input(z.object({ userId: idSchema }).merge(pageSchema))
     .query(async ({ input }) => {
-      const { userId, limit, offset } = input;
-
-      try {
-        const subscriptionsList = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            profileImage: users.profileImage,
-            bio: users.bio,
-            tier: subscriptions.subscriptionTier,
-          })
-          .from(subscriptions)
-          .innerJoin(users, eq(subscriptions.creatorId, users.id))
-          .where(eq(subscriptions.subscriberId, userId))
-          .limit(limit)
-          .offset(offset);
-
-        const totalCount = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.subscriberId, userId));
-
-        return {
-          subscriptions: subscriptionsList,
-          total: totalCount.length,
-          limit,
-          offset,
-        };
-      } catch (error) {
-        console.error("Error getting subscriptions:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get subscriptions",
-        });
-      }
+      const db = await getRequiredDb();
+      const subscriptionsList = await db.select({
+        id: users.id, name: users.name, profileImage: users.profileImage, bio: users.bio, tier: subscriptions.subscriptionTier,
+      }).from(subscriptions).innerJoin(users, eq(subscriptions.creatorId, users.id))
+        .where(eq(subscriptions.subscriberId, input.userId)).limit(input.limit).offset(input.offset);
+      const total = await db.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.subscriberId, input.userId));
+      return { subscriptions: subscriptionsList, total: total.length, limit: input.limit, offset: input.offset };
     }),
 });

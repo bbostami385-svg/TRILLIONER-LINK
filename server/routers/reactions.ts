@@ -1,84 +1,143 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { db } from "../db";
+import { getRequiredDb } from "../db";
 import { reactions } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+
+const reactionTypes = ["heart", "laugh", "sad", "angry", "wow"] as const;
+type ReactionType = (typeof reactionTypes)[number];
+
+const emojiToType: Record<string, ReactionType> = {
+  "❤️": "heart",
+  "😘": "heart",
+  "🤔": "wow",
+  "🤣": "laugh",
+  "😂": "laugh",
+  "😡": "angry",
+  "😱": "wow",
+  "🥵": "wow",
+  "🥶": "sad",
+  "🤢": "sad",
+  "👍": "heart",
+  "👎": "sad",
+  "🔥": "heart",
+  "💯": "heart",
+  "😍": "heart",
+  "🤩": "wow",
+  "😎": "wow",
+  "🥳": "laugh",
+  "💪": "heart",
+  "🙌": "heart",
+  "👏": "heart",
+  "🎉": "laugh",
+  "✨": "wow",
+  "🚀": "wow",
+  "💖": "heart",
+  "⭐": "wow",
+  "🌟": "wow",
+};
+
+const typeToEmoji: Record<ReactionType, string> = {
+  heart: "❤️",
+  laugh: "😂",
+  sad: "🥶",
+  angry: "😡",
+  wow: "🤩",
+};
+
+const reactionInput = z.object({
+  postId: z.coerce.number().int().positive(),
+  emoji: z.string().min(1).max(8),
+});
+
+function getReactionType(emoji: string): ReactionType {
+  return emojiToType[emoji] ?? "heart";
+}
 
 export const reactionsRouter = router({
-  // Add reaction to post
   addReaction: protectedProcedure
-    .input(
-      z.object({
-        postId: z.string(),
-        emoji: z.enum([
-          "❤️", "😘", "🤔", "🤣", "😡", "😱", "🥵", "🥶", "🤢",
-          "👍", "👎", "🔥", "💯", "😂", "😍", "🤩", "😎", "🥳",
-          "💪", "🙌", "👏", "🎉", "✨", "🚀", "💖", "⭐", "🌟"
-        ]),
-      })
-    )
+    .input(reactionInput)
     .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
+      const type = getReactionType(input.emoji);
+
+      await db
+        .delete(reactions)
+        .where(
+          and(eq(reactions.userId, ctx.user.id), eq(reactions.postId, input.postId))
+        );
+
+      await db.insert(reactions).values({
+        userId: ctx.user.id,
+        postId: input.postId,
+        type,
+      });
+
       const [reaction] = await db
-        .insert(reactions)
-        .values({
-          userId: ctx.user.id,
-          postId: input.postId,
-          emoji: input.emoji,
-        })
-        .returning();
-      return reaction;
+        .select()
+        .from(reactions)
+        .where(
+          and(
+            eq(reactions.userId, ctx.user.id),
+            eq(reactions.postId, input.postId),
+            eq(reactions.type, type)
+          )
+        )
+        .orderBy(desc(reactions.createdAt))
+        .limit(1);
+
+      return reaction ? { ...reaction, emoji: typeToEmoji[reaction.type] } : null;
     }),
 
-  // Remove reaction
   removeReaction: protectedProcedure
-    .input(z.object({ postId: z.string(), emoji: z.string() }))
+    .input(reactionInput)
     .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
       await db
         .delete(reactions)
         .where(
           and(
             eq(reactions.userId, ctx.user.id),
             eq(reactions.postId, input.postId),
-            eq(reactions.emoji, input.emoji)
+            eq(reactions.type, getReactionType(input.emoji))
           )
         );
       return { success: true };
     }),
 
-  // Get reactions for post
   getPostReactions: protectedProcedure
-    .input(z.object({ postId: z.string() }))
+    .input(z.object({ postId: z.coerce.number().int().positive() }))
     .query(async ({ input }) => {
+      const db = await getRequiredDb();
       const postReactions = await db
-        .select()
+        .select({ type: reactions.type })
         .from(reactions)
         .where(eq(reactions.postId, input.postId));
 
-      // Group by emoji and count
-      const grouped = new Map<string, number>();
-      postReactions.forEach((r) => {
-        grouped.set(r.emoji, (grouped.get(r.emoji) || 0) + 1);
+      const grouped = new Map<ReactionType, number>();
+      postReactions.forEach((reaction) => {
+        grouped.set(reaction.type, (grouped.get(reaction.type) ?? 0) + 1);
       });
 
-      return Array.from(grouped.entries()).map(([emoji, count]) => ({
-        emoji,
+      return Array.from(grouped.entries()).map(([type, count]) => ({
+        emoji: typeToEmoji[type],
         count,
       }));
     }),
 
-  // Get user's reaction on post
   getUserReaction: protectedProcedure
-    .input(z.object({ postId: z.string() }))
+    .input(z.object({ postId: z.coerce.number().int().positive() }))
     .query(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
       const [userReaction] = await db
         .select()
         .from(reactions)
         .where(
-          and(
-            eq(reactions.userId, ctx.user.id),
-            eq(reactions.postId, input.postId)
-          )
-        );
-      return userReaction || null;
+          and(eq(reactions.userId, ctx.user.id), eq(reactions.postId, input.postId))
+        )
+        .orderBy(desc(reactions.createdAt))
+        .limit(1);
+
+      return userReaction ? { ...userReaction, emoji: typeToEmoji[userReaction.type] } : null;
     }),
 });

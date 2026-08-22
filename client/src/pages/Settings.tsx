@@ -9,6 +9,9 @@ import { ModeIndicator } from "@/components/ModeIndicator";
 import { LevelBadge } from "@/components/LevelBadge";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
 import { Leaderboard } from "@/components/Leaderboard";
+import { LivenessVerification } from "@/components/LivenessVerification";
+import { KYCForm } from "@/components/KYCForm";
+import { SocialLinking } from "@/components/SocialLinking";
 import { trpc } from "@/lib/trpc";
 import "./Settings.css";
 
@@ -19,6 +22,7 @@ export default function Settings() {
   const [language, setLanguage] = useState("en");
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [activeTab, setActiveTab] = useState("account");
+  const [verificationSection, setVerificationSection] = useState<"human" | "kyc" | "accounts">("human");
   const [notifications, setNotifications] = useState({
     likes: true,
     comments: true,
@@ -34,6 +38,7 @@ export default function Settings() {
 
   // Mutations
   const logoutMutation = trpc.auth.logout.useMutation();
+  const utils = trpc.useUtils();
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
@@ -42,7 +47,8 @@ export default function Settings() {
 
   const handleModeChanged = () => {
     setShowModeSelector(false);
-    trpc.useUtils().dualMode.getCurrentMode.invalidate();
+    utils.dualMode.getCurrentMode.invalidate();
+    utils.dualMode.getModeStatistics.invalidate();
   };
 
   if (!isAuthenticated) {
@@ -143,6 +149,13 @@ export default function Settings() {
           >
             <Trophy size={18} />
             Level
+          </button>
+          <button
+            className={`tab-button ${activeTab === "verification" ? "active" : ""}`}
+            onClick={() => setActiveTab("verification")}
+          >
+            <Lock size={18} />
+            Verification
           </button>
         </div>
       </div>
@@ -258,6 +271,51 @@ export default function Settings() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Verification Tab */}
+      {activeTab === "verification" && (
+        <div className="settings-section">
+          <div className="section-header">
+            <Lock size={20} />
+            <div>
+              <h2>Security & Verification</h2>
+              <p className="text-sm text-gray-500">Human verification protects accounts; KYC is only needed for monetization.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 border-b pb-4 mb-6">
+            <Button variant={verificationSection === "human" ? "default" : "outline"} onClick={() => setVerificationSection("human")}>Human Verification</Button>
+            <Button variant={verificationSection === "kyc" ? "default" : "outline"} onClick={() => setVerificationSection("kyc")}>Monetization KYC</Button>
+            <Button variant={verificationSection === "accounts" ? "default" : "outline"} onClick={() => setVerificationSection("accounts")}>Linked Accounts</Button>
+          </div>
+          {verificationSection === "human" && (
+            <div className="space-y-4">
+              <Card className="p-5 border-blue-200 bg-blue-50/60">
+                <h3 className="font-semibold text-blue-950">Human verification, not identity verification</h3>
+                <p className="text-sm text-blue-900/80 mt-1">You may be asked to move your head or blink so the system can distinguish a real person from an automated account. This does not verify your name or government identity.</p>
+              </Card>
+              <LivenessVerification />
+            </div>
+          )}
+          {verificationSection === "kyc" && (
+            <div className="space-y-4">
+              <Card className="p-5 border-amber-200 bg-amber-50/60">
+                <h3 className="font-semibold text-amber-950">KYC is only for financial features</h3>
+                <p className="text-sm text-amber-900/80 mt-1">Identity documents are requested only when you apply for monetization, payouts, or another regulated financial feature. Submitting KYC does not happen during ordinary account creation.</p>
+              </Card>
+              <KYCForm />
+            </div>
+          )}
+          {verificationSection === "accounts" && (
+            <div className="space-y-4">
+              <Card className="p-5 border-purple-200 bg-purple-50/60">
+                <h3 className="font-semibold text-purple-950">Connect other platforms</h3>
+                <p className="text-sm text-purple-900/80 mt-1">Link YouTube, Google, Facebook, Instagram, or TikTok from a desktop browser using the provider’s OAuth consent screen. We do not collect your provider password.</p>
+              </Card>
+              <SocialLinking />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Mode Tab */}

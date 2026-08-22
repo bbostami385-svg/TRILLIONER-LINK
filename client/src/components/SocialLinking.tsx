@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,9 +10,9 @@ type Provider = "google" | "youtube" | "facebook" | "instagram" | "tiktok";
 interface LinkedAccount {
   id: number;
   provider: Provider;
-  providerUsername: string;
+  providerUsername: string | null;
   isVerified: boolean;
-  linkedAt: Date;
+  createdAt: Date;
 }
 
 export function SocialLinking() {
@@ -38,13 +38,17 @@ export function SocialLinking() {
     }
   };
 
+  useEffect(() => {
+    void loadLinkedAccounts();
+  }, []);
+
   // Handle OAuth linking
   const handleLinkAccount = async (provider: Provider) => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await generateOAuthURLMutation.mutateAsync({ provider });
+      const result = await generateOAuthURLMutation.mutateAsync({ provider, origin: window.location.origin });
       // Redirect to OAuth URL
       window.location.href = result.authUrl;
     } catch (err: any) {
@@ -150,7 +154,7 @@ export function SocialLinking() {
                       <span className="text-2xl">{getProviderIcon(account.provider)}</span>
                       <div>
                         <p className="font-medium capitalize">{account.provider}</p>
-                        <p className="text-sm text-gray-600">{account.providerUsername}</p>
+                        <p className="text-sm text-gray-600">{account.providerUsername || "Linked account"}</p>
                         {account.isVerified && (
                           <div className="flex items-center gap-1 mt-1">
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -211,6 +215,8 @@ export function SocialLinking() {
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
+              <strong>Desktop OAuth linking:</strong> You will be sent to the provider’s official consent screen and returned to this app. If a provider is not configured yet, the app will show a setup message instead of creating a fake connection.
+              <br /><br />
               <strong>Benefits:</strong>
               <br />
               • Sync followers and subscribers across platforms
@@ -240,8 +246,8 @@ export function SocialLinking() {
                 >
                   <span className="capitalize">{account.provider}</span>
                   <span className="text-gray-600">
-                    {account.linkedAt
-                      ? new Date(account.linkedAt).toLocaleDateString()
+                    {account.createdAt
+                      ? new Date(account.createdAt).toLocaleDateString()
                       : "Never"}
                   </span>
                 </div>

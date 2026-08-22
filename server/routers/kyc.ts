@@ -1,407 +1,193 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc";
-import { getDb } from "../db";
-import { users, kycDocuments, kycVerificationRecords } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { getRequiredDb } from "../db";
+import { persistVerificationMedia } from "../verificationMedia";
+import { kycDocuments, kycVerificationRecords, users } from "../../drizzle/schema";
+
+const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
+const metadataSchema = z.record(z.string(), z.unknown()).optional();
+const documentInputSchema = z.object({
+  documentType: documentTypeSchema,
+  frontImageUrl: z.string().min(1).max(12_000_000),
+  backImageUrl: z.string().min(1).max(12_000_000).optional(),
+  selfieImageUrl: z.string().min(1).max(12_000_000),
+  metadata: metadataSchema,
+});
+
+async function getLatestDocument(userId: number) {
+  const db = await getRequiredDb();
+  const [document] = await db
+    .select()
+    .from(kycDocuments)
+    .where(eq(kycDocuments.userId, userId))
+    .orderBy(desc(kycDocuments.createdAt))
+    .limit(1);
+  return document;
+}
 
 export const kycRouter = router({
-  /**
-   * Submit KYC documents
-   * Required for monetization features
-   */
   submitKYCDocument: protectedProcedure
-    .input(
-      z.object({
-        documentType: z.enum(["passport", "driver_license", "national_id", "other"]),
-        frontImageUrl: z.string().url(),
-        backImageUrl: z.string().url().optional(),
-        selfieImageUrl: z.string().url(),
-        metadata: z.record(z.any()).optional(),
-      })
-    )
+    .input(documentInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-
-      // Check if user already has pending KYC
-      const existingKYC = await db
-        .select()
+      const db = await getRequiredDb();
+      const [pending] = await db
+        .select({ id: kycDocuments.id })
         .from(kycDocuments)
-        .where(
-          and(
-            eq(kycDocuments.userId, ctx.user.id),
-            eq(kycDocuments.status, "pending")
-          )
-        )
+        .where(and(eq(kycDocuments.userId, ctx.user.id), eq(kycDocuments.status, "pending")))
         .limit(1);
 
-      if (existingKYC[0]) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You already have a pending KYC submission. Please wait for review.",
-        });
+      if (pending) {
+        throw new TRPCError({ code: "CONFLICT", message: "A KYC submission is already under review." });
       }
 
-      // Create KYC document record
-      const document = await db
-        .insert(kycDocuments)
-        .values({
-          userId: ctx.user.id,
-          documentType: input.documentType,
-          frontImageUrl: input.frontImageUrl,
-          backImageUrl: input.backImageUrl,
-          selfieImageUrl: input.selfieImageUrl,
-          status: "pending",
-          metadata: input.metadata,
-        })
-        .returning();
+      const [frontImageUrl, backImageUrl, selfieImageUrl] = await Promise.all([
+        persistVerificationMedia(input.frontImageUrl, `verification/kyc/${ctx.user.id}/front`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
+        input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
+        persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
+      ]);
+      const result = await db.insert(kycDocuments).values({
+        userId: ctx.user.id,
+        documentType: input.documentType,
+        frontImageUrl,
+        backImageUrl,
+        selfieImageUrl,
+        status: "pending",
+        metadata: input.metadata,
+      });
+      const documentId = Number(result[0].insertId);
 
-      // Create verification record
-      await db
-        .insert(kycVerificationRecords)
-        .values({
-          userId: ctx.user.id,
-          documentId: document[0].id,
-          status: "pending",
-        });
+      await db.insert(kycVerificationRecords).values({
+        userId: ctx.user.id,
+        documentId,
+        status: "pending",
+      });
+      await db.update(users).set({
+        kycStatus: "pending",
+        kycDocumentType: input.documentType,
+        kycVerified: false,
+      }).where(eq(users.id, ctx.user.id));
 
-      // Update user KYC status
-      await db
-        .update(users)
-        .set({
-          kycStatus: "pending",
-          kycDocumentType: input.documentType,
-        })
-        .where(eq(users.id, ctx.user.id));
-
-      return {
-        success: true,
-        documentId: document[0].id,
-        message: "KYC documents submitted successfully. Please wait for review (usually 24-48 hours).",
-      };
+      return { success: true, documentId, message: "KYC documents submitted for review." };
     }),
 
-  /**
-   * Get KYC verification status
-   */
   getKYCStatus: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const userData = user[0];
-
-    // Get latest KYC document
-    const latestDocument = await db
-      .select()
-      .from(kycDocuments)
-      .where(eq(kycDocuments.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt])
-      .limit(1);
-
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     return {
-      isVerified: userData.kycVerified,
-      status: userData.kycStatus,
-      documentType: userData.kycDocumentType,
-      verifiedAt: userData.kycVerificationAt,
-      lastDocument: latestDocument[0] || null,
-      message:
-        userData.kycStatus === "approved"
-          ? "Your KYC is verified. You can now access monetization features."
-          : userData.kycStatus === "pending"
-            ? "Your KYC is under review. Please wait 24-48 hours."
-            : userData.kycStatus === "rejected"
-              ? "Your KYC was rejected. Please submit again with correct documents."
-              : "KYC verification not started.",
+      isVerified: user.kycVerified,
+      status: user.kycStatus,
+      documentType: user.kycDocumentType,
+      verifiedAt: user.kycVerificationAt,
+      lastDocument: (await getLatestDocument(ctx.user.id)) ?? null,
     };
   }),
 
-  /**
-   * Get KYC verification history
-   */
   getKYCHistory: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const records = await db
-      .select()
-      .from(kycDocuments)
+    const db = await getRequiredDb();
+    return db.select().from(kycDocuments)
       .where(eq(kycDocuments.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt]);
-
-    return records;
+      .orderBy(desc(kycDocuments.createdAt));
   }),
 
-  /**
-   * Admin: Approve KYC
-   */
   approveKYC: adminProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        notes: z.string().optional(),
-      })
-    )
+    .input(z.object({ userId: z.number().int().positive(), notes: z.string().max(2000).optional() }))
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
+      const db = await getRequiredDb();
+      const document = await getLatestDocument(input.userId);
+      if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "No KYC document found." });
 
-      // Get latest KYC document for user
-      const document = await db
-        .select()
-        .from(kycDocuments)
-        .where(eq(kycDocuments.userId, input.userId))
-        .orderBy((t) => [t.createdAt])
-        .limit(1);
-
-      if (!document[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No KYC document found for this user",
-        });
-      }
-
-      // Update document status
-      await db
-        .update(kycDocuments)
-        .set({ status: "approved" })
-        .where(eq(kycDocuments.id, document[0].id));
-
-      // Update verification record
-      await db
-        .update(kycVerificationRecords)
-        .set({
-          status: "approved",
-          reviewedBy: ctx.user.id,
-          notes: input.notes,
-        })
-        .where(eq(kycVerificationRecords.documentId, document[0].id));
-
-      // Update user
-      await db
-        .update(users)
-        .set({
-          kycVerified: true,
-          kycStatus: "approved",
-          kycVerificationAt: new Date(),
-        })
-        .where(eq(users.id, input.userId));
-
-      return {
-        success: true,
-        message: `KYC approved for user ${input.userId}`,
-      };
+      await db.update(kycDocuments).set({ status: "approved", rejectionReason: null }).where(eq(kycDocuments.id, document.id));
+      await db.update(kycVerificationRecords).set({
+        status: "approved",
+        reviewedBy: ctx.user.id,
+        rejectionReason: null,
+        notes: input.notes,
+      }).where(eq(kycVerificationRecords.documentId, document.id));
+      await db.update(users).set({
+        kycVerified: true,
+        kycStatus: "approved",
+        kycVerificationAt: new Date(),
+      }).where(eq(users.id, input.userId));
+      return { success: true, message: "KYC approved." };
     }),
 
-  /**
-   * Admin: Reject KYC
-   */
   rejectKYC: adminProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        rejectionReason: z.string(),
-        notes: z.string().optional(),
-      })
-    )
+    .input(z.object({
+      userId: z.number().int().positive(),
+      rejectionReason: z.string().min(3).max(1000),
+      notes: z.string().max(2000).optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
+      const db = await getRequiredDb();
+      const document = await getLatestDocument(input.userId);
+      if (!document) throw new TRPCError({ code: "NOT_FOUND", message: "No KYC document found." });
 
-      // Get latest KYC document for user
-      const document = await db
-        .select()
-        .from(kycDocuments)
-        .where(eq(kycDocuments.userId, input.userId))
-        .orderBy((t) => [t.createdAt])
-        .limit(1);
-
-      if (!document[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No KYC document found for this user",
-        });
-      }
-
-      // Update document status
-      await db
-        .update(kycDocuments)
-        .set({
-          status: "rejected",
-          rejectionReason: input.rejectionReason,
-        })
-        .where(eq(kycDocuments.id, document[0].id));
-
-      // Update verification record
-      await db
-        .update(kycVerificationRecords)
-        .set({
-          status: "rejected",
-          reviewedBy: ctx.user.id,
-          rejectionReason: input.rejectionReason,
-          notes: input.notes,
-        })
-        .where(eq(kycVerificationRecords.documentId, document[0].id));
-
-      // Update user
-      await db
-        .update(users)
-        .set({
-          kycStatus: "rejected",
-        })
-        .where(eq(users.id, input.userId));
-
-      return {
-        success: true,
-        message: `KYC rejected for user ${input.userId}. User can resubmit.`,
-      };
+      await db.update(kycDocuments).set({ status: "rejected", rejectionReason: input.rejectionReason }).where(eq(kycDocuments.id, document.id));
+      await db.update(kycVerificationRecords).set({
+        status: "rejected",
+        reviewedBy: ctx.user.id,
+        rejectionReason: input.rejectionReason,
+        notes: input.notes,
+      }).where(eq(kycVerificationRecords.documentId, document.id));
+      await db.update(users).set({ kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, input.userId));
+      return { success: true, message: "KYC rejected; the user may resubmit." };
     }),
 
-  /**
-   * Retry KYC submission after rejection
-   */
   retryKYCSubmission: protectedProcedure
-    .input(
-      z.object({
-        documentType: z.enum(["passport", "driver_license", "national_id", "other"]),
-        frontImageUrl: z.string().url(),
-        backImageUrl: z.string().url().optional(),
-        selfieImageUrl: z.string().url(),
-        metadata: z.record(z.any()).optional(),
-      })
-    )
+    .input(documentInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, ctx.user.id))
-        .limit(1);
-
-      if (!user[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
+      const db = await getRequiredDb();
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      if (user.kycStatus !== "rejected") {
+        throw new TRPCError({ code: "CONFLICT", message: "A retry is available only after rejection." });
       }
 
-      if (user[0].kycStatus !== "rejected") {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You can only retry if your previous KYC was rejected.",
-        });
-      }
-
-      // Create new KYC document
-      const document = await db
-        .insert(kycDocuments)
-        .values({
-          userId: ctx.user.id,
-          documentType: input.documentType,
-          frontImageUrl: input.frontImageUrl,
-          backImageUrl: input.backImageUrl,
-          selfieImageUrl: input.selfieImageUrl,
-          status: "pending",
-          metadata: input.metadata,
-        })
-        .returning();
-
-      // Create verification record
-      await db
-        .insert(kycVerificationRecords)
-        .values({
-          userId: ctx.user.id,
-          documentId: document[0].id,
-          status: "pending",
-        });
-
-      // Update user status
-      await db
-        .update(users)
-        .set({
-          kycStatus: "pending",
-          kycDocumentType: input.documentType,
-        })
-        .where(eq(users.id, ctx.user.id));
-
-      return {
-        success: true,
-        documentId: document[0].id,
-        message: "KYC resubmitted successfully. Please wait for review.",
-      };
+      const [frontImageUrl, backImageUrl, selfieImageUrl] = await Promise.all([
+        persistVerificationMedia(input.frontImageUrl, `verification/kyc/${ctx.user.id}/front`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
+        input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
+        persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
+      ]);
+      const result = await db.insert(kycDocuments).values({
+        userId: ctx.user.id,
+        documentType: input.documentType,
+        frontImageUrl,
+        backImageUrl,
+        selfieImageUrl,
+        status: "pending",
+        metadata: input.metadata,
+      });
+      const documentId = Number(result[0].insertId);
+      await db.insert(kycVerificationRecords).values({ userId: ctx.user.id, documentId, status: "pending" });
+      await db.update(users).set({ kycStatus: "pending", kycDocumentType: input.documentType }).where(eq(users.id, ctx.user.id));
+      return { success: true, documentId, message: "KYC resubmitted for review." };
     }),
 
-  /**
-   * Get pending KYC submissions for admin review
-   */
   getPendingKYCSubmissions: adminProcedure
-    .input(
-      z.object({
-        limit: z.number().default(10),
-        offset: z.number().default(0),
-      })
-    )
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(10), offset: z.number().int().nonnegative().default(0) }))
     .query(async ({ input }) => {
-      const db = getDb();
-
-      const documents = await db
-        .select()
-        .from(kycDocuments)
+      const db = await getRequiredDb();
+      const documents = await db.select().from(kycDocuments)
         .where(eq(kycDocuments.status, "pending"))
-        .orderBy((t) => [t.createdAt])
+        .orderBy(desc(kycDocuments.createdAt))
         .limit(input.limit)
         .offset(input.offset);
-
-      const total = await db
-        .select()
-        .from(kycDocuments)
-        .where(eq(kycDocuments.status, "pending"));
-
-      return {
-        documents,
-        total: total.length,
-        limit: input.limit,
-        offset: input.offset,
-      };
+      const allPending = await db.select({ id: kycDocuments.id }).from(kycDocuments).where(eq(kycDocuments.status, "pending"));
+      return { documents, total: allPending.length, limit: input.limit, offset: input.offset };
     }),
 
-  /**
-   * Check if user can access monetization features
-   */
   canAccessMonetization: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const canAccess = user[0].kycVerified && user[0].livenessVerified;
-
+    const db = await getRequiredDb();
+    const [user] = await db.select({ kycVerified: users.kycVerified, livenessVerified: users.livenessVerified })
+      .from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     return {
-      canAccess,
-      kycVerified: user[0].kycVerified,
-      livenessVerified: user[0].livenessVerified,
-      message: canAccess
-        ? "You can access monetization features."
-        : "You need to complete KYC and liveness verification to access monetization features.",
+      canAccess: user.kycVerified && user.livenessVerified,
+      kycVerified: user.kycVerified,
+      livenessVerified: user.livenessVerified,
     };
   }),
 });

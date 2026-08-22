@@ -1,316 +1,214 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
-import { getDb } from "../db";
-import { users, faceLivenessRecords, livenessChallenge } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { getRequiredDb } from "../db";
+import { persistVerificationMedia } from "../verificationMedia";
+import { faceLivenessRecords, livenessChallenge, users } from "../../drizzle/schema";
 
-/**
- * Generate random liveness challenges
- * Challenges: nod head, turn left, turn right, blink eyes
- */
-function generateChallenges(): string[] {
-  const challenges = ["nod", "turn_left", "turn_right", "blink"];
-  const selected: string[] = [];
-  const shuffled = challenges.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 3); // Select 3 random challenges
-}
+const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
+const metadataSchema = z.record(z.string(), z.unknown()).optional();
 
-/**
- * Simulate face liveness detection
- * In production, use AWS Rekognition or similar service
- */
-function simulateLivenessDetection(metadata: any): {
-  isLive: boolean;
-  confidence: number;
-  reason?: string;
-} {
-  // In production, integrate with AWS Rekognition or similar
-  // For now, simulate with random confidence
-  const confidence = Math.random() * 100;
-  const isLive = confidence > 70; // 70% confidence threshold
-
-  return {
-    isLive,
-    confidence: Math.round(confidence * 100) / 100,
-    reason: !isLive ? "Low confidence score" : undefined,
-  };
+function generateChallenges(): Array<z.infer<typeof challengeSchema>> {
+  const challenges: Array<z.infer<typeof challengeSchema>> = ["nod", "turn_left", "turn_right", "blink"];
+  return challenges.sort(() => Math.random() - 0.5).slice(0, 3);
 }
 
 export const humanVerificationRouter = router({
-  /**
-   * Start liveness challenge
-   * Generates random head movement challenges for the user
-   */
   startLivenessChallenge: protectedProcedure.mutation(async ({ ctx }) => {
-    const db = getDb();
-
-    // Check if user already has active challenge
-    const existingChallenge = await db
+    const db = await getRequiredDb();
+    const now = new Date();
+    const [active] = await db
       .select()
       .from(livenessChallenge)
       .where(eq(livenessChallenge.userId, ctx.user.id))
+      .orderBy(desc(livenessChallenge.createdAt))
       .limit(1);
 
-    if (existingChallenge[0]?.status === "active") {
+    if (active && active.status === "active" && active.expiresAt > now) {
       return {
-        challengeId: existingChallenge[0].id,
-        challenges: existingChallenge[0].challenges,
-        expiresAt: existingChallenge[0].expiresAt,
-        message: "You already have an active challenge",
+        challengeId: active.id,
+        challenges: active.challenges as Array<z.infer<typeof challengeSchema>>,
+        expiresAt: active.expiresAt,
+        message: "An active challenge is already available.",
       };
     }
 
-    // Generate new challenges
-    const challenges = generateChallenges();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    if (active && active.status === "active" && active.expiresAt <= now) {
+      await db.update(livenessChallenge).set({ status: "expired" }).where(eq(livenessChallenge.id, active.id));
+    }
 
-    const challenge = await db
-      .insert(livenessChallenge)
-      .values({
-        userId: ctx.user.id,
-        challenges: challenges,
-        status: "active",
-        expiresAt,
-      })
-      .returning();
+    const challenges = generateChallenges();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const result = await db.insert(livenessChallenge).values({
+      userId: ctx.user.id,
+      challenges,
+      status: "active",
+      expiresAt,
+    });
 
     return {
-      challengeId: challenge[0].id,
+      challengeId: Number(result[0].insertId),
       challenges,
       expiresAt,
-      message: "Liveness challenge started. Please follow the instructions.",
+      message: "Challenge started. Follow each movement instruction in order.",
     };
   }),
 
-  /**
-   * Submit liveness verification video
-   */
   submitLivenessVideo: protectedProcedure
-    .input(
-      z.object({
-        videoUrl: z.string().url(),
-        challengeType: z.enum(["nod", "turn_left", "turn_right", "blink"]),
-        metadata: z.record(z.any()).optional(),
-      })
-    )
+    .input(z.object({
+      videoUrl: z.string().min(1).max(15_000_000),
+      challengeType: challengeSchema,
+      metadata: metadataSchema,
+    }))
     .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-
-      // Check user's liveness attempts
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, ctx.user.id))
-        .limit(1);
-
-      if (!user[0]) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
+      const db = await getRequiredDb();
+      const [user] = await db.select({
+        livenessVerified: users.livenessVerified,
+        livenessAttempts: users.livenessAttempts,
+      }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      if (user.livenessVerified) return { success: true, status: "approved" as const, message: "Account is already human verified." };
+      if (user.livenessAttempts >= 5) {
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
       }
 
-      // Limit attempts to 5 per day
-      if (user[0].livenessAttempts >= 5) {
-        throw new TRPCError({
-          code: "TOO_MANY_REQUESTS",
-          message: "Too many liveness verification attempts. Try again tomorrow.",
-        });
-      }
-
-      // Simulate liveness detection
-      const detection = simulateLivenessDetection(input.metadata);
-
-      // Create liveness record
-      const record = await db
-        .insert(faceLivenessRecords)
-        .values({
-          userId: ctx.user.id,
-          videoUrl: input.videoUrl,
-          challengeType: input.challengeType,
-          status: detection.isLive ? "approved" : "rejected",
-          confidence: detection.confidence,
-          rejectionReason: detection.reason,
-          metadata: {
-            ...input.metadata,
-            detectionResult: detection,
-          },
-        })
-        .returning();
-
-      // Update user if liveness verified
-      if (detection.isLive) {
-        await db
-          .update(users)
-          .set({
-            livenessVerified: true,
-            livenessVerificationAt: new Date(),
-            livenessAttempts: 0,
-          })
-          .where(eq(users.id, ctx.user.id));
-
-        // Mark challenge as completed
-        await db
-          .update(livenessChallenge)
-          .set({ status: "completed" })
-          .where(eq(livenessChallenge.userId, ctx.user.id));
-      } else {
-        // Increment attempts
-        await db
-          .update(users)
-          .set({
-            livenessAttempts: user[0].livenessAttempts + 1,
-          })
-          .where(eq(users.id, ctx.user.id));
-      }
+      const videoUrl = await persistVerificationMedia(
+        input.videoUrl,
+        `verification/liveness/${ctx.user.id}`,
+        ["video/webm", "video/mp4"],
+        12 * 1024 * 1024,
+      );
+      // A real liveness provider must review the recording before approval.
+      // Never mark an account verified from a client-side boolean or random score.
+      const result = await db.insert(faceLivenessRecords).values({
+        userId: ctx.user.id,
+        videoUrl,
+        challengeType: input.challengeType,
+        status: "pending",
+        metadata: input.metadata,
+      });
+      await db.update(users).set({ livenessAttempts: user.livenessAttempts + 1 }).where(eq(users.id, ctx.user.id));
 
       return {
-        success: detection.isLive,
-        recordId: record[0].id,
-        confidence: detection.confidence,
-        message: detection.isLive
-          ? "Liveness verification successful! Your account is now verified."
-          : "Liveness verification failed. Please try again.",
-        reason: detection.reason,
+        success: false,
+        status: "pending" as const,
+        recordId: Number(result[0].insertId),
+        message: "Your liveness recording was submitted for secure review.",
       };
     }),
 
-  /**
-   * Get liveness verification status
-   */
   getLivenessStatus: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    const userData = user[0];
-
-    // Get latest liveness record
-    const latestRecord = await db
-      .select()
-      .from(faceLivenessRecords)
+    const db = await getRequiredDb();
+    const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    const [latestRecord] = await db.select().from(faceLivenessRecords)
       .where(eq(faceLivenessRecords.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt])
+      .orderBy(desc(faceLivenessRecords.createdAt))
       .limit(1);
-
     return {
-      isVerified: userData.livenessVerified,
-      verifiedAt: userData.livenessVerificationAt,
-      attempts: userData.livenessAttempts,
-      lastAttemptStatus: latestRecord[0]?.status,
-      lastAttemptConfidence: latestRecord[0]?.confidence,
-      message: userData.livenessVerified
-        ? "Your account has been verified"
-        : "Liveness verification required",
+      isVerified: user.livenessVerified,
+      verifiedAt: user.livenessVerificationAt,
+      attempts: user.livenessAttempts,
+      lastAttemptStatus: latestRecord?.status ?? null,
+      lastAttemptConfidence: latestRecord?.confidence ?? null,
+      message: user.livenessVerified ? "Your account has been verified." : "Liveness verification is required.",
     };
   }),
 
-  /**
-   * Get liveness verification history
-   */
   getLivenessHistory: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const records = await db
-      .select()
-      .from(faceLivenessRecords)
+    const db = await getRequiredDb();
+    return db.select().from(faceLivenessRecords)
       .where(eq(faceLivenessRecords.userId, ctx.user.id))
-      .orderBy((t) => [t.createdAt]);
-
-    return records;
+      .orderBy(desc(faceLivenessRecords.createdAt));
   }),
 
-  /**
-   * Retry liveness verification
-   */
   retryLivenessVerification: protectedProcedure.mutation(async ({ ctx }) => {
-    const db = getDb();
+    const db = await getRequiredDb();
+    const [user] = await db.select({
+      livenessVerified: users.livenessVerified,
+      livenessAttempts: users.livenessAttempts,
+    }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    if (user.livenessVerified) return { alreadyVerified: true, message: "Account is already verified." };
+    if (user.livenessAttempts >= 5) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
 
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
-    if (user[0].livenessAttempts >= 5) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: "Too many attempts. Please try again tomorrow.",
-      });
-    }
-
-    // Reset attempts and start new challenge
-    await db
-      .update(users)
-      .set({ livenessAttempts: 0 })
-      .where(eq(users.id, ctx.user.id));
-
-    // Generate new challenge
+    await db.update(livenessChallenge).set({ status: "expired" })
+      .where(eq(livenessChallenge.userId, ctx.user.id));
     const challenges = generateChallenges();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    const challenge = await db
-      .insert(livenessChallenge)
-      .values({
-        userId: ctx.user.id,
-        challenges,
-        status: "active",
-        expiresAt,
-      })
-      .returning();
-
-    return {
-      challengeId: challenge[0].id,
+    const result = await db.insert(livenessChallenge).values({
+      userId: ctx.user.id,
       challenges,
+      status: "active",
       expiresAt,
-      message: "New liveness challenge created. Please try again.",
-    };
+    });
+    return { alreadyVerified: false, challengeId: Number(result[0].insertId), challenges, expiresAt, message: "A new liveness challenge is ready." };
   }),
 
-  /**
-   * Check if account is human verified
-   */
   isHumanVerified: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
-
-    if (!user[0]) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
-    }
-
+    const db = await getRequiredDb();
+    const [user] = await db.select({
+      livenessVerified: users.livenessVerified,
+      livenessVerificationAt: users.livenessVerificationAt,
+    }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     return {
-      isVerified: user[0].livenessVerified,
-      verifiedAt: user[0].livenessVerificationAt,
-      message: user[0].livenessVerified
-        ? "Account is human verified"
-        : "Human verification required",
+      isVerified: user.livenessVerified,
+      verifiedAt: user.livenessVerificationAt,
+      message: user.livenessVerified ? "Account is human verified." : "Human verification required.",
     };
   }),
+
+  getPendingLiveness: adminProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(25), offset: z.number().int().nonnegative().default(0) }))
+    .query(async ({ input }) => {
+      const db = await getRequiredDb();
+      const records = await db.select({
+        id: faceLivenessRecords.id,
+        userId: faceLivenessRecords.userId,
+        videoUrl: faceLivenessRecords.videoUrl,
+        challengeType: faceLivenessRecords.challengeType,
+        status: faceLivenessRecords.status,
+        createdAt: faceLivenessRecords.createdAt,
+        userName: users.name,
+        userEmail: users.email,
+      }).from(faceLivenessRecords)
+        .innerJoin(users, eq(faceLivenessRecords.userId, users.id))
+        .where(eq(faceLivenessRecords.status, "pending"))
+        .orderBy(desc(faceLivenessRecords.createdAt))
+        .limit(input.limit)
+        .offset(input.offset);
+      const totalRows = await db.select({ id: faceLivenessRecords.id }).from(faceLivenessRecords)
+        .where(eq(faceLivenessRecords.status, "pending"));
+      return { records, total: totalRows.length, limit: input.limit, offset: input.offset };
+    }),
+
+  approveLiveness: adminProcedure
+    .input(z.object({ recordId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
+      const [record] = await db.select().from(faceLivenessRecords)
+        .where(eq(faceLivenessRecords.id, input.recordId)).limit(1);
+      if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Liveness record not found." });
+      await db.update(faceLivenessRecords).set({ status: "approved", confidence: "100.00", rejectionReason: null })
+        .where(eq(faceLivenessRecords.id, input.recordId));
+      await db.update(users).set({ livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 })
+        .where(eq(users.id, record.userId));
+      return { success: true, reviewedBy: ctx.user.id, message: "Human verification approved." };
+    }),
+
+  rejectLiveness: adminProcedure
+    .input(z.object({ recordId: z.number().int().positive(), reason: z.string().min(3).max(1000) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
+      const [record] = await db.select().from(faceLivenessRecords)
+        .where(eq(faceLivenessRecords.id, input.recordId)).limit(1);
+      if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Liveness record not found." });
+      await db.update(faceLivenessRecords).set({ status: "rejected", rejectionReason: input.reason })
+        .where(eq(faceLivenessRecords.id, input.recordId));
+      await db.update(users).set({ livenessVerified: false })
+        .where(eq(users.id, record.userId));
+      return { success: true, reviewedBy: ctx.user.id, message: "Human verification rejected." };
+    }),
 });

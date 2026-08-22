@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Camera, RotateCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-type VerificationStep = "instructions" | "recording" | "processing" | "success" | "failed";
+type VerificationStep = "instructions" | "recording" | "processing" | "pending" | "success" | "failed";
 
 export function LivenessVerification() {
   const [step, setStep] = useState<VerificationStep>("instructions");
@@ -123,11 +123,14 @@ export function LivenessVerification() {
           },
         });
 
-        if (result.success) {
+        if (result.success && result.status === "approved") {
           setStep("success");
+        } else if (result.status === "pending") {
+          setStep("pending");
+          setError(result.message);
         } else {
           setStep("failed");
-          setError(result.reason || "Liveness verification failed");
+          setError(result.message || "Liveness verification failed");
         }
       };
       reader.readAsDataURL(recordedVideo);
@@ -187,6 +190,27 @@ export function LivenessVerification() {
           <Button onClick={() => window.location.href = "/"} className="w-full">
             Go to Home
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step === "pending") {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Camera className="h-16 w-16 text-blue-600" />
+          </div>
+          <CardTitle>Verification Submitted</CardTitle>
+          <CardDescription>Your recording is awaiting secure review</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error || "We will notify you when the review is complete."}</AlertDescription>
+          </Alert>
+          <Button onClick={() => window.location.href = "/"} className="w-full">Return Home</Button>
         </CardContent>
       </Card>
     );

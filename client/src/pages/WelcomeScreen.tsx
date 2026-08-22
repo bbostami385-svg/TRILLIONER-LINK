@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { ModeSelector } from "@/components/ModeSelector";
 import { trpc } from "@/lib/trpc";
 
@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
  * Shown to users on first login to choose between Social and Creator modes
  */
 export const WelcomeScreen: React.FC = () => {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const { data: currentMode, isLoading } = trpc.dualMode.getCurrentMode.useQuery();
 
   // If user has already selected a mode, redirect to home

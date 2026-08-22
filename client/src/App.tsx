@@ -32,9 +32,13 @@ import { ARFiltersPage } from "./pages/ARFilters";
 import { SoundLibrary } from "./pages/SoundLibrary";
 import { PagesPage } from "./pages/Pages";
 import { AdsDashboard } from "./pages/AdsDashboard";
-import { VerificationFlow } from "./pages/VerificationFlow";
+import VerificationFlowPage from "./pages/VerificationFlowPage";
+import WelcomeScreen from "./pages/WelcomeScreen";
+import ModeSelection from "./pages/ModeSelection";
+import AdminVerification from "./pages/AdminVerification";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
+import { VerificationGate } from "./components/VerificationGate";
 import "./App.css";
 
 function Router() {
@@ -44,7 +48,9 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"signup"} component={SignUp} />
       <Route path={"login"} component={Login} />
-      <Route path={"verify"} component={VerificationFlow} />
+      <Route path={"/verify"} component={VerificationFlowPage} />
+      <Route path={"/welcome"} component={WelcomeScreen} />
+      <Route path={"/mode-selection"} component={ModeSelection} />
       <Route path={"/feed"} component={Feed} />
       <Route path={"/explore"} component={Explore} />
       <Route path={"/messages"} component={Messages} />
@@ -54,11 +60,12 @@ function Router() {
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />
+      <Route path="/admin/verification" component={AdminVerification} />
       <Route path="/users-management" component={UsersManagement} />
-      <Route path="*" component={NotFound} />
       <Route path={"/payment"} component={Payment} />
       <Route path={"/live"} component={LiveStreaming} />
       <Route path={"/profile-edit"} component={ProfileEdit} />
+      <Route path={"/settings"} component={Settings} />
       <Route path={"/groups"} component={Groups} />
       <Route path={"/events"} component={Events} />
       <Route path={"/reels"} component={ReelsPage} />
@@ -70,6 +77,7 @@ function Router() {
       <Route path={"/sound-library"} component={SoundLibrary} />
       <Route path={"/pages"} component={PagesPage} />
       <Route path={"/404"} component={NotFound} />
+      <Route path="*" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
@@ -95,7 +103,9 @@ function App() {
               <LanguageSelector />
             </div>
           </div>
-          <Router />
+          <VerificationGate>
+            <Router />
+          </VerificationGate>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

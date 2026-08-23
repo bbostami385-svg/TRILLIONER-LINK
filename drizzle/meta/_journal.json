@@ -50,6 +50,13 @@
       "when": 1786124740615,
       "tag": "0006_slippery_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787509576159,
+      "tag": "0007_outstanding_lorna_dane",
+      "breakpoints": true
     }
   ]
 }

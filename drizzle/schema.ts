@@ -213,6 +213,29 @@ export type Comment = typeof comments.$inferSelect;
 export type InsertComment = typeof comments.$inferInsert;
 
 /**
+ * User appeals for automated moderation decisions. Content is stored as a
+ * review snapshot because blocked content may never have been persisted.
+ */
+export const moderationAppeals = mysqlTable("moderationAppeals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contentType: mysqlEnum("contentType", ["post", "comment", "video"]).notNull(),
+  targetId: int("targetId"),
+  content: text("content").notNull(),
+  mediaUrl: text("mediaUrl"),
+  mediaType: mysqlEnum("mediaType", ["image", "video"]),
+  appealReason: text("appealReason").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  reviewerId: int("reviewerId").references(() => users.id),
+  reviewerNote: text("reviewerNote"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ModerationAppeal = typeof moderationAppeals.$inferSelect;
+export type InsertModerationAppeal = typeof moderationAppeals.$inferInsert;
+
+/**
  * Hashtags table for trending topics
  */
 export const hashtags = mysqlTable("hashtags", {

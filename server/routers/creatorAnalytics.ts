@@ -1,28 +1,45 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { comments, posts, subscriptions, videos } from "../../drizzle/schema";
 
+const dateInput = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must use YYYY-MM-DD format.");
+export const analyticsRangeSchema = z.object({
+  days: z.number().int().min(7).max(366).default(30),
+  startDate: dateInput.optional(),
+  endDate: dateInput.optional(),
+}).superRefine((value, ctx) => {
+  if ((value.startDate && !value.endDate) || (!value.startDate && value.endDate)) ctx.addIssue({ code: "custom", message: "Provide both startDate and endDate." });
+  if (value.startDate && value.endDate && value.startDate > value.endDate) ctx.addIssue({ code: "custom", message: "Start date must be before end date." });
+});
+
+function dayKey(value: Date | string) { return new Date(value).toISOString().slice(0, 10); }
+function rangeDates(input: z.infer<typeof analyticsRangeSchema>) {
+  if (input.startDate && input.endDate) return { start: new Date(`${input.startDate}T00:00:00.000Z`), end: new Date(`${input.endDate}T23:59:59.999Z`), days: Math.ceil((new Date(`${input.endDate}T23:59:59.999Z`).getTime() - new Date(`${input.startDate}T00:00:00.000Z`).getTime()) / 86_400_000) + 1 };
+  const end = new Date(); const start = new Date(end.getTime() - input.days * 86_400_000); return { start, end, days: input.days };
+}
+
 export const creatorAnalyticsRouter = router({
-  getOverview: protectedProcedure
-    .input(z.object({ days: z.number().int().min(7).max(90).default(30) }))
-    .query(async ({ ctx, input }) => {
-      const db = await getRequiredDb();
-      const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
-      const [subscriberRow] = await db.select({ total: sql<number>`count(*)` }).from(subscriptions).where(and(eq(subscriptions.creatorId, ctx.user.id), gte(subscriptions.createdAt, since)));
-      const [videoRow] = await db.select({ videos: sql<number>`count(*)`, views: sql<number>`coalesce(sum(${videos.views}), 0)`, likes: sql<number>`coalesce(sum(${videos.likes}), 0)`, comments: sql<number>`coalesce(sum(${videos.comments}), 0)` }).from(videos).where(and(eq(videos.userId, ctx.user.id), gte(videos.createdAt, since)));
-      const [postRow] = await db.select({ likes: sql<number>`coalesce(sum(${posts.likes}), 0)`, comments: sql<number>`coalesce(sum(${posts.comments}), 0)`, shares: sql<number>`coalesce(sum(${posts.shares}), 0)` }).from(posts).where(and(eq(posts.userId, ctx.user.id), gte(posts.createdAt, since)));
-      const recentVideos = await db.select({ id: videos.id, title: videos.title, views: videos.views, likes: videos.likes, comments: videos.comments, createdAt: videos.createdAt }).from(videos).where(and(eq(videos.userId, ctx.user.id), eq(videos.isPublic, true), gte(videos.createdAt, since))).orderBy(desc(videos.createdAt)).limit(8);
-      const subscribers = Number(subscriberRow?.total ?? 0);
-      const videoViews = Number(videoRow?.views ?? 0);
-      const videoLikes = Number(videoRow?.likes ?? 0);
-      const videoComments = Number(videoRow?.comments ?? 0);
-      const postLikes = Number(postRow?.likes ?? 0);
-      const postComments = Number(postRow?.comments ?? 0);
-      const shares = Number(postRow?.shares ?? 0);
-      const interactions = videoLikes + videoComments + postLikes + postComments + shares;
-      const engagementRate = videoViews > 0 ? Number(((interactions / videoViews) * 100).toFixed(2)) : 0;
-      return { days: input.days, subscribers, videos: Number(videoRow?.videos ?? 0), views: videoViews, likes: videoLikes + postLikes, comments: videoComments + postComments, shares, engagementRate, recentVideos };
-    }),
+  getOverview: protectedProcedure.input(analyticsRangeSchema).query(async ({ ctx, input }) => {
+    const db = await getRequiredDb();
+    const { start, end, days } = rangeDates(input);
+    const videoRows = await db.select({ createdAt: videos.createdAt, views: videos.views, likes: videos.likes, comments: videos.comments }).from(videos).where(and(eq(videos.userId, ctx.user.id), eq(videos.isPublic, true), gte(videos.createdAt, start), lte(videos.createdAt, end))).orderBy(desc(videos.createdAt));
+    const postRows = await db.select({ createdAt: posts.createdAt, likes: posts.likes, comments: posts.comments, shares: posts.shares }).from(posts).where(and(eq(posts.userId, ctx.user.id), gte(posts.createdAt, start), lte(posts.createdAt, end)));
+    const subscriptionRows = await db.select({ createdAt: subscriptions.createdAt }).from(subscriptions).where(and(eq(subscriptions.creatorId, ctx.user.id), gte(subscriptions.createdAt, start), lte(subscriptions.createdAt, end)));
+    const seriesMap = new Map<string, { date: string; subscribers: number; views: number; likes: number; comments: number; shares: number; videos: number; posts: number }>();
+    const ensure = (date: string) => { const existing = seriesMap.get(date); if (existing) return existing; const value = { date, subscribers: 0, views: 0, likes: 0, comments: 0, shares: 0, videos: 0, posts: 0 }; seriesMap.set(date, value); return value; };
+    videoRows.forEach((row) => { const item = ensure(dayKey(row.createdAt)); item.videos += 1; item.views += Number(row.views); item.likes += Number(row.likes); item.comments += Number(row.comments); });
+    postRows.forEach((row) => { const item = ensure(dayKey(row.createdAt)); item.posts += 1; item.likes += Number(row.likes); item.comments += Number(row.comments); item.shares += Number(row.shares); });
+    subscriptionRows.forEach((row) => { ensure(dayKey(row.createdAt)).subscribers += 1; });
+    const series = Array.from(seriesMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    const subscribers = subscriptionRows.length;
+    const views = videoRows.reduce((sum, row) => sum + Number(row.views), 0);
+    const likes = videoRows.reduce((sum, row) => sum + Number(row.likes), 0) + postRows.reduce((sum, row) => sum + Number(row.likes), 0);
+    const commentsTotal = videoRows.reduce((sum, row) => sum + Number(row.comments), 0) + postRows.reduce((sum, row) => sum + Number(row.comments), 0);
+    const shares = postRows.reduce((sum, row) => sum + Number(row.shares), 0);
+    const engagementRate = views > 0 ? Number((((likes + commentsTotal + shares) / views) * 100).toFixed(2)) : 0;
+    const recentVideos = videoRows.slice(0, 8).map((video, index) => ({ id: index + 1, title: `Video published ${dayKey(video.createdAt)}`, views: Number(video.views), likes: Number(video.likes), comments: Number(video.comments), createdAt: video.createdAt }));
+    return { days, startDate: dayKey(start), endDate: dayKey(end), subscribers, videos: videoRows.length, views, likes, comments: commentsTotal, shares, engagementRate, series, recentVideos };
+  }),
 });

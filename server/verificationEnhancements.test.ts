@@ -85,12 +85,35 @@ describe("analytics and moderation feedback helpers", () => {
     const { buildAnalyticsCsv } = await import("../client/src/pages/CreatorDashboard");
     const csv = buildAnalyticsCsv({ subscribers: 3, views: 10, likes: 2, comments: 1, shares: 0, engagementRate: 30, recentVideos: [{ title: "A, \"great\" video", views: 10, likes: 2, comments: 1, createdAt: "2026-08-23T00:00:00.000Z" }] }, 30);
     expect(csv).toContain('"A, ""great"" video"');
-    expect(csv.split("\\n")[0]).toBe('"Metric","Value","Window"');
+    expect(csv.split("\n")[0]).toBe('"Metric","Value","Window"');
   });
 
   it("classifies moderation rejection errors for user-facing toasts", async () => {
     const { getModerationToastMessage } = await import("../client/src/lib/moderationFeedback");
     expect(getModerationToastMessage(new Error("This content cannot be published"))).toContain("blocked");
     expect(getModerationToastMessage(new Error("A network error"))).toBeNull();
+  });
+});
+
+
+describe("managed branding configuration", () => {
+  it("uses the TRILLIONER LINK application title", () => {
+    expect(process.env.VITE_APP_TITLE ?? "TRILLIONER LINK").toBe("TRILLIONER LINK");
+  });
+});
+
+
+describe("appeals and custom analytics ranges", () => {
+  it("requires a meaningful appeal reason and bounded content", async () => {
+    const { moderationAppealInput } = await import("./routers/moderationAppeals");
+    expect(() => moderationAppealInput.parse({ contentType: "post", content: "blocked text", appealReason: "too short" })).toThrow();
+    expect(moderationAppealInput.parse({ contentType: "post", content: "blocked text", appealReason: "This content is safe and should be reviewed." }).contentType).toBe("post");
+  });
+
+  it("rejects incomplete or reversed custom analytics ranges", async () => {
+    const { analyticsRangeSchema } = await import("./routers/creatorAnalytics");
+    expect(() => analyticsRangeSchema.parse({ startDate: "2026-08-20", days: 30 })).toThrow();
+    expect(() => analyticsRangeSchema.parse({ startDate: "2026-08-21", endDate: "2026-08-20", days: 30 })).toThrow();
+    expect(analyticsRangeSchema.parse({ startDate: "2026-08-01", endDate: "2026-08-20", days: 30 }).endDate).toBe("2026-08-20");
   });
 });

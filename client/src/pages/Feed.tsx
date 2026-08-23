@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getModerationToastMessage } from "@/lib/moderationFeedback";
+import { ModerationAppealDialog } from "@/components/ModerationAppealDialog";
 import { Loader } from "lucide-react";
 import "./Feed.css";
 
@@ -13,6 +14,7 @@ export default function Feed() {
   const [, setLocation] = useLocation();
   const [newPost, setNewPost] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [appealOpen, setAppealOpen] = useState(false);
   const utils = trpc.useUtils();
 
   // Fetch feed posts
@@ -70,7 +72,7 @@ export default function Feed() {
       });
     } catch (error) {
       const moderationMessage = getModerationToastMessage(error);
-      if (moderationMessage) toast.error(moderationMessage);
+      if (moderationMessage) toast.error(moderationMessage, { action: { label: "Appeal", onClick: () => setAppealOpen(true) } });
       else toast.error("We could not publish your post. Please try again.");
       console.error("Failed to create post:", error);
     }
@@ -209,6 +211,7 @@ export default function Feed() {
       </div>
 
       <div className="feed-bottom-padding"></div>
+      <ModerationAppealDialog open={appealOpen} onOpenChange={setAppealOpen} contentType="post" content={newPost} mediaUrl={imageUrl || undefined} mediaType={imageUrl ? "image" : undefined} />
     </div>
   );
 }

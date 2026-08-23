@@ -41,6 +41,7 @@ import { humanVerificationRouter } from "./routers/humanVerification";
 import { kycRouter } from "./routers/kyc";
 import { socialLinkingRouter } from "./routers/socialLinking";
 import { creatorAnalyticsRouter } from "./routers/creatorAnalytics";
+import { moderationAppealsRouter } from "./routers/moderationAppeals";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -104,6 +105,7 @@ export const appRouter = router({
   kyc: kycRouter,
   socialLinking: socialLinkingRouter,
   creatorAnalytics: creatorAnalyticsRouter,
+  moderationAppeals: moderationAppealsRouter,
 });
 
 export type AppRouter = typeof appRouter;

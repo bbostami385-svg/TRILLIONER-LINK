@@ -116,8 +116,8 @@ MIT
 
 ## 👨‍💻 ডেভেলপার
 
-NovaPlus Social - সম্পূর্ণ সোশ্যাল মিডিয়া প্ল্যাটফর্ম
+TRILLIONER LINK - সম্পূর্ণ সোশ্যাল ও Creator ভিডিও প্ল্যাটফর্ম
 
 ---
 
-**GitHub Repository**: https://github.com/bbostami385-svg/NovaPlus-Social
+**GitHub Repository**: https://github.com/bbostami385-svg/TRILLIONER-LINK

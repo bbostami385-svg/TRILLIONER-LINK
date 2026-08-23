@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VideoFeedSkeleton from "@/components/VideoFeedSkeleton";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getModerationToastMessage } from "@/lib/moderationFeedback";
 import "./Videos.css";
 
 function compact(value: number) { return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value); }
@@ -21,24 +23,24 @@ export default function Videos() {
   const [commentText, setCommentText] = useState("");
   const [subscribedCreators, setSubscribedCreators] = useState<Set<number>>(new Set());
   const touchStart = useRef<number | null>(null);
-  const videosQuery = trpc.videos.getTrending.useQuery({ limit: 30 }, { enabled: tab === "trending", retry: false });
-  const followingQuery = trpc.videos.getFollowingFeed.useQuery({ limit: 30 }, { enabled: tab === "following" && isAuthenticated, retry: false });
-  const subscriptionsQuery = trpc.videos.getSubscriptionsFeed.useQuery({ limit: 30 }, { enabled: tab === "subscriptions" && isAuthenticated, retry: false });
+  const videosQuery = trpc.videos.getTrending.useQuery({ limit: 30 }, { enabled: tab === "trending", retry: false, staleTime: 30_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false });
+  const followingQuery = trpc.videos.getFollowingFeed.useQuery({ limit: 30 }, { enabled: tab === "following" && isAuthenticated, retry: false, staleTime: 15_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false });
+  const subscriptionsQuery = trpc.videos.getSubscriptionsFeed.useQuery({ limit: 30 }, { enabled: tab === "subscriptions" && isAuthenticated, retry: false, staleTime: 15_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false });
   const activeQuery = tab === "trending" ? videosQuery : tab === "following" ? followingQuery : subscriptionsQuery;
   const videoList = activeQuery.data ?? [];
   const activeVideo = videoList[activeIndex];
-  const activeDetails = trpc.videos.getVideo.useQuery({ videoId: activeVideo?.id ?? 0 }, { enabled: Boolean(activeVideo), retry: false });
+  const activeDetails = trpc.videos.getVideo.useQuery({ videoId: activeVideo?.id ?? 0 }, { enabled: Boolean(activeVideo), retry: false, staleTime: 60_000, gcTime: 10 * 60_000, refetchOnWindowFocus: false });
   const likeVideo = trpc.videos.likeVideo.useMutation();
   const unlikeVideo = trpc.videos.unlikeVideo.useMutation();
   const displayVideo = activeDetails.data ?? activeVideo;
   const isLiked = Boolean(displayVideo && liked.has(displayVideo.id));
-  const commentsQuery = trpc.videos.getComments.useQuery({ videoId: displayVideo?.id ?? 0, limit: 30 }, { enabled: Boolean(displayVideo && commentsOpen), retry: false });
+  const commentsQuery = trpc.videos.getComments.useQuery({ videoId: displayVideo?.id ?? 0, limit: 30 }, { enabled: Boolean(displayVideo && commentsOpen), retry: false, staleTime: 10_000, gcTime: 2 * 60_000, refetchOnWindowFocus: false });
   const addComment = trpc.videos.addComment.useMutation();
   const subscribeToCreator = trpc.dualMode.subscribeToCreator.useMutation();
   const unsubscribeFromCreator = trpc.dualMode.unsubscribeFromCreator.useMutation();
   const isSubscribed = Boolean(displayVideo && subscribedCreators.has(displayVideo.userId));
   const toggleSubscription = async () => { if (!displayVideo || !isAuthenticated) { setLocation("/login"); return; } const next = new Set(subscribedCreators); if (isSubscribed) { await unsubscribeFromCreator.mutateAsync({ creatorId: displayVideo.userId }); next.delete(displayVideo.userId); } else { await subscribeToCreator.mutateAsync({ creatorId: displayVideo.userId, tier: "free" }); next.add(displayVideo.userId); } setSubscribedCreators(next); };
-  const submitComment = async () => { if (!displayVideo || !commentText.trim() || !isAuthenticated) { if (!isAuthenticated) setLocation("/login"); return; } await addComment.mutateAsync({ videoId: displayVideo.id, content: commentText.trim() }); setCommentText(""); await commentsQuery.refetch(); };
+  const submitComment = async () => { if (!displayVideo || !commentText.trim() || !isAuthenticated) { if (!isAuthenticated) setLocation("/login"); return; } try { await addComment.mutateAsync({ videoId: displayVideo.id, content: commentText.trim() }); setCommentText(""); await commentsQuery.refetch(); } catch (error) { const moderationMessage = getModerationToastMessage(error); if (moderationMessage) toast.error(moderationMessage); else toast.error("We could not publish your comment. Please try again."); } };
 
   const move = (direction: 1 | -1) => setActiveIndex((index) => Math.min(Math.max(index + direction, 0), Math.max(videoList.length - 1, 0)));
   useEffect(() => { setActiveIndex(0); }, [tab]);

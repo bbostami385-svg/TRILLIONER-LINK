@@ -647,3 +647,12 @@
 - [x] Build a responsive Creator analytics dashboard with empty, loading, error, and real-data states.
 - [x] Add unit tests for moderation decisions and authenticated analytics access; feed skeleton uses an accessible status contract.
 - [x] Run typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Analytics, Moderation Feedback, Export, and Performance Enhancements
+
+- [x] Add an independent Creator analytics dark-mode toggle with persisted preference.
+- [x] Add CSV export for the real Creator engagement dataset and selected time window.
+- [x] Add user-visible toast feedback when moderation blocks a post, comment, video comment, or video upload.
+- [x] Improve perceived and actual loading speed with query caching, minimized repeat requests, and lightweight UI work.
+- [x] Add unit tests for CSV serialization, moderation error classification, and the persisted analytics theme preference.
+- [ ] Run typecheck, tests, production build, responsive visual verification, checkpoint, and GitHub synchronization.

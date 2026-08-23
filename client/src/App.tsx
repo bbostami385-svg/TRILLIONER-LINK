@@ -107,6 +107,7 @@ function App() {
           <VerificationGate>
             <Router />
           </VerificationGate>
+          <Toaster />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

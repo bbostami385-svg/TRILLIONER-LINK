@@ -3,6 +3,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getModerationToastMessage } from "@/lib/moderationFeedback";
 import { Loader } from "lucide-react";
 import "./Feed.css";
 
@@ -67,6 +69,9 @@ export default function Feed() {
         imageUrl: imageUrl || undefined,
       });
     } catch (error) {
+      const moderationMessage = getModerationToastMessage(error);
+      if (moderationMessage) toast.error(moderationMessage);
+      else toast.error("We could not publish your post. Please try again.");
       console.error("Failed to create post:", error);
     }
   };

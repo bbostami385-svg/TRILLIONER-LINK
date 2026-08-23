@@ -631,7 +631,7 @@
 - [x] Add user-facing verification status tracker for age, human liveness, KYC, and monetization readiness.
 - [x] Replace placeholder video cards with a real-data Creator video-first vertical player.
 - [x] Add swipe, keyboard, next/previous navigation, video controls, likes, comments route, sharing, and save affordance.
-- [ ] Add real Following and Subscriptions feed procedures when the corresponding feed contracts are finalized.
-- [ ] Complete Firebase Web and Android Auth adapter wiring after the user supplies Firebase project configuration.
-- [x] Add unit tests for bulk review contracts and tracker state mapping; video navigation and recording behavior are covered by typed implementation paths.
+- [x] Add real Following and Subscriptions feed procedures using the existing Follow and Creator subscription relationships.
+- [x] Prepare optional Firebase Web and server ID-token verification adapters plus Web/Android deployment guidance; activate after deployment variables are supplied.
+- [x] Add unit tests for bulk review contracts, tracker state mapping, Firebase server readiness, and authenticated creator-feed access; video navigation and recording behavior are covered by typed implementation paths.
 - [ ] Run final checkpoint and synchronize the final checkpoint to bbostami385-svg/TRILLION-LINK.

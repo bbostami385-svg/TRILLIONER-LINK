@@ -31,3 +31,21 @@ describe("verification enhancement contracts", () => {
     expect(stateFor("pending", true)).toBe("complete");
   });
 });
+
+
+describe("Firebase authentication boundary", () => {
+  it("does not claim server readiness without service-account configuration", async () => {
+    const { firebaseServerConfigured, verifyFirebaseIdToken } = await import("./firebaseAuth");
+    expect(firebaseServerConfigured).toBe(false);
+    await expect(verifyFirebaseIdToken("test-token")).rejects.toThrow("FIREBASE_SERVICE_ACCOUNT_BASE64");
+  });
+});
+
+
+describe("creator feed access contracts", () => {
+  it("requires authentication for Following and Subscriptions feeds", async () => {
+    const caller = (await import("./routers/videos")).videosRouter.createCaller({ user: null } as any);
+    await expect(caller.getFollowingFeed({ limit: 20 })).rejects.toThrow();
+    await expect(caller.getSubscriptionsFeed({ limit: 20 })).rejects.toThrow();
+  });
+});

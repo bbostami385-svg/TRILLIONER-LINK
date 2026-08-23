@@ -1,5 +1,9 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { z } from "zod";
+import { sdk } from "./_core/sdk";
+import { upsertUser } from "./db";
+import { firebaseServerConfigured, verifyFirebaseIdToken } from "./firebaseAuth";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { feedRouter } from "./routers/feed";
@@ -42,6 +46,20 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    exchangeFirebaseToken: publicProcedure
+      .input(z.object({ idToken: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        if (!firebaseServerConfigured) {
+          throw new Error("Firebase server auth is not configured. Add FIREBASE_SERVICE_ACCOUNT_BASE64 before enabling Firebase sign-in.");
+        }
+        const decoded = await verifyFirebaseIdToken(input.idToken);
+        const openId = `firebase:${decoded.uid}`;
+        const name = decoded.name ?? decoded.email?.split("@")[0] ?? "TRILLIONER LINK member";
+        await upsertUser({ openId, name, email: decoded.email ?? null, loginMethod: decoded.firebase?.sign_in_provider ?? "firebase", lastSignedIn: new Date() });
+        const sessionToken = await sdk.signSession({ openId, appId: "firebase", name });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+        return { success: true } as const;
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

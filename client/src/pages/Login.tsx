@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "../const";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+import { firebaseConfigured, requestFirebasePasswordReset, signInWithFirebaseEmail, createFirebaseAccount, signInWithGoogle } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight, AlertCircle, CheckCircle2, Check } from "lucide-react";
@@ -163,12 +164,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // TODO: Replace with actual API call
-      // await trpc.auth.requestPasswordReset.mutate({ email: resetEmail });
-      
+      await requestFirebasePasswordReset(resetEmail);
       setIsSuccess(true);
       setTimeout(() => {
         setResetEmail("");
@@ -294,8 +290,11 @@ export default function Login() {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [, navigate] = useLocation();
-  const login = async (_email: string, _password: string) => {
-    window.location.assign(getLoginUrl());
+  const exchangeFirebaseToken = trpc.auth.exchangeFirebaseToken.useMutation();
+  const login = async (loginEmail: string, loginPassword: string) => {
+    if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+    const credential = await signInWithFirebaseEmail(loginEmail, loginPassword);
+    await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
   };
 
   // Calculate password strength
@@ -354,11 +353,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Replace with actual signup API call
-      // await trpc.auth.signup.mutate({ email, password });
-      
-      // For now, just show success and redirect
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+      const credential = await createFirebaseAccount(email, password);
+      await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
       showToastNotification("Account created successfully! Redirecting...", "success");
       setTimeout(() => navigate("/feed"), 1000);
     } catch (err) {
@@ -370,9 +367,22 @@ export default function Login() {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    // Redirect to OAuth provider
-    window.location.href = getLoginUrl();
+  const handleSocialLogin = async (_provider: string) => {
+    setError("");
+    setLoading(true);
+    try {
+      if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+      const credential = await signInWithGoogle();
+      await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
+      showToastNotification("Google sign-in successful! Redirecting...", "success");
+      setTimeout(() => navigate("/feed"), 500);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Google sign-in failed";
+      setError(errorMessage);
+      showToastNotification(errorMessage, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Load remembered email on mount

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { and, desc, eq } from "drizzle-orm";
+import { follows, subscriptions, users, videos } from "../../drizzle/schema";
+import { getRequiredDb } from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import {
   createVideo,
@@ -20,6 +23,58 @@ export const videosRouter = router({
     .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
     .query(async ({ input }) => {
       return await getTrendingVideos(input.limit);
+    }),
+
+  // Get videos published by followed Personal accounts.
+  getFollowingFeed: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+    .query(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      return db.select({
+        id: videos.id,
+        userId: videos.userId,
+        title: videos.title,
+        description: videos.description,
+        videoUrl: videos.videoUrl,
+        thumbnailUrl: videos.thumbnailUrl,
+        duration: videos.duration,
+        views: videos.views,
+        likes: videos.likes,
+        comments: videos.comments,
+        isPublic: videos.isPublic,
+        createdAt: videos.createdAt,
+        updatedAt: videos.updatedAt,
+      }).from(videos)
+        .innerJoin(follows, eq(follows.followingId, videos.userId))
+        .innerJoin(users, eq(users.id, videos.userId))
+        .where(and(eq(follows.followerId, ctx.user.id), eq(videos.isPublic, true), eq(users.accountMode, "social")))
+        .orderBy(desc(videos.createdAt)).limit(input.limit);
+    }),
+
+  // Get videos published by Creator accounts the user subscribes to.
+  getSubscriptionsFeed: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+    .query(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      return db.select({
+        id: videos.id,
+        userId: videos.userId,
+        title: videos.title,
+        description: videos.description,
+        videoUrl: videos.videoUrl,
+        thumbnailUrl: videos.thumbnailUrl,
+        duration: videos.duration,
+        views: videos.views,
+        likes: videos.likes,
+        comments: videos.comments,
+        isPublic: videos.isPublic,
+        createdAt: videos.createdAt,
+        updatedAt: videos.updatedAt,
+      }).from(videos)
+        .innerJoin(subscriptions, eq(subscriptions.creatorId, videos.userId))
+        .innerJoin(users, eq(users.id, videos.userId))
+        .where(and(eq(subscriptions.subscriberId, ctx.user.id), eq(videos.isPublic, true), eq(users.accountMode, "creator")))
+        .orderBy(desc(videos.createdAt)).limit(input.limit);
     }),
 
   // Get videos by user

@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { follows, subscriptions, users, videos } from "../../drizzle/schema";
 import { getRequiredDb } from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { assertPublishable } from "../contentModeration";
 import {
   createVideo,
   getVideoById,
@@ -115,6 +116,7 @@ export const videosRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      if (input.isPublic) await assertPublishable({ text: `${input.title}\n${input.description || ""}`, mediaUrl: input.videoUrl, mediaType: "video" });
       const video = await createVideo(
         ctx.user.id,
         input.title,
@@ -204,6 +206,7 @@ export const videosRouter = router({
         throw new Error("Video not found");
       }
 
+      await assertPublishable({ text: input.content });
       const comment = await createComment(ctx.user.id, input.content, undefined, input.videoId);
       if (!comment) {
         throw new Error("Failed to create comment");

@@ -1,260 +1,27 @@
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
+import { BarChart3, Eye, Heart, MessageCircle, Share2, Users, Video } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { TrendingUp, Users, Heart, DollarSign, Eye, Share2 } from "lucide-react";
-import "./CreatorDashboard.css";
+
+function compact(value: number) { return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value); }
+function AnalyticsSkeleton() { return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />)}</div>; }
 
 export default function CreatorDashboard() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [timeRange, setTimeRange] = useState("7d");
+  const [days, setDays] = useState(30);
+  const analytics = trpc.creatorAnalytics.getOverview.useQuery({ days }, { enabled: isAuthenticated, retry: false });
+  const cards = useMemo(() => analytics.data ? [
+    { label: "Subscribers", value: compact(analytics.data.subscribers), icon: Users, tone: "text-indigo-300" },
+    { label: "Video views", value: compact(analytics.data.views), icon: Eye, tone: "text-cyan-300" },
+    { label: "Total likes", value: compact(analytics.data.likes), icon: Heart, tone: "text-rose-300" },
+    { label: "Engagement rate", value: `${analytics.data.engagementRate}%`, icon: BarChart3, tone: "text-emerald-300" },
+  ] : [] , [analytics.data]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="dashboard-container">
-        <div className="loading">
-          <p>Please log in to access creator dashboard</p>
-          <Button onClick={() => setLocation("/signup")} className="mt-4">
-            Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="max-w-md border-white/10 bg-white/5 p-8 text-center"><h1 className="text-2xl font-bold">Creator analytics is private</h1><p className="mt-2 text-slate-300">Sign in to view your real subscription and engagement performance.</p><Button className="mt-5" onClick={() => setLocation("/login")}>Sign in</Button></Card></main>;
 
-  const stats = [
-    {
-      label: "Total Views",
-      value: "125.4K",
-      change: "+12.5%",
-      icon: Eye,
-      color: "blue",
-    },
-    {
-      label: "Followers",
-      value: "8,234",
-      change: "+234",
-      icon: Users,
-      color: "purple",
-    },
-    {
-      label: "Total Likes",
-      value: "45.2K",
-      change: "+8.3%",
-      icon: Heart,
-      color: "red",
-    },
-    {
-      label: "Earnings",
-      value: "₹12,450",
-      change: "+₹2,340",
-      icon: DollarSign,
-      color: "green",
-    },
-  ];
-
-  const topPosts = [
-    {
-      id: 1,
-      title: "My First Vlog",
-      views: 45230,
-      likes: 3421,
-      comments: 234,
-      shares: 123,
-      date: "2 days ago",
-    },
-    {
-      id: 2,
-      title: "Tutorial: How to Edit Videos",
-      views: 32145,
-      likes: 2341,
-      comments: 156,
-      shares: 89,
-      date: "5 days ago",
-    },
-    {
-      id: 3,
-      title: "Q&A with Followers",
-      views: 28934,
-      likes: 1923,
-      comments: 234,
-      shares: 67,
-      date: "1 week ago",
-    },
-  ];
-
-  const earningsData = [
-    { date: "Mon", amount: 1200 },
-    { date: "Tue", amount: 1900 },
-    { date: "Wed", amount: 1500 },
-    { date: "Thu", amount: 2200 },
-    { date: "Fri", amount: 1800 },
-    { date: "Sat", amount: 2500 },
-    { date: "Sun", amount: 1600 },
-  ];
-
-  return (
-    <div className="dashboard-container">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div>
-          <h1>Creator Dashboard</h1>
-          <p>Welcome back! Here's your performance overview</p>
-        </div>
-        <div className="time-range-selector">
-          {["7d", "30d", "90d", "1y"].map((range) => (
-            <button
-              key={range}
-              className={`range-btn ${timeRange === range ? "active" : ""}`}
-              onClick={() => setTimeRange(range)}
-            >
-              {range === "7d" ? "7 Days" : range === "30d" ? "30 Days" : range === "90d" ? "90 Days" : "1 Year"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div key={index} className={`stat-card ${stat.color}`}>
-              <div className="stat-icon">
-                <Icon size={24} />
-              </div>
-              <div className="stat-content">
-                <p className="stat-label">{stat.label}</p>
-                <h3 className="stat-value">{stat.value}</h3>
-                <p className="stat-change">
-                  <TrendingUp size={14} />
-                  {stat.change}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main Content */}
-      <div className="dashboard-content">
-        {/* Earnings Chart */}
-        <div className="chart-section">
-          <h2>Weekly Earnings</h2>
-          <div className="chart">
-            <div className="chart-bars">
-              {earningsData.map((data, index) => (
-                <div key={index} className="bar-container">
-                  <div
-                    className="bar"
-                    style={{
-                      height: `${(data.amount / 2500) * 100}%`,
-                    }}
-                  ></div>
-                  <p className="bar-label">{data.date}</p>
-                  <p className="bar-value">₹{data.amount}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Top Posts */}
-        <div className="top-posts-section">
-          <h2>Top Performing Posts</h2>
-          <div className="posts-table">
-            <div className="table-header">
-              <div className="col-title">Post Title</div>
-              <div className="col-stat">Views</div>
-              <div className="col-stat">Likes</div>
-              <div className="col-stat">Comments</div>
-              <div className="col-stat">Shares</div>
-              <div className="col-date">Date</div>
-            </div>
-
-            {topPosts.map((post) => (
-              <div key={post.id} className="table-row">
-                <div className="col-title">{post.title}</div>
-                <div className="col-stat">
-                  <Eye size={14} />
-                  {post.views.toLocaleString()}
-                </div>
-                <div className="col-stat">
-                  <Heart size={14} />
-                  {post.likes.toLocaleString()}
-                </div>
-                <div className="col-stat">{post.comments}</div>
-                <div className="col-stat">
-                  <Share2 size={14} />
-                  {post.shares}
-                </div>
-                <div className="col-date">{post.date}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Creator Fund Info */}
-      <div className="creator-fund-section">
-        <h2>Creator Fund</h2>
-        <div className="fund-info">
-          <div className="fund-card">
-            <h3>Total Earnings</h3>
-            <p className="fund-amount">₹12,450</p>
-            <p className="fund-subtitle">From 234 posts</p>
-          </div>
-          <div className="fund-card">
-            <h3>Pending Payout</h3>
-            <p className="fund-amount">₹2,340</p>
-            <p className="fund-subtitle">Next payout: 5 days</p>
-          </div>
-          <div className="fund-card">
-            <h3>Withdrawal History</h3>
-            <button className="view-btn">View Details</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Monetization Settings */}
-      <div className="monetization-section">
-        <h2>Monetization Settings</h2>
-        <div className="settings-list">
-          <div className="setting-item">
-            <div className="setting-info">
-              <h4>Ad Revenue Sharing</h4>
-              <p>Earn from ads shown on your content</p>
-            </div>
-            <label className="toggle">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <h4>Sponsorship Opportunities</h4>
-              <p>Get brand collaboration offers</p>
-            </div>
-            <label className="toggle">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <h4>Super Likes & Tips</h4>
-              <p>Allow followers to send you tips</p>
-            </div>
-            <label className="toggle">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <main className="min-h-screen bg-[#080b14] px-4 py-8 text-white sm:px-8"><div className="mx-auto max-w-6xl space-y-8"><header className="flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300">TRILLIONER LINK / Creator studio</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Your channel, measured clearly.</h1><p className="mt-2 max-w-xl text-slate-300">Track subscribers, reach, and meaningful engagement from published Creator content. No estimated earnings or fabricated activity is shown.</p></div><div className="flex rounded-xl border border-white/10 bg-white/5 p-1">{[7, 30, 90].map((range) => <button key={range} onClick={() => setDays(range)} className={`rounded-lg px-3 py-2 text-sm ${days === range ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/10"}`}>{range}d</button>)}</div></header>{analytics.isLoading && <AnalyticsSkeleton />}{analytics.error && <Card className="border-rose-400/30 bg-rose-500/10 p-6"><p className="font-semibold text-rose-200">Analytics are temporarily unavailable.</p><p className="mt-1 text-sm text-rose-100/70">Try again shortly; your published content is not affected.</p></Card>}{analytics.data && <><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{cards.map((card) => { const Icon = card.icon; return <Card key={card.label} className="border-white/10 bg-white/[0.045] p-5"><div className="flex items-center justify-between"><span className={`rounded-xl bg-white/10 p-2 ${card.tone}`}><Icon className="h-5 w-5" /></span><span className="text-xs text-slate-500">Last {days} days</span></div><p className="mt-5 text-sm text-slate-400">{card.label}</p><p className="mt-1 text-3xl font-bold">{card.value}</p></Card>; })}</div><div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]"><Card className="border-white/10 bg-white/[0.045] p-6"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Engagement mix</h2><p className="mt-1 text-sm text-slate-400">Interactions across your video and post surfaces.</p></div><BarChart3 className="h-5 w-5 text-indigo-300" /></div><div className="mt-8 space-y-5">{[{ label: "Likes", value: analytics.data.likes, icon: Heart, color: "bg-rose-400" }, { label: "Comments", value: analytics.data.comments, icon: MessageCircle, color: "bg-cyan-400" }, { label: "Shares", value: analytics.data.shares, icon: Share2, color: "bg-emerald-400" }].map((item) => { const Icon = item.icon; const total = Math.max(analytics.data.likes, analytics.data.comments, analytics.data.shares, 1); return <div key={item.label}><div className="mb-2 flex items-center justify-between text-sm"><span className="flex items-center gap-2 text-slate-300"><Icon className="h-4 w-4" />{item.label}</span><span className="font-semibold">{compact(item.value)}</span></div><div className="h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.color}`} style={{ width: `${Math.max(4, (item.value / total) * 100)}%` }} /></div></div>; })}</div></Card><Card className="border-white/10 bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 p-6"><Video className="h-6 w-6 text-cyan-200" /><h2 className="mt-5 text-lg font-semibold">Publishing signal</h2><p className="mt-2 text-sm leading-6 text-slate-300">You have {analytics.data.videos} published video{analytics.data.videos === 1 ? "" : "s"} and {compact(analytics.data.views)} total views. Keep the format consistent and let audience response guide your next upload.</p><div className="mt-6 rounded-xl border border-white/10 bg-black/10 p-4"><p className="text-xs uppercase tracking-[0.16em] text-slate-400">Current engagement</p><p className="mt-1 text-2xl font-bold">{analytics.data.engagementRate}%</p></div></Card></div><Card className="border-white/10 bg-white/[0.045] p-6"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Recent videos</h2><p className="mt-1 text-sm text-slate-400">Performance from your latest public uploads.</p></div><Button variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => setLocation("/videos")}>Open player</Button></div>{analytics.data.recentVideos.length === 0 ? <div className="mt-8 rounded-xl border border-dashed border-white/15 p-8 text-center"><Video className="mx-auto h-8 w-8 text-slate-500" /><p className="mt-3 font-medium">No public videos yet</p><p className="mt-1 text-sm text-slate-400">Your real performance table will appear after the first published upload.</p></div> : <div className="mt-6 divide-y divide-white/10">{analytics.data.recentVideos.map((video) => <div key={video.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate font-medium">{video.title}</p><p className="mt-1 text-xs text-slate-500">{new Date(video.createdAt).toLocaleDateString()}</p></div><div className="flex items-center gap-4 text-sm text-slate-300"><span className="flex items-center gap-1"><Eye className="h-4 w-4" />{compact(video.views)}</span><span className="flex items-center gap-1"><Heart className="h-4 w-4" />{compact(video.likes)}</span><span className="flex items-center gap-1"><MessageCircle className="h-4 w-4" />{compact(video.comments)}</span></div></div>)}</div>}</Card></>}</div></main>;
 }

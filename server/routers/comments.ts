@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { assertPublishable } from "../contentModeration";
 import {
   createComment,
   getCommentsByPostId,
@@ -58,6 +59,7 @@ export const commentsRouter = router({
         throw new Error("Either postId or videoId is required");
       }
 
+      await assertPublishable({ text: input.content });
       const comment = await createComment(
         ctx.user.id,
         input.content,

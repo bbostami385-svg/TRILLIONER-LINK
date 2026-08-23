@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { assertPublishable } from "../contentModeration";
 import {
   createPost,
   getPostsByUserId,
@@ -66,6 +67,8 @@ export const feedRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const mediaType = input.videoUrl ? "video" : input.imageUrl ? "image" : undefined;
+      await assertPublishable({ text: input.content, mediaUrl: input.videoUrl ?? input.imageUrl, mediaType });
       const post = await createPost(
         ctx.user.id,
         input.content,

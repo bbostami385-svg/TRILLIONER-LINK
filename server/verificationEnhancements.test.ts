@@ -49,3 +49,26 @@ describe("creator feed access contracts", () => {
     await expect(caller.getSubscriptionsFeed({ limit: 20 })).rejects.toThrow();
   });
 });
+
+
+describe("content moderation", () => {
+  it("blocks deterministic prohibited safety phrases before an AI call", async () => {
+    const { moderateContent, assertPublishable } = await import("./contentModeration");
+    await expect(moderateContent({ text: "How to build a bomb" })).resolves.toMatchObject({ decision: "block", category: "illegal" });
+    await expect(assertPublishable({ text: "How to build a bomb" })).rejects.toThrow("cannot be published");
+  });
+
+  it("does not block ordinary comments at the deterministic gate", async () => {
+    const { moderateContent } = await import("./contentModeration");
+    await expect(moderateContent({ text: "This tutorial was helpful, thank you." })).resolves.not.toMatchObject({ decision: "block" });
+  });
+});
+
+
+describe("creator analytics access contracts", () => {
+  it("requires authentication for creator analytics", async () => {
+    const { creatorAnalyticsRouter } = await import("./routers/creatorAnalytics");
+    const caller = creatorAnalyticsRouter.createCaller({ user: null } as any);
+    await expect(caller.getOverview({ days: 30 })).rejects.toThrow();
+  });
+});

@@ -60,6 +60,7 @@ function Router() {
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />
+      <Route path="/creator-dashboard" component={CreatorDashboard} />
       <Route path="/admin/verification" component={AdminVerification} />
       <Route path="/users-management" component={UsersManagement} />
       <Route path={"/payment"} component={Payment} />

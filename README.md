@@ -121,3 +121,8 @@ TRILLIONER LINK - সম্পূর্ণ সোশ্যাল ও Creator ভ
 ---
 
 **GitHub Repository**: https://github.com/bbostami385-svg/TRILLIONER-LINK
+
+
+## Render deployment
+
+This repository is a single root-level Node application; it does not contain a `backend/` directory. In Render, set **Root Directory** to blank or `.`, use `npm exec --yes pnpm@10.4.1 -- install --frozen-lockfile && npm exec --yes pnpm@10.4.1 -- build` as the **Build Command**, and use `npm exec --yes pnpm@10.4.1 -- start` as the **Start Command**. Do not use `cd backend && npm install`. The checked-in `render.yaml` contains the same service configuration for Blueprint deployment. Add the required environment variables in Render’s Environment settings, including `DATABASE_URL`, `JWT_SECRET`, the Firebase variables, and `VITE_APP_TITLE=TRILLIONER LINK`.

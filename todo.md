@@ -667,3 +667,10 @@
 - [x] Replace visible “NovaPlus Social”, “NovaPlus-Social”, and related legacy product-name references with “TRILLIONER LINK” while preserving package/import compatibility where required.
 - [x] Add tests for appeals, date-range validation, chart data shaping, and branding-sensitive surfaces.
 - [x] Run schema migration, typecheck, tests, production build, responsive visual verification, checkpoint, and GitHub synchronization.
+
+## Render Deployment Fix
+
+- [x] Document the actual repository root and package-manager contract for Render.
+- [x] Add a Render-compatible service configuration that builds from the repository root, not `backend/`.
+- [x] Validate Render install, typecheck, production build, and server start commands locally.
+- [x] Save a checkpoint and synchronize the deployment fix to bbostami385-svg/TRILLIONER-LINK.

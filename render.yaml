@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: npm exec --yes pnpm@10.4.1 -- install --frozen-lockfile && npm exec --yes pnpm@10.4.1 -- build
-    startCommand: pnpm start
+    startCommand: npm exec --yes pnpm@10.4.1 -- start
     autoDeploy: true
     envVars:
       - key: NODE_VERSION

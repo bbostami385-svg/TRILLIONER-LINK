@@ -674,3 +674,7 @@
 - [x] Add a Render-compatible service configuration that builds from the repository root, not `backend/`.
 - [x] Validate Render install, typecheck, production build, and server start commands locally.
 - [x] Save a checkpoint and synchronize the deployment fix to bbostami385-svg/TRILLIONER-LINK.
+
+## Render Runtime Consistency Follow-up
+
+- [x] Make the checked-in Render start command use the pinned npm-executed pnpm invocation, matching the validated README command and avoiding a runtime PATH dependency.

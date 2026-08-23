@@ -655,4 +655,4 @@
 - [x] Add user-visible toast feedback when moderation blocks a post, comment, video comment, or video upload.
 - [x] Improve perceived and actual loading speed with query caching, minimized repeat requests, and lightweight UI work.
 - [x] Add unit tests for CSV serialization, moderation error classification, and the persisted analytics theme preference.
-- [ ] Run typecheck, tests, production build, responsive visual verification, checkpoint, and GitHub synchronization.
+- [x] Run typecheck, tests, production build, responsive visual verification, checkpoint, and GitHub synchronization.

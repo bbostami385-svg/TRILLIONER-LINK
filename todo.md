@@ -678,3 +678,14 @@
 ## Render Runtime Consistency Follow-up
 
 - [x] Make the checked-in Render start command use the pinned npm-executed pnpm invocation, matching the validated README command and avoiding a runtime PATH dependency.
+
+## Realtime Notifications, Appeal Management, and Analytics Comparison
+
+- [x] Add a realtime creator notification bell with a polished dropdown menu using authenticated 15-second refresh and window-focus refresh.
+- [x] Add persistent read state and a secure Mark all as read action.
+- [x] Notify creators when someone subscribes and when a moderation appeal is resolved.
+- [x] Add a dedicated admin moderation appeals panel with Pending, Approved, and Rejected filters.
+- [x] Add appeal sorting by newest/oldest and status-aware empty/loading/error states.
+- [x] Add Creator Analytics current-vs-previous-month comparison metrics and chart series.
+- [x] Add tests for notification read state, appeal filters/sorting, and comparison calculations.
+- [x] Run schema migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

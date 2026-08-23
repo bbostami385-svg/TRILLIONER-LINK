@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { follows, subscriptions, userModePreferences, users } from "../../drizzle/schema";
+import { follows, subscriptions, userModePreferences, users, notifications } from "../../drizzle/schema";
 
 const modeSchema = z.enum(["social", "creator"]);
 const idSchema = z.number().int().positive();
@@ -154,6 +154,13 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
       ));
+      await db.insert(notifications).values({
+        userId: input.creatorId,
+        fromUserId: ctx.user.id,
+        type: "subscribe",
+        message: `subscribed to your Creator channel (${input.tier} tier).`,
+        isRead: false,
+      });
       return { success: true, message: `Successfully subscribed to creator (${input.tier} tier).` };
     }),
 

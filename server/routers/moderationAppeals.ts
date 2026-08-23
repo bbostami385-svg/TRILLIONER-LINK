@@ -3,7 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { moderationAppeals } from "../../drizzle/schema";
+import { moderationAppeals, notifications } from "../../drizzle/schema";
+
+export const moderationAppealAdminFilterSchema = z.object({ status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"), sort: z.enum(["newest", "oldest"]).default("newest"), limit: z.number().int().min(1).max(100).default(50) });
 
 export const moderationAppealInput = z.object({
   contentType: z.enum(["post", "comment", "video"]),
@@ -49,17 +51,24 @@ export const moderationAppealsRouter = router({
       .from(moderationAppeals).where(eq(moderationAppeals.userId, ctx.user.id)).orderBy(desc(moderationAppeals.createdAt)).limit(50);
   }),
 
-  adminList: adminProcedure.input(z.object({ status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"), limit: z.number().int().min(1).max(100).default(50) })).query(async ({ input }) => {
+  adminList: adminProcedure.input(moderationAppealAdminFilterSchema).query(async ({ input }) => {
     const db = await getRequiredDb();
     const where = input.status === "all" ? undefined : eq(moderationAppeals.status, input.status);
-    return db.select().from(moderationAppeals).where(where).orderBy(desc(moderationAppeals.createdAt)).limit(input.limit);
+    return db.select().from(moderationAppeals).where(where).orderBy(input.sort === "oldest" ? moderationAppeals.createdAt : desc(moderationAppeals.createdAt)).limit(input.limit);
   }),
 
   adminResolve: adminProcedure.input(z.object({ appealId: z.number().int().positive(), status: z.enum(["approved", "rejected"]), reviewerNote: z.string().trim().max(2_000).optional() })).mutation(async ({ ctx, input }) => {
     const db = await getRequiredDb();
-    const [appeal] = await db.select({ id: moderationAppeals.id }).from(moderationAppeals).where(eq(moderationAppeals.id, input.appealId)).limit(1);
+    const [appeal] = await db.select({ id: moderationAppeals.id, userId: moderationAppeals.userId }).from(moderationAppeals).where(eq(moderationAppeals.id, input.appealId)).limit(1);
     if (!appeal) throw new TRPCError({ code: "NOT_FOUND", message: "Appeal not found." });
     await db.update(moderationAppeals).set({ status: input.status, reviewerId: ctx.user.id, reviewerNote: input.reviewerNote ?? null }).where(eq(moderationAppeals.id, input.appealId));
+    await db.insert(notifications).values({
+      userId: appeal.userId,
+      fromUserId: ctx.user.id,
+      type: "appeal_result",
+      message: `your moderation appeal was ${input.status}.`,
+      isRead: false,
+    });
     return { success: true, status: input.status };
   }),
 });

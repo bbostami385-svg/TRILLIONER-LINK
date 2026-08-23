@@ -275,7 +275,7 @@ export const notifications = mysqlTable("notifications", {
     .notNull()
     .references(() => users.id),
   fromUserId: int("fromUserId").references(() => users.id),
-  type: mysqlEnum("type", ["like", "comment", "follow", "share", "mention"]).notNull(),
+  type: mysqlEnum("type", ["like", "comment", "follow", "subscribe", "share", "mention", "appeal_result"]).notNull(),
   postId: int("postId").references(() => posts.id),
   videoId: int("videoId").references(() => videos.id),
   commentId: int("commentId").references(() => comments.id),

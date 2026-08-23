@@ -117,3 +117,26 @@ describe("appeals and custom analytics ranges", () => {
     expect(analyticsRangeSchema.parse({ startDate: "2026-08-01", endDate: "2026-08-20", days: 30 }).endDate).toBe("2026-08-20");
   });
 });
+
+
+describe("realtime notifications, appeal filters, and comparison", () => {
+  it("calculates comparison deltas safely when the previous period is empty", async () => {
+    const { compareMetric } = await import("./routers/creatorAnalytics");
+    expect(compareMetric(12, 8)).toEqual({ current: 12, previous: 8, delta: 4, percent: 50 });
+    expect(compareMetric(4, 0).percent).toBe(100);
+    expect(compareMetric(0, 0).percent).toBe(0);
+  });
+
+  it("validates appeal status and sorting filters", async () => {
+    const { moderationAppealAdminFilterSchema } = await import("./routers/moderationAppeals");
+    expect(moderationAppealAdminFilterSchema.parse({ status: "pending", sort: "oldest" }).sort).toBe("oldest");
+    expect(() => moderationAppealAdminFilterSchema.parse({ status: "unknown" })).toThrow();
+  });
+
+  it("requires authentication for the notification bell feed and read actions", async () => {
+    const { notificationsRouter } = await import("./routers/notifications");
+    const caller = notificationsRouter.createCaller({ user: null } as any);
+    await expect(caller.getBellFeed({ limit: 8 })).rejects.toThrow();
+    await expect(caller.markAllAsRead()).rejects.toThrow();
+  });
+});

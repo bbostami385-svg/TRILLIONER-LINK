@@ -1,0 +1,22 @@
+import { Bell, CheckCheck, MessageCircle, Sparkles, UserPlus, X } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+
+function relativeTime(value: Date | string) { const seconds = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000)); if (seconds < 60) return "now"; if (seconds < 3600) return `${Math.floor(seconds / 60)}m`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`; return `${Math.floor(seconds / 86400)}d`; }
+function NotificationIcon({ type }: { type: string }) { if (type === "subscribe") return <UserPlus className="h-4 w-4 text-indigo-300" />; if (type === "appeal_result") return <Sparkles className="h-4 w-4 text-amber-300" />; if (type === "comment") return <MessageCircle className="h-4 w-4 text-cyan-300" />; return <Bell className="h-4 w-4 text-slate-300" />; }
+
+export function NotificationBell() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
+  const feed = trpc.notifications.getBellFeed.useQuery({ limit: 8 }, { enabled: isAuthenticated, refetchInterval: 15_000, staleTime: 10_000, gcTime: 5 * 60_000, refetchOnWindowFocus: true });
+  const markRead = trpc.notifications.markAsRead.useMutation({ onSuccess: () => void feed.refetch() });
+  const markAll = trpc.notifications.markAllAsRead.useMutation({ onSuccess: () => void feed.refetch() });
+  if (!isAuthenticated) return null;
+  const notifications = feed.data ?? [];
+  const unread = notifications.filter((item) => !item.isRead).length;
+  return <div className="relative"><Button variant="ghost" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} onClick={() => setOpen((value) => !value)} className="relative h-10 w-10 rounded-xl p-0 text-slate-300 hover:bg-white/10 hover:text-white"><Bell className="h-5 w-5" />{unread > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>}</Button>{open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 text-white shadow-2xl backdrop-blur-xl"><div className="flex items-center justify-between border-b border-white/10 px-4 py-3"><div><h2 className="font-semibold">Notifications</h2><p className="text-xs text-slate-500">Updates refresh automatically</p></div><div className="flex items-center gap-1">{unread > 0 && <button onClick={() => markAll.mutate()} disabled={markAll.isPending} className="rounded-lg p-2 text-xs text-indigo-300 hover:bg-white/10" title="Mark all as read"><CheckCheck className="h-4 w-4" /></button>}<button onClick={() => setOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Close notifications"><X className="h-4 w-4" /></button></div></div><div className="max-h-96 overflow-auto">{feed.isLoading ? <div className="space-y-3 p-4">{[1, 2, 3].map((item) => <div key={item} className="h-12 animate-pulse rounded-lg bg-white/5" />)}</div> : notifications.length === 0 ? <div className="p-8 text-center text-sm text-slate-400"><Bell className="mx-auto mb-2 h-6 w-6 text-slate-600" />You are all caught up.</div> : notifications.map((item) => <button key={item.id} onClick={() => { if (!item.isRead) markRead.mutate({ notificationId: item.id }); }} className={`flex w-full gap-3 border-b border-white/5 p-4 text-left transition hover:bg-white/5 ${!item.isRead ? "bg-indigo-500/10" : ""}`}><span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10"><NotificationIcon type={item.type} /></span><span className="min-w-0 flex-1"><span className="block text-sm text-slate-200"><strong>{item.fromUserName ?? "TRILLIONER LINK"}</strong> {item.message}</span><span className="mt-1 block text-xs text-slate-500">{relativeTime(item.createdAt)}</span></span>{!item.isRead && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-300" />}</button>)}</div><button onClick={() => { setOpen(false); setLocation("/notifications"); }} className="w-full border-t border-white/10 px-4 py-3 text-center text-sm font-medium text-indigo-300 hover:bg-white/5">View all notifications</button></div>}</div>;
+}

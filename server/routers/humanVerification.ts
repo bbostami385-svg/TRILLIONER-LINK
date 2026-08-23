@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
@@ -199,6 +199,31 @@ export const humanVerificationRouter = router({
         .innerJoin(users, eq(faceLivenessRecords.userId, users.id))
         .where(whereClause);
       return { records, total: totalRows.length, limit: input.limit, offset: input.offset };
+    }),
+
+  bulkReviewLiveness: adminProcedure
+    .input(z.object({
+      recordIds: z.array(z.number().int().positive()).min(1).max(100),
+      action: z.enum(["approve", "reject"]),
+      reason: z.string().min(3).max(1000).optional(),
+    }).superRefine((input, ctx) => {
+      if (input.action === "reject" && !input.reason?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reason"], message: "A rejection reason is required." });
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
+      const records = await db.select({ id: faceLivenessRecords.id, userId: faceLivenessRecords.userId, status: faceLivenessRecords.status })
+        .from(faceLivenessRecords).where(inArray(faceLivenessRecords.id, input.recordIds));
+      const pending = records.filter((record) => record.status === "pending");
+      if (!pending.length) return { success: true, updated: 0, skipped: records.length, reviewedBy: ctx.user.id };
+      await db.transaction(async (tx) => {
+        await Promise.all(pending.map((record) => tx.update(faceLivenessRecords).set(input.action === "approve"
+          ? { status: "approved", confidence: "100.00", rejectionReason: null }
+          : { status: "rejected", rejectionReason: input.reason!.trim() }).where(eq(faceLivenessRecords.id, record.id))));
+        await Promise.all(pending.map((record) => tx.update(users).set(input.action === "approve"
+          ? { livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 }
+          : { livenessVerified: false }).where(eq(users.id, record.userId))));
+      });
+      return { success: true, updated: pending.length, skipped: records.length - pending.length, reviewedBy: ctx.user.id };
     }),
 
   approveLiveness: adminProcedure

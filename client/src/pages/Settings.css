@@ -315,3 +315,47 @@ input:checked + .toggle-slider:before {
     padding: 16px;
   }
 }
+
+/* Tab navigation: keep account controls legible across widths. */
+.tab-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 212, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(15, 15, 30, 0.48);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.tab-button:hover,
+.tab-button:focus-visible {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #fff;
+  outline: none;
+}
+
+.tab-button.active {
+  border-color: rgba(0, 212, 255, 0.7);
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: #06111a;
+}
+
+@media (max-width: 520px) {
+  .tab-button {
+    flex: 1 1 calc(50% - 8px);
+    padding-inline: 10px;
+  }
+}

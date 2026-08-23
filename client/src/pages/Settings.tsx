@@ -12,6 +12,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { LivenessVerification } from "@/components/LivenessVerification";
 import { KYCForm } from "@/components/KYCForm";
 import { SocialLinking } from "@/components/SocialLinking";
+import { VerificationStatusTracker } from "@/components/VerificationStatusTracker";
 import { trpc } from "@/lib/trpc";
 import "./Settings.css";
 
@@ -283,6 +284,7 @@ export default function Settings() {
               <p className="text-sm text-gray-500">Human verification protects accounts; KYC is only needed for monetization.</p>
             </div>
           </div>
+          <div className="mb-6"><VerificationStatusTracker /></div>
           <div className="flex flex-wrap gap-2 border-b pb-4 mb-6">
             <Button variant={verificationSection === "human" ? "default" : "outline"} onClick={() => setVerificationSection("human")}>Human Verification</Button>
             <Button variant={verificationSection === "kyc" ? "default" : "outline"} onClick={() => setVerificationSection("kyc")}>Monetization KYC</Button>

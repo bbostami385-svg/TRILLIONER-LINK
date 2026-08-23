@@ -1,145 +1,39 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, Play } from 'lucide-react';
-import './Videos.css';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "wouter";
+import { Bookmark, ChevronDown, ChevronUp, Heart, MessageCircle, Play, Share2, Sparkles, Users } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import "./Videos.css";
 
-interface Video {
-  id: number;
-  userId: number;
-  title: string;
-  description: string;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  duration?: number;
-  views: number;
-  likes: number;
-  comments: number;
-  createdAt: Date;
-}
+function compact(value: number) { return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value); }
+function timeAgo(value: Date | string) { const seconds = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000)); if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`; }
 
 export default function Videos() {
-  const [videos] = useState<Video[]>([
-    {
-      id: 1,
-      userId: 1,
-      title: 'Amazing Travel Vlog - Dubai',
-      description: 'Exploring the beautiful city of Dubai with stunning views',
-      videoUrl: 'https://example.com/video1.mp4',
-      thumbnailUrl: '🏙️',
-      duration: 1245,
-      views: 15420,
-      likes: 2341,
-      comments: 456,
-      createdAt: new Date(),
-    },
-    {
-      id: 2,
-      userId: 2,
-      title: 'Cooking Tutorial - Biryani',
-      description: 'Learn how to make authentic biryani at home',
-      videoUrl: 'https://example.com/video2.mp4',
-      thumbnailUrl: '🍛',
-      duration: 890,
-      views: 8932,
-      likes: 1203,
-      comments: 234,
-      createdAt: new Date(Date.now() - 86400000),
-    },
-    {
-      id: 3,
-      userId: 3,
-      title: 'Fitness Workout - Full Body',
-      description: '30 minute full body workout for beginners',
-      videoUrl: 'https://example.com/video3.mp4',
-      thumbnailUrl: '💪',
-      duration: 1800,
-      views: 23451,
-      likes: 3456,
-      comments: 678,
-      createdAt: new Date(Date.now() - 172800000),
-    },
-  ]);
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const [tab, setTab] = useState<"trending" | "following" | "subscriptions">("trending");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [liked, setLiked] = useState<Set<number>>(new Set());
+  const touchStart = useRef<number | null>(null);
+  const videosQuery = trpc.videos.getTrending.useQuery({ limit: 30 }, { enabled: tab === "trending", retry: false });
+  const videoList = videosQuery.data ?? [];
+  const activeVideo = videoList[activeIndex];
+  const activeDetails = trpc.videos.getVideo.useQuery({ videoId: activeVideo?.id ?? 0 }, { enabled: Boolean(activeVideo), retry: false });
+  const likeVideo = trpc.videos.likeVideo.useMutation();
+  const unlikeVideo = trpc.videos.unlikeVideo.useMutation();
+  const displayVideo = activeDetails.data ?? activeVideo;
+  const isLiked = Boolean(displayVideo && liked.has(displayVideo.id));
 
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const move = (direction: 1 | -1) => setActiveIndex((index) => Math.min(Math.max(index + direction, 0), Math.max(videoList.length - 1, 0)));
+  useEffect(() => { setActiveIndex(0); }, [tab]);
+  useEffect(() => { const onKey = (event: KeyboardEvent) => { if (event.key === "ArrowDown") move(1); if (event.key === "ArrowUp") move(-1); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [videoList.length]);
+  const onTouchStart = (event: React.TouchEvent) => { touchStart.current = event.touches[0]?.clientY ?? null; };
+  const onTouchEnd = (event: React.TouchEvent) => { if (touchStart.current === null) return; const delta = (event.changedTouches[0]?.clientY ?? touchStart.current) - touchStart.current; if (Math.abs(delta) > 48) move(delta < 0 ? 1 : -1); touchStart.current = null; };
+  const handleLike = async () => { if (!displayVideo || !isAuthenticated) { setLocation("/login"); return; } const next = new Set(liked); try { if (isLiked) { await unlikeVideo.mutateAsync({ videoId: displayVideo.id }); next.delete(displayVideo.id); } else { await likeVideo.mutateAsync({ videoId: displayVideo.id }); next.add(displayVideo.id); } setLiked(next); } catch { /* server remains source of truth; the next view will refresh */ } };
+  const share = async () => { if (!displayVideo) return; const url = `${window.location.origin}/videos?video=${displayVideo.id}`; if (navigator.share) await navigator.share({ title: displayVideo.title, url }); else await navigator.clipboard?.writeText(url); };
+  const tabs = useMemo(() => [{ id: "trending" as const, label: "Discover" }, { id: "following" as const, label: "Following" }, { id: "subscriptions" as const, label: "Subscriptions" }], []);
 
-  return (
-    <div className="videos-container">
-      <div className="videos-header">
-        <h1>Videos</h1>
-        <div className="videos-tabs">
-          <button className="tab-btn active">Trending</button>
-          <button className="tab-btn">Following</button>
-          <button className="tab-btn">Subscriptions</button>
-        </div>
-      </div>
-
-      {selectedVideo && (
-        <div className="video-player-section">
-          <div className="video-player">
-            <div className="video-placeholder">
-              <Play className="play-icon" />
-              <span>{selectedVideo.thumbnailUrl}</span>
-            </div>
-          </div>
-          <div className="video-details">
-            <h2>{selectedVideo.title}</h2>
-            <p className="video-description">{selectedVideo.description}</p>
-            <div className="video-stats">
-              <span>👁️ {selectedVideo.views.toLocaleString()} views</span>
-              <span>❤️ {selectedVideo.likes.toLocaleString()} likes</span>
-              <span>💬 {selectedVideo.comments.toLocaleString()} comments</span>
-            </div>
-            <div className="video-actions">
-              <button className="action-btn">
-                <Heart size={20} /> Like
-              </button>
-              <button className="action-btn">
-                <MessageCircle size={20} /> Comment
-              </button>
-              <button className="action-btn">
-                <Share2 size={20} /> Share
-              </button>
-            </div>
-            <button 
-              className="close-btn"
-              onClick={() => setSelectedVideo(null)}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="videos-grid">
-        {videos.map((video) => (
-          <div 
-            key={video.id} 
-            className="video-card"
-            onClick={() => setSelectedVideo(video)}
-          >
-            <div className="video-thumbnail">
-              <div className="thumbnail-placeholder">{video.thumbnailUrl}</div>
-              <div className="play-overlay">
-                <Play className="play-btn-icon" />
-              </div>
-              {video.duration && (
-                <div className="duration-badge">
-                  {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
-                </div>
-              )}
-            </div>
-            <div className="video-info">
-              <h3>{video.title}</h3>
-              <p className="video-meta">
-                {video.views.toLocaleString()} views • 2 days ago
-              </p>
-              <div className="video-engagement">
-                <span>❤️ {video.likes}</span>
-                <span>💬 {video.comments}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <main className="min-h-screen bg-[#080b14] text-white"><header className="sticky top-0 z-20 border-b border-white/10 bg-[#080b14]/90 px-4 py-4 backdrop-blur-xl sm:px-8"><div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300"><Sparkles className="h-3.5 w-3.5" /> TRILLIONER LINK / Creator video</p><h1 className="mt-1 text-2xl font-bold tracking-tight">Watch what moves people</h1></div><nav className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1" aria-label="Video feeds">{tabs.map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={`rounded-lg px-3 py-2 text-sm transition ${tab === item.id ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>{item.label}</button>)}</nav></div></header><div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,680px)_280px] lg:px-8"><section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#101522] shadow-2xl" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}><div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-sm text-slate-300"><span>{tab === "trending" ? "Trending creator videos" : `${tabs.find((item) => item.id === tab)?.label} feed`}</span><span className="text-xs text-slate-500">Swipe ↑ ↓ · tap controls</span></div>{videosQuery.isLoading && <div className="grid min-h-[650px] place-items-center text-slate-400"><div className="text-center"><div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" /><p>Finding videos from creators…</p></div></div>}{videosQuery.error && <div className="grid min-h-[650px] place-items-center p-8 text-center"><div><p className="font-semibold text-rose-300">The video feed is temporarily unavailable.</p><p className="mt-2 text-sm text-slate-400">Refresh the page or try again shortly.</p></div></div>}{!videosQuery.isLoading && !videosQuery.error && tab !== "trending" && <div className="grid min-h-[650px] place-items-center p-8 text-center"><div><Users className="mx-auto mb-4 h-10 w-10 text-indigo-300" /><h2 className="text-xl font-semibold">{tabs.find((item) => item.id === tab)?.label} is ready for your audience</h2><p className="mt-2 max-w-sm text-sm text-slate-400">Once you follow creators or subscribe to channels, this feed will show their latest videos here.</p></div></div>}{!videosQuery.isLoading && !videosQuery.error && tab === "trending" && videoList.length === 0 && <div className="grid min-h-[650px] place-items-center p-8 text-center"><div><Play className="mx-auto mb-4 h-10 w-10 text-indigo-300" /><h2 className="text-xl font-semibold">Your video stage is open</h2><p className="mt-2 max-w-sm text-sm text-slate-400">No public creator videos are available yet. Creator uploads will appear here automatically once published.</p></div></div>}{displayVideo && <div className="relative min-h-[650px] overflow-hidden bg-black sm:min-h-[720px]"><video key={displayVideo.id} src={displayVideo.videoUrl} poster={displayVideo.thumbnailUrl ?? undefined} controls playsInline className="h-full min-h-[650px] w-full object-contain sm:min-h-[720px]" onError={(event) => { event.currentTarget.poster = ""; }} /><div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent" /><div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-7"><div className="max-w-[75%]"><p className="mb-2 inline-flex items-center gap-1 rounded-full bg-indigo-500/80 px-2.5 py-1 text-xs font-semibold"><Sparkles className="h-3 w-3" /> Creator video</p><h2 className="text-xl font-bold leading-tight sm:text-2xl">{displayVideo.title}</h2><p className="mt-2 line-clamp-2 text-sm text-slate-200">{displayVideo.description || "A new story from the TRILLIONER LINK creator community."}</p><p className="mt-3 text-xs text-slate-400">{compact(displayVideo.views)} views · {timeAgo(displayVideo.createdAt)}</p></div><div className="flex flex-col items-center gap-3"><button aria-label={isLiked ? "Unlike video" : "Like video"} onClick={handleLike} className={`grid h-12 w-12 place-items-center rounded-full border border-white/15 backdrop-blur transition ${isLiked ? "bg-rose-500 text-white" : "bg-white/10 hover:bg-white/20"}`}><Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} /></button><span className="text-xs text-slate-200">{compact(displayVideo.likes + (isLiked ? 1 : 0))}</span><button aria-label="Open comments" onClick={() => setLocation(`/videos/${displayVideo.id}`)} className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20"><MessageCircle className="h-5 w-5" /></button><span className="text-xs text-slate-200">{compact(displayVideo.comments)}</span><button aria-label="Share video" onClick={share} className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20"><Share2 className="h-5 w-5" /></button><button aria-label="Save video" className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20"><Bookmark className="h-5 w-5" /></button></div></div></div>}{videoList.length > 1 && <div className="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2"><button aria-label="Previous video" disabled={activeIndex === 0} onClick={() => move(-1)} className="grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white disabled:opacity-30"><ChevronUp className="h-5 w-5" /></button><button aria-label="Next video" disabled={activeIndex === videoList.length - 1} onClick={() => move(1)} className="grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white disabled:opacity-30"><ChevronDown className="h-5 w-5" /></button></div>}</section><aside className="space-y-4"><Card className="border-white/10 bg-white/5 p-5 text-white"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">Creator-first by design</p><h2 className="mt-3 text-xl font-bold">Subscribe to channels, not timelines.</h2><p className="mt-2 text-sm leading-6 text-slate-300">Creator profiles prioritize Videos, Shorts, Live, Playlists, Community, and About. Personal profiles keep the Follow relationship.</p><Button onClick={() => setLocation("/profile")} variant="outline" className="mt-4 w-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Explore creator profiles</Button></Card><Card className="border-white/10 bg-white/5 p-5 text-white"><p className="text-sm font-semibold">Creator milestones</p><div className="mt-4 space-y-3 text-sm text-slate-300"><div className="flex items-center justify-between"><span>Subscribers</span><span className="font-semibold text-white">Build your audience</span></div><div className="flex items-center justify-between"><span>Original videos</span><span className="font-semibold text-white">Publish consistently</span></div><div className="flex items-center justify-between"><span>Monetization</span><span className="font-semibold text-white">Review after eligibility</span></div></div></Card></aside></div></main>;
 }

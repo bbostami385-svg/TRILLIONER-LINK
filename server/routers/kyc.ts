@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
@@ -93,6 +93,34 @@ export const kycRouter = router({
       .where(eq(kycDocuments.userId, ctx.user.id))
       .orderBy(desc(kycDocuments.createdAt));
   }),
+
+  bulkReviewKYC: adminProcedure
+    .input(z.object({
+      documentIds: z.array(z.number().int().positive()).min(1).max(100),
+      action: z.enum(["approve", "reject"]),
+      reason: z.string().min(3).max(1000).optional(),
+    }).superRefine((input, ctx) => {
+      if (input.action === "reject" && !input.reason?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reason"], message: "A rejection reason is required." });
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getRequiredDb();
+      const documents = await db.select({ id: kycDocuments.id, userId: kycDocuments.userId, status: kycDocuments.status })
+        .from(kycDocuments).where(inArray(kycDocuments.id, input.documentIds));
+      const pending = documents.filter((document) => document.status === "pending");
+      if (!pending.length) return { success: true, updated: 0, skipped: documents.length, reviewedBy: ctx.user.id };
+      await db.transaction(async (tx) => {
+        await Promise.all(pending.map((document) => tx.update(kycDocuments).set(input.action === "approve"
+          ? { status: "approved", rejectionReason: null }
+          : { status: "rejected", rejectionReason: input.reason!.trim() }).where(eq(kycDocuments.id, document.id))));
+        await Promise.all(pending.map((document) => tx.update(kycVerificationRecords).set(input.action === "approve"
+          ? { status: "approved", reviewedBy: ctx.user.id, rejectionReason: null }
+          : { status: "rejected", reviewedBy: ctx.user.id, rejectionReason: input.reason!.trim() }).where(eq(kycVerificationRecords.documentId, document.id))));
+        await Promise.all(pending.map((document) => tx.update(users).set(input.action === "approve"
+          ? { kycVerified: true, kycStatus: "approved", kycVerificationAt: new Date() }
+          : { kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, document.userId))));
+      });
+      return { success: true, updated: pending.length, skipped: documents.length - pending.length, reviewedBy: ctx.user.id };
+    }),
 
   approveKYC: adminProcedure
     .input(z.object({ userId: z.number().int().positive(), notes: z.string().max(2000).optional() }))

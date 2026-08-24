@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Camera, Save, AlertCircle } from "lucide-react";
+import { Camera, Save, AlertCircle, GripVertical } from "lucide-react";
 import "./ProfileEdit.css";
 
+const socialProviders = ["facebook", "instagram", "twitter", "youtube", "tiktok"] as const;
 function readSocialValue(value: unknown, provider: string) { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const links = root.socialLinks && typeof root.socialLinks === "object" ? (root.socialLinks as Record<string, unknown>) : {}; return typeof links[provider] === "string" ? links[provider] : ""; }
+function readSocialOrder(value: unknown): Array<(typeof socialProviders)[number]> { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const requested = Array.isArray(root.socialLinkOrder) ? root.socialLinkOrder.filter((item): item is (typeof socialProviders)[number] => typeof item === "string" && socialProviders.includes(item as (typeof socialProviders)[number])) : []; return Array.from(new Set([...requested, ...socialProviders])) as Array<(typeof socialProviders)[number]>; }
 
 export default function ProfileEdit() {
   const { user, isAuthenticated } = useAuth();
@@ -20,6 +22,7 @@ export default function ProfileEdit() {
     twitter: "",
     youtube: "",
     tiktok: "",
+    socialLinkOrder: [...socialProviders],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,7 @@ export default function ProfileEdit() {
         twitter: readSocialValue(profile.linkedAccounts, "twitter"),
         youtube: readSocialValue(profile.linkedAccounts, "youtube"),
         tiktok: readSocialValue(profile.linkedAccounts, "tiktok"),
+        socialLinkOrder: readSocialOrder(profile.linkedAccounts),
       });
       if (profile.profileImage) {
         setProfileImage(profile.profileImage);
@@ -94,6 +98,8 @@ export default function ProfileEdit() {
     }
   };
 
+  const moveSocialLink = (source: (typeof socialProviders)[number], target: (typeof socialProviders)[number]) => { if (source === target) return; setFormData((previous) => { const next = [...previous.socialLinkOrder]; const from = next.indexOf(source); const to = next.indexOf(target); if (from < 0 || to < 0) return previous; next.splice(from, 1); next.splice(to, 0, source); return { ...previous, socialLinkOrder: next }; }); };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -105,6 +111,7 @@ export default function ProfileEdit() {
         website: formData.website,
         profileImage: profileImage || undefined,
         socialLinks: { facebook: formData.facebook || undefined, instagram: formData.instagram || undefined, twitter: formData.twitter || undefined, youtube: formData.youtube || undefined, tiktok: formData.tiktok || undefined },
+        socialLinkOrder: formData.socialLinkOrder,
       });
       if (formData.handle.trim()) await claimHandleMutation.mutateAsync({ handle: formData.handle });
     } catch (err) {
@@ -246,8 +253,9 @@ export default function ProfileEdit() {
           <div className="form-group">
             <label>Social links</label>
             <p className="hint">Add official profile URLs. They appear as a compact link rail on your public profile.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(["facebook", "instagram", "twitter", "youtube", "tiktok"] as const).map((provider) => <input key={provider} type="url" name={provider} value={formData[provider]} onChange={handleInputChange} placeholder={`https://${provider === "twitter" ? "x.com" : provider}.com/your-profile`} aria-label={`${provider} profile URL`} />)}
+            <div className="grid gap-3">
+              <p className="text-xs text-slate-500">Drag a row to choose the order visitors see on your public profile.</p>
+              {formData.socialLinkOrder.map((provider) => <div key={provider} draggable onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const source = event.dataTransfer.getData("text/social-provider"); moveSocialLink(source as (typeof socialProviders)[number], provider); }} onDragStart={(event) => event.dataTransfer.setData("text/social-provider", provider)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/10 p-2"><GripVertical className="h-4 w-4 shrink-0 cursor-grab text-slate-500" aria-hidden="true" /><input type="url" name={provider} value={formData[provider]} onChange={handleInputChange} placeholder={`https://${provider === "twitter" ? "x.com" : provider}.com/your-profile`} aria-label={`${provider} profile URL`} className="min-w-0 flex-1" /><span className="text-[10px] uppercase tracking-wider text-slate-500">drag</span></div>)}
             </div>
           </div>
 

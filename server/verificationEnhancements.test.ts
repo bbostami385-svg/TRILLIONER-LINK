@@ -288,3 +288,20 @@ describe("profile rewards, social links, and top videos", () => {
     expect(rows.map((row) => row.title)).toEqual(["A", "B", "C"]);
   });
 });
+
+
+describe("social ordering and top-video exports", () => {
+  it("deduplicates social-link order and appends newly added links", async () => {
+    const { normalizeSocialLinkOrder } = await import("./routers/profileEdit");
+    expect(normalizeSocialLinkOrder(["youtube", "youtube", "instagram"], { youtube: "https://youtube.com/@creator", instagram: "https://instagram.com/creator", facebook: "https://facebook.com/creator" })).toEqual(["youtube", "instagram", "facebook"]);
+  });
+
+  it("keeps top-video PDF and image exports branded and data-backed", async () => {
+    const { buildTopVideosPdf, buildTopVideosSvg } = await import("../client/src/pages/CreatorDashboard");
+    const rows = [{ title: "A & B", category: "Music", views: 120, likes: 9, comments: 4, engagement: 13 }];
+    const svg = buildTopVideosSvg(rows, "views", "2026-08-01 → 2026-08-24");
+    expect(svg).toContain("TRILLIONER LINK");
+    expect(svg).toContain("A &amp; B");
+    expect(buildTopVideosPdf(rows, "engagement", "selected window").output("arraybuffer").byteLength).toBeGreaterThan(100);
+  });
+});

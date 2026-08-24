@@ -750,3 +750,12 @@
 - [x] Add real top-performing video lists sorted by views or engagement in Creator Analytics.
 - [x] Add tests for reward authorization/idempotency, social-link validation/public data, and top-video sorting/filter behavior.
 - [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Social Link Ordering, Top Video Exports, and Reward Previews
+
+- [x] Add drag-and-drop social-link reordering in Profile Edit with persisted order.
+- [x] Preserve the saved social-link order in public /@handle profiles.
+- [x] Export real top-performing video data as PDF and image files.
+- [x] Add a live profile-style preview for locked badge and theme rewards before unlock.
+- [x] Add tests for social-link ordering, top-video exports, and reward preview mappings.
+- [x] Run typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

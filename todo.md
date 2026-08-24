@@ -803,3 +803,10 @@
 - [x] Make TRILLIONER LINK installable outside Play Store as a PWA with manifest, icons, install guidance, and offline shell compatibility; document the future Android/Play Store packaging path.
 - [x] Add focused tests for playlist sharing helpers, feed skeleton/search behavior, and PWA metadata/install guidance.
 - [x] Run typecheck, tests, production build, visual verification, checkpoint, and selected GitHub synchronization.
+
+## 2026-08-24 Follow-up Enhancements
+
+- [x] Add pull-to-refresh for Shorts and long-form video feeds.
+- [x] Show suggested popular saved videos when Offline Library search has no matches.
+- [x] Show an explicit success toast after copying a share link.
+- [x] Add focused tests and run typecheck, Vitest, build, visual verification, checkpoint, and GitHub synchronization.

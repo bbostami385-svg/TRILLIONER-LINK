@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,16 @@ import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import VideoFeedSkeleton from "@/components/VideoFeedSkeleton";
+import { RefreshCw } from "lucide-react";
 
 export function ReelsPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [pullStart, setPullStart] = useState<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const formTouchStart = useRef<number | null>(null);
   const [formData, setFormData] = useState({
     videoUrl: "",
     caption: "",
@@ -18,11 +23,15 @@ export function ReelsPage() {
     duration: 0,
   });
 
-  const { data: trendingReels, isLoading: loadingReels } = trpc.reels.getTrendingReels.useQuery({
+  const { data: trendingReels, isLoading: loadingReels, refetch: refetchReels } = trpc.reels.getTrendingReels.useQuery({
     limit: 20,
   });
 
   const createReelMutation = trpc.reels.createReel.useMutation();
+  const refreshShorts = async () => { if (refreshing) return; setRefreshing(true); try { await refetchReels(); } finally { setRefreshing(false); } };
+  const onFeedTouchStart = (event: React.TouchEvent) => { const y = event.touches[0]?.clientY ?? null; formTouchStart.current = y; setPullStart(typeof window !== "undefined" && window.scrollY <= 4 ? y : null); };
+  const onFeedTouchMove = (event: React.TouchEvent) => { if (pullStart === null) return; const current = event.touches[0]?.clientY ?? pullStart; setPullDistance(Math.min(96, Math.max(0, current - pullStart))); };
+  const onFeedTouchEnd = (event: React.TouchEvent) => { if (formTouchStart.current === null) return; const delta = (event.changedTouches[0]?.clientY ?? formTouchStart.current) - formTouchStart.current; if (pullDistance >= 72) void refreshShorts(); formTouchStart.current = null; setPullStart(null); setPullDistance(0); if (pullDistance < 72 && Math.abs(delta) > 48) return; };
   const likeReelMutation = trpc.reels.likeReel.useMutation();
 
   const handleCreateReel = async (e: React.FormEvent) => {
@@ -50,7 +59,7 @@ export function ReelsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4" onTouchStart={onFeedTouchStart} onTouchMove={onFeedTouchMove} onTouchEnd={onFeedTouchEnd}><div className={`mx-auto flex items-center justify-center overflow-hidden text-xs text-purple-100 transition-all ${pullDistance > 0 || refreshing ? "h-9 opacity-100" : "h-0 opacity-0"}`} style={{ transform: `translateY(${Math.min(pullDistance, 20)}px)` }} aria-live="polite"><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Refreshing Shorts…" : pullDistance >= 72 ? "Release to refresh" : "Pull down to refresh"}</div>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

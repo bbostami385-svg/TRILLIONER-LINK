@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOfflineSuggestions, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { getOfflineSuggestions, getSuggestedOfflineVideoRecords, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -24,6 +24,10 @@ describe("offline video helpers", () => {
   it("returns unique creator and playlist suggestions", () => {
     expect(getOfflineSuggestions(records, "")).toEqual(["Dr. Nova", "Science", "Lumen Studio", "Music"]);
     expect(getOfflineSuggestions(records, "sci")).toEqual(["Science"]);
+  });
+
+  it("returns recent saved videos as the no-result fallback", () => {
+    expect(getSuggestedOfflineVideoRecords(records, 2).map((record) => record.id)).toEqual([2, 3]);
   });
 
   it("does not mutate the stored record array", () => {

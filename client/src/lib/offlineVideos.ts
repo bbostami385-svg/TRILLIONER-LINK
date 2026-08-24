@@ -32,6 +32,7 @@ export type OfflineSort = "date" | "size";
 export function sortOfflineVideoRecords(records: OfflineVideoRecord[], sortBy: OfflineSort) { return [...records].sort((a, b) => sortBy === "date" ? new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime() : (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0)); }
 export function searchOfflineVideoRecords(records: OfflineVideoRecord[], query: string) { const normalized = query.trim().toLocaleLowerCase(); if (!normalized) return records; return records.filter((record) => [record.title, record.description, record.creatorName, record.playlistName].some((value) => value?.toLocaleLowerCase().includes(normalized))); }
 export function getOfflineSuggestions(records: OfflineVideoRecord[], query: string, limit = 6) { const normalized = query.trim().toLocaleLowerCase(); const values = records.flatMap((record) => [record.creatorName, record.playlistName]).filter((value): value is string => Boolean(value && (!normalized || value.toLocaleLowerCase().includes(normalized)))); return Array.from(new Set(values)).slice(0, limit); }
+export function getSuggestedOfflineVideoRecords(records: OfflineVideoRecord[], limit = 3) { return sortOfflineVideoRecords(records, "date").slice(0, limit); }
 export function getOfflineVideoRecords() { return readRecords(); }
 export function isOfflineVideoSaved(videoId: number) { return readRecords().some((record) => record.id === videoId); }
 

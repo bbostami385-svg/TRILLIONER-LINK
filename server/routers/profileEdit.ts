@@ -3,7 +3,8 @@ import { z } from "zod";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
+import { buildHandleCandidates, handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
+import { inArray } from "drizzle-orm";
 
 export const profileEditRouter = router({
   getByHandle: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input }) => {
@@ -68,6 +69,15 @@ export const profileEditRouter = router({
         throw new Error("Failed to update profile");
       }
     }),
+
+  suggestHandles: protectedProcedure.input(z.object({ handle: z.string().trim().min(1).max(64), limit: z.number().int().min(1).max(8).default(6) })).query(async ({ input, ctx }: any) => {
+    const candidates = buildHandleCandidates(input.handle, Math.min(input.limit * 2, 8));
+    const db = await getDb();
+    if (!db || candidates.length === 0) return [];
+    const existing = await db.select({ handleNormalized: users.handleNormalized }).from(users).where(inArray(users.handleNormalized, candidates));
+    const taken = new Set(existing.map((row) => row.handleNormalized));
+    return candidates.filter((candidate) => !taken.has(candidate)).slice(0, input.limit);
+  }),
 
   checkHandleAvailability: protectedProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input, ctx }: any) => {
     const validation = validateHandle(input.handle);

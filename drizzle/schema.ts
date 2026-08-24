@@ -906,3 +906,20 @@ export const accountLinkingRecords = mysqlTable("accountLinkingRecords", {
 
 export type AccountLinkingRecord = typeof accountLinkingRecords.$inferSelect;
 export type InsertAccountLinkingRecord = typeof accountLinkingRecords.$inferInsert;
+
+/**
+ * Friend invitation links. Raw tokens are never persisted; only a SHA-256 hash is stored.
+ */
+export const friendInvitations = mysqlTable("friendInvitations", {
+  id: int("id").autoincrement().primaryKey(),
+  inviterId: int("inviterId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+  status: mysqlEnum("status", ["pending", "accepted", "expired", "revoked"]).default("pending").notNull(),
+  acceptedBy: int("acceptedBy").references(() => users.id, { onDelete: "set null" }),
+  acceptedAt: timestamp("acceptedAt"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type FriendInvitation = typeof friendInvitations.$inferSelect;
+export type InsertFriendInvitation = typeof friendInvitations.$inferInsert;

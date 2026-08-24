@@ -709,3 +709,13 @@
 - [x] Validate and securely store thumbnail/music references without storing media bytes in the database.
 - [x] Add tests for notification filters, comparison exports, pagination, and video metadata validation.
 - [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Public Profile Discovery and Invitations
+
+- [x] Add Share Profile control to /@handle pages with Web Share API and clipboard fallback.
+- [x] Add automatic available handle suggestions when a requested handle is already taken.
+- [x] Add @handle lookup to the main search experience with public profile navigation.
+- [x] Add durable friend invitations with secure token handling, acceptance, expiry, and status tracking.
+- [x] Add invitation UI for creating, copying, and accepting friend invites.
+- [x] Add tests for profile sharing helpers, handle suggestions, @handle search, and invitation authorization/status rules.
+- [x] Run any required migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

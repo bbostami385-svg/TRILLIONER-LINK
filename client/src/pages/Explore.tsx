@@ -26,6 +26,9 @@ export default function Explore() {
     { enabled: isAuthenticated && searchQuery.length > 0 }
   );
 
+  const handleLookup = trpc.profileEdit.getByHandle.useQuery({ handle: searchQuery }, { enabled: isAuthenticated && searchQuery.trim().startsWith("@") && searchQuery.trim().length > 2, retry: false, staleTime: 30_000 });
+  const handleMatch = handleLookup.data;
+
   // Search hashtags
   const { data: hashtagsData, isLoading: hashtagsLoading } = trpc.search.searchHashtags.useQuery(
     { query: searchQuery, limit: 20 },
@@ -54,7 +57,7 @@ export default function Explore() {
           className="search-input"
           placeholder="Search posts, people, topics..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => { const value = e.target.value; setSearchQuery(value); if (value.trim().startsWith("@")) setActiveTab("suggested"); }}
         />
         <button className="search-btn" title="Search">
           🔍
@@ -82,6 +85,9 @@ export default function Explore() {
           Categories
         </button>
       </div>
+
+      {/* Exact public handle result */}
+      {searchQuery.trim().startsWith("@") && <div className="mb-4 rounded-2xl border border-indigo-300/20 bg-indigo-500/10 p-4 text-white">{handleLookup.isFetching ? <p className="text-sm text-slate-300">Finding that creator handle…</p> : handleMatch ? <button onClick={() => setLocation(`/@/${handleMatch.handle}`)} className="flex w-full items-center gap-3 text-left"><div className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-indigo-500 font-bold">{handleMatch.profileImage ? <img src={handleMatch.profileImage} alt="" className="h-full w-full object-cover" /> : (handleMatch.name?.[0] ?? "?").toUpperCase()}</div><div><p className="font-semibold">{handleMatch.name || `@${handleMatch.handle}`}</p><p className="text-sm text-indigo-200">@{handleMatch.handle} · Open public profile</p></div></button> : <p className="text-sm text-slate-400">No public profile matches {searchQuery.trim()} yet.</p>}</div>}
 
       {/* Tab Content */}
       <div className="explore-content">

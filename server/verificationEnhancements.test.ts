@@ -194,3 +194,30 @@ describe("TRILLIONER LINK creator publishing enhancements", () => {
     expect(normalize("#Creator creator #TRILLIONER")).toEqual(["#creator", "#trillioner"]);
   });
 });
+
+
+describe("public discovery and invitations", () => {
+  it("builds stable shareable public profile and invitation URLs", async () => {
+    const { getPublicProfileUrl } = await import("../client/src/pages/HandleProfile");
+    const { buildInviteUrl } = await import("../client/src/pages/Invitations");
+    expect(getPublicProfileUrl("@Nova.Creator", "https://trillioner.link")).toBe("https://trillioner.link/@Nova.Creator");
+    expect(buildInviteUrl("a_token-with-safe_chars_12345678901234567890", "https://trillioner.link")).toContain("/invitations?token=");
+  });
+
+  it("generates valid deterministic handle candidates", async () => {
+    const { buildHandleCandidates, validateHandle } = await import("./handleUtils");
+    const candidates = buildHandleCandidates("@Nova Creator", 6);
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(new Set(candidates).size).toBe(candidates.length);
+    candidates.forEach((candidate) => expect(validateHandle(candidate).valid).toBe(true));
+  });
+
+  it("validates invitation tokens and protects invitation procedures", async () => {
+    const { invitationTokenSchema, invitationRouter } = await import("./routers/invitations");
+    expect(invitationTokenSchema.safeParse("short").success).toBe(false);
+    expect(invitationTokenSchema.safeParse("A12345678901234567890123456789012").success).toBe(true);
+    const caller = invitationRouter.createCaller({ user: null } as any);
+    await expect(caller.create()).rejects.toThrow();
+    await expect(caller.accept({ token: "A12345678901234567890123456789012" })).rejects.toThrow();
+  });
+});

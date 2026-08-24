@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Bell, Lock, Globe, Palette, LogOut, ChevronRight, Zap, Trophy } from "lucide-react";
+import { Bell, Lock, Globe, Palette, LogOut, ChevronRight, Zap, Trophy, MailPlus } from "lucide-react";
 import { ModeSelector } from "@/components/ModeSelector";
 import { ModeIndicator } from "@/components/ModeIndicator";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -164,6 +164,8 @@ export default function Settings() {
       {/* Account Tab */}
       {activeTab === "account" && (
         <>
+          <div className="settings-section"><div className="section-header"><MailPlus size={20} /><div><h2>Invite your circle</h2><p>Share a secure, expiring link with friends.</p></div></div><Button onClick={() => setLocation("/invitations")} className="w-full justify-between bg-indigo-500 text-white hover:bg-indigo-400">Open invitation center<ChevronRight size={18} /></Button></div>
+
           {/* Notification Settings */}
           <div className="settings-section">
             <div className="section-header">

@@ -41,6 +41,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { NotificationBell } from "./components/NotificationBell";
 import HandleProfile from "./pages/HandleProfile";
+import Invitations from "./pages/Invitations";
 import { VerificationGate } from "./components/VerificationGate";
 import "./App.css";
 
@@ -61,6 +62,7 @@ function Router() {
       <Route path={"/stories"} component={Stories} />
       <Route path={"/profile"} component={Profile} />
       <Route path="/@/:handle" component={HandleProfile} />
+      <Route path="/invitations" component={Invitations} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />

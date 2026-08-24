@@ -20,6 +20,7 @@ export default function ProfileEdit() {
   const [success, setSuccess] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const handleAvailability = trpc.profileEdit.checkHandleAvailability.useQuery({ handle: formData.handle }, { enabled: isAuthenticated && formData.handle.replace(/^@+/, "").trim().length > 0, retry: false, staleTime: 5_000 });
+  const handleSuggestions = trpc.profileEdit.suggestHandles.useQuery({ handle: formData.handle, limit: 6 }, { enabled: isAuthenticated && handleAvailability.data?.available === false, retry: false, staleTime: 5_000 });
   const claimHandleMutation = trpc.profileEdit.claimHandle.useMutation({ onSuccess: () => { setSuccess("Handle saved successfully!"); setSaving(false); }, onError: (error) => { setError(error.message || "Could not save handle"); setSaving(false); } });
 
   // Fetch profile data
@@ -182,6 +183,7 @@ export default function ProfileEdit() {
             <label htmlFor="handle">Unique handle</label>
             <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">@</span><input type="text" id="handle" name="handle" value={formData.handle.replace(/^@+/, "")} onChange={handleInputChange} placeholder="your-unique-handle" maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="pl-8" /></div>
             <span className={`hint ${handleAvailability.data?.available ? "text-emerald-600" : handleAvailability.data ? "text-rose-600" : ""}`}>{handleAvailability.isFetching ? "Checking availability…" : handleAvailability.data?.message ?? "3–30 lowercase letters, numbers, dots, underscores, or hyphens."}</span>
+            {handleAvailability.data?.available === false && <div className="mt-2 rounded-xl border border-amber-200/30 bg-amber-50/10 p-3"><p className="text-xs font-semibold text-amber-700">Try an available variation</p><div className="mt-2 flex flex-wrap gap-2">{handleSuggestions.isFetching ? <span className="text-xs text-slate-500">Finding available handles…</span> : handleSuggestions.data?.map((suggestion) => <button type="button" key={suggestion} onClick={() => setFormData((prev) => ({ ...prev, handle: suggestion }))} className="rounded-full border border-indigo-200/40 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50">@{suggestion}</button>)}</div></div>}
           </div>
 
           {/* Email Field */}

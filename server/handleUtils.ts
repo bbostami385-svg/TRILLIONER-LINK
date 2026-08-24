@@ -15,3 +15,9 @@ export function validateHandle(value: string) {
   return { valid: true as const, normalized, message: "Handle format is valid." };
 }
 export const handleSchema = z.string().trim().min(HANDLE_MIN_LENGTH).max(HANDLE_MAX_LENGTH).transform(normalizeHandle).superRefine((value, ctx) => { const result = validateHandle(value); if (!result.valid) ctx.addIssue({ code: "custom", message: result.message }); });
+
+export function buildHandleCandidates(value: string, count = 6) {
+  const base = normalizeHandle(value).replace(/[^a-z0-9._-]/g, "").replace(/^[._-]+|[._-]+$/g, "").slice(0, HANDLE_MAX_LENGTH - 5) || "creator";
+  const candidates = [base, `${base}1`, `${base}2`, `${base}2026`, `${base}_live`, `${base}-link`, `${base}_studio`, `${base}tv`];
+  return candidates.filter((candidate, index) => candidates.indexOf(candidate) === index && validateHandle(candidate).valid).slice(0, count);
+}

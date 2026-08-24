@@ -64,6 +64,13 @@
       "when": 1787512047721,
       "tag": "0008_lush_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787537501638,
+      "tag": "0009_elite_adam_destine",
+      "breakpoints": true
     }
   ]
 }

@@ -12,12 +12,15 @@ export default function ProfileEdit() {
     bio: "",
     website: "",
     email: "",
+    handle: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const handleAvailability = trpc.profileEdit.checkHandleAvailability.useQuery({ handle: formData.handle }, { enabled: isAuthenticated && formData.handle.replace(/^@+/, "").trim().length > 0, retry: false, staleTime: 5_000 });
+  const claimHandleMutation = trpc.profileEdit.claimHandle.useMutation({ onSuccess: () => { setSuccess("Handle saved successfully!"); setSaving(false); }, onError: (error) => { setError(error.message || "Could not save handle"); setSaving(false); } });
 
   // Fetch profile data
   const { data: profile } = trpc.profileEdit.getProfile.useQuery(undefined, {
@@ -49,6 +52,7 @@ export default function ProfileEdit() {
         bio: profile.bio || "",
         website: profile.website || "",
         email: profile.email || "",
+        handle: profile.handle || "",
       });
       if (profile.profileImage) {
         setProfileImage(profile.profileImage);
@@ -88,6 +92,7 @@ export default function ProfileEdit() {
         website: formData.website,
         profileImage: profileImage || undefined,
       });
+      if (formData.handle.trim()) await claimHandleMutation.mutateAsync({ handle: formData.handle });
     } catch (err) {
       console.error("Error updating profile:", err);
     }
@@ -170,6 +175,13 @@ export default function ProfileEdit() {
               maxLength={100}
             />
             <span className="char-count">{formData.name.length}/100</span>
+          </div>
+
+          {/* Handle Field */}
+          <div className="form-group">
+            <label htmlFor="handle">Unique handle</label>
+            <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">@</span><input type="text" id="handle" name="handle" value={formData.handle.replace(/^@+/, "")} onChange={handleInputChange} placeholder="your-unique-handle" maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="pl-8" /></div>
+            <span className={`hint ${handleAvailability.data?.available ? "text-emerald-600" : handleAvailability.data ? "text-rose-600" : ""}`}>{handleAvailability.isFetching ? "Checking availability…" : handleAvailability.data?.message ?? "3–30 lowercase letters, numbers, dots, underscores, or hyphens."}</span>
           </div>
 
           {/* Email Field */}

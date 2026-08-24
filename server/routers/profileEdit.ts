@@ -1,10 +1,20 @@
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
 
 export const profileEditRouter = router({
+  getByHandle: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input }) => {
+    const validation = validateHandle(input.handle);
+    if (!validation.valid) return null;
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
+    return user ?? null;
+  }),
+
   // Get current user profile
   getProfile: protectedProcedure.query(async ({ ctx }: any) => {
     try {
@@ -58,6 +68,32 @@ export const profileEditRouter = router({
         throw new Error("Failed to update profile");
       }
     }),
+
+  checkHandleAvailability: protectedProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input, ctx }: any) => {
+    const validation = validateHandle(input.handle);
+    if (!validation.valid) return { available: false, normalized: validation.normalized, message: validation.message };
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const existing = await db.select({ id: users.id }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
+    return { available: existing.length === 0 || existing[0].id === ctx.user.id, normalized: validation.normalized, message: existing.length === 0 || existing[0].id === ctx.user.id ? "Handle is available." : "This handle is already taken." };
+  }),
+
+  claimHandle: protectedProcedure.input(z.object({ handle: handleSchema })).mutation(async ({ input, ctx }: any) => {
+    const normalized = normalizeHandle(input.handle);
+    const validation = validateHandle(normalized);
+    if (!validation.valid) throw new Error(validation.message);
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    try {
+      const existing = await db.select({ id: users.id }).from(users).where(eq(users.handleNormalized, normalized)).limit(1);
+      if (existing.length && existing[0].id !== ctx.user.id) throw new Error("This handle is already taken.");
+      await db.update(users).set({ handle: input.handle, handleNormalized: normalized, updatedAt: new Date() }).where(eq(users.id, ctx.user.id));
+      return { success: true, handle: input.handle, handleNormalized: normalized };
+    } catch (error) {
+      if (String(error).toLowerCase().includes("duplicate") || String(error).toLowerCase().includes("unique")) throw new Error("This handle is already taken.");
+      throw error;
+    }
+  }),
 
   // Update email
   updateEmail: protectedProcedure

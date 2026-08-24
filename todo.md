@@ -689,3 +689,13 @@
 - [x] Add Creator Analytics current-vs-previous-month comparison metrics and chart series.
 - [x] Add tests for notification read state, appeal filters/sorting, and comparison calculations.
 - [x] Run schema migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Unique Handle / Username System
+
+- [x] Add a normalized unique handle field with a database-level uniqueness constraint.
+- [x] Validate handle length, allowed characters, leading/trailing rules, case-insensitive collisions, and reserved names.
+- [x] Add secure authenticated availability and profile-update procedures with race-safe conflict handling.
+- [x] Add handle setup/edit UI with live availability feedback and accessible validation messages.
+- [x] Add public @handle lookup/routing behavior without breaking the existing profile route.
+- [x] Add unit tests for normalization, validation, reserved handles, availability, and authenticated procedure behavior.
+- [x] Run migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

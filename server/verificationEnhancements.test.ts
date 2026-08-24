@@ -140,3 +140,27 @@ describe("realtime notifications, appeal filters, and comparison", () => {
     await expect(caller.markAllAsRead()).rejects.toThrow();
   });
 });
+
+
+describe("unique handle contracts", () => {
+  it("normalizes handles and rejects reserved or malformed values", async () => {
+    const { normalizeHandle, validateHandle } = await import("./handleUtils");
+    expect(normalizeHandle("@@Creator_Name")).toBe("creator_name");
+    expect(validateHandle("ab").valid).toBe(false);
+    expect(validateHandle("admin").message).toContain("reserved");
+    expect(validateHandle("Nova.Creator-1").valid).toBe(true);
+  });
+
+  it("requires authentication for handle claiming and availability checks", async () => {
+    const { profileEditRouter } = await import("./routers/profileEdit");
+    const caller = profileEditRouter.createCaller({ user: null } as any);
+    await expect(caller.checkHandleAvailability({ handle: "creator-name" })).rejects.toThrow();
+    await expect(caller.claimHandle({ handle: "creator-name" })).rejects.toThrow();
+  });
+
+  it("supports safe public lookup validation for @handles", async () => {
+    const { profileEditRouter } = await import("./routers/profileEdit");
+    const caller = profileEditRouter.createCaller({ user: null } as any);
+    await expect(caller.getByHandle({ handle: "admin" })).resolves.toBeNull();
+  });
+});

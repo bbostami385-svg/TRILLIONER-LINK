@@ -43,6 +43,7 @@ import { socialLinkingRouter } from "./routers/socialLinking";
 import { creatorAnalyticsRouter } from "./routers/creatorAnalytics";
 import { moderationAppealsRouter } from "./routers/moderationAppeals";
 import { invitationRouter } from "./routers/invitations";
+import { profileRewardsRouter } from "./routers/profileRewards";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -108,6 +109,7 @@ export const appRouter = router({
   creatorAnalytics: creatorAnalyticsRouter,
   moderationAppeals: moderationAppealsRouter,
   invitations: invitationRouter,
+  profileRewards: profileRewardsRouter,
 });
 
 export type AppRouter = typeof appRouter;

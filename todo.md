@@ -740,3 +740,13 @@
 - [x] Improve the Invitation Center with a visual joined-progress tracker and reward summary.
 - [x] Add tests for analytics filters, reward calculations/idempotency, QR downloads, notifications, and tracker states.
 - [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Reward Unlocks, Social Links, and Top Videos
+
+- [x] Add a secure reward catalog for profile badges and special themes with point costs.
+- [x] Add authenticated unlock and active-selection procedures that prevent overspending or unauthorized ownership.
+- [x] Add UI for viewing available, locked, and unlocked badges/themes and selecting owned cosmetics.
+- [x] Add customizable social links to profile editing with provider validation and safe public rendering.
+- [x] Add real top-performing video lists sorted by views or engagement in Creator Analytics.
+- [x] Add tests for reward authorization/idempotency, social-link validation/public data, and top-video sorting/filter behavior.
+- [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

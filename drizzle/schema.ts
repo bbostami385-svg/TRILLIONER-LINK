@@ -32,6 +32,8 @@ export const users = mysqlTable("users", {
   /** Invitation rewards: awarded once per accepted invitation. */
   successfulInvites: int("successfulInvites").default(0).notNull(),
   inviteRewardPoints: int("inviteRewardPoints").default(0).notNull(),
+  activeProfileBadge: varchar("activeProfileBadge", { length: 80 }),
+  activeProfileTheme: varchar("activeProfileTheme", { length: 80 }),
   
   /** Age Verification Fields */
   dateOfBirth: date("dateOfBirth"),
@@ -928,3 +930,15 @@ export const friendInvitations = mysqlTable("friendInvitations", {
 });
 export type FriendInvitation = typeof friendInvitations.$inferSelect;
 export type InsertFriendInvitation = typeof friendInvitations.$inferInsert;
+
+/** Invite-point cosmetics owned by a user. One row per unlocked reward. */
+export const profileRewards = mysqlTable("profileRewards", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  rewardId: varchar("rewardId", { length: 80 }).notNull(),
+  rewardType: mysqlEnum("rewardType", ["badge", "theme"]).notNull(),
+  cost: int("cost").notNull(),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+}, (table) => ({ uniqueUserReward: uniqueIndex("unique_user_profile_reward").on(table.userId, table.rewardId) }));
+export type ProfileReward = typeof profileRewards.$inferSelect;
+export type InsertProfileReward = typeof profileRewards.$inferInsert;

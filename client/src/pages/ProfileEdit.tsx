@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Camera, Save, AlertCircle } from "lucide-react";
 import "./ProfileEdit.css";
 
+function readSocialValue(value: unknown, provider: string) { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const links = root.socialLinks && typeof root.socialLinks === "object" ? (root.socialLinks as Record<string, unknown>) : {}; return typeof links[provider] === "string" ? links[provider] : ""; }
+
 export default function ProfileEdit() {
   const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
@@ -13,6 +15,11 @@ export default function ProfileEdit() {
     website: "",
     email: "",
     handle: "",
+    facebook: "",
+    instagram: "",
+    twitter: "",
+    youtube: "",
+    tiktok: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,6 +61,11 @@ export default function ProfileEdit() {
         website: profile.website || "",
         email: profile.email || "",
         handle: profile.handle || "",
+        facebook: readSocialValue(profile.linkedAccounts, "facebook"),
+        instagram: readSocialValue(profile.linkedAccounts, "instagram"),
+        twitter: readSocialValue(profile.linkedAccounts, "twitter"),
+        youtube: readSocialValue(profile.linkedAccounts, "youtube"),
+        tiktok: readSocialValue(profile.linkedAccounts, "tiktok"),
       });
       if (profile.profileImage) {
         setProfileImage(profile.profileImage);
@@ -92,6 +104,7 @@ export default function ProfileEdit() {
         bio: formData.bio,
         website: formData.website,
         profileImage: profileImage || undefined,
+        socialLinks: { facebook: formData.facebook || undefined, instagram: formData.instagram || undefined, twitter: formData.twitter || undefined, youtube: formData.youtube || undefined, tiktok: formData.tiktok || undefined },
       });
       if (formData.handle.trim()) await claimHandleMutation.mutateAsync({ handle: formData.handle });
     } catch (err) {
@@ -227,6 +240,15 @@ export default function ProfileEdit() {
               onChange={handleInputChange}
               placeholder="https://example.com"
             />
+          </div>
+
+          {/* Social Links */}
+          <div className="form-group">
+            <label>Social links</label>
+            <p className="hint">Add official profile URLs. They appear as a compact link rail on your public profile.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(["facebook", "instagram", "twitter", "youtube", "tiktok"] as const).map((provider) => <input key={provider} type="url" name={provider} value={formData[provider]} onChange={handleInputChange} placeholder={`https://${provider === "twitter" ? "x.com" : provider}.com/your-profile`} aria-label={`${provider} profile URL`} />)}
+            </div>
           </div>
 
           {/* Stats Display */}

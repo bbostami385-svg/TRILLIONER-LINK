@@ -262,3 +262,29 @@ describe("analytics filters, invite rewards, and QR sharing", () => {
     expect(getPublicProfileUrl("Creator_Name")).toMatch(/\/@Creator_Name$/);
   });
 });
+
+
+describe("profile rewards, social links, and top videos", () => {
+  it("keeps reward catalog costs and active selection contracts explicit", async () => {
+    const { profileRewardCatalog } = await import("./routers/profileRewards");
+    expect(profileRewardCatalog.some((reward) => reward.type === "badge" && reward.cost > 0)).toBe(true);
+    expect(profileRewardCatalog.some((reward) => reward.type === "theme" && reward.cost > 0)).toBe(true);
+    expect(new Set(profileRewardCatalog.map((reward) => reward.id)).size).toBe(profileRewardCatalog.length);
+  });
+
+  it("accepts only official HTTPS social profile URLs", async () => {
+    const { socialLinksSchema, normalizeSocialLinks } = await import("./routers/profileEdit");
+    expect(socialLinksSchema.safeParse({ instagram: "https://instagram.com/creator" }).success).toBe(true);
+    expect(socialLinksSchema.safeParse({ instagram: "http://instagram.com/creator" }).success).toBe(false);
+    expect(socialLinksSchema.safeParse({ twitter: "https://example.com/fake" }).success).toBe(false);
+    expect(normalizeSocialLinks({ facebook: "https://facebook.com/creator" })).toEqual({ facebook: "https://facebook.com/creator" });
+  });
+
+  it("sorts top videos by views or engagement without mutating source data", async () => {
+    const { sortTopVideos } = await import("./routers/creatorAnalytics");
+    const rows = [{ title: "A", views: 20, engagement: 2 }, { title: "B", views: 10, engagement: 9 }, { title: "C", views: 15, engagement: 12 }];
+    expect(sortTopVideos(rows, "views").map((row) => row.title)).toEqual(["A", "C", "B"]);
+    expect(sortTopVideos(rows, "engagement").map((row) => row.title)).toEqual(["C", "B", "A"]);
+    expect(rows.map((row) => row.title)).toEqual(["A", "B", "C"]);
+  });
+});

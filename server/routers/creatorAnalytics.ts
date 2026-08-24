@@ -25,6 +25,8 @@ function rangeDates(input: z.infer<typeof analyticsRangeSchema>) {
   const end = new Date(); const start = new Date(end.getTime() - input.days * 86_400_000); return { start, end, days: input.days };
 }
 
+export function sortTopVideos<T extends { views: number; engagement: number }>(rows: T[], sortBy: "views" | "engagement") { return [...rows].sort((a, b) => sortBy === "views" ? b.views - a.views || b.engagement - a.engagement : b.engagement - a.engagement || b.views - a.views).slice(0, 8); }
+
 function videoWhere(userId: number, start: Date, end: Date, category: string, hashtag: string) {
   const conditions = [eq(videos.userId, userId), eq(videos.isPublic, true), gte(videos.createdAt, start), lte(videos.createdAt, end)];
   if (category !== "all") conditions.push(eq(videos.category, category));
@@ -64,7 +66,10 @@ export const creatorAnalyticsRouter = router({
     const commentsTotal = videoRows.reduce((sum, row) => sum + Number(row.comments), 0) + postRows.reduce((sum, row) => sum + Number(row.comments), 0);
     const shares = postRows.reduce((sum, row) => sum + Number(row.shares), 0);
     const engagementRate = views > 0 ? Number((((likes + commentsTotal + shares) / views) * 100).toFixed(2)) : 0;
-    const recentVideos = videoRows.slice(0, 8).map((video, index) => ({ id: index + 1, title: video.title, category: video.category, hashtags: video.hashtags ?? [], views: Number(video.views), likes: Number(video.likes), comments: Number(video.comments), createdAt: video.createdAt }));
+    const videoPerformance = videoRows.map((video, index) => ({ id: index + 1, title: video.title, category: video.category, hashtags: video.hashtags ?? [], views: Number(video.views), likes: Number(video.likes), comments: Number(video.comments), engagement: Number(video.likes) + Number(video.comments), createdAt: video.createdAt }));
+    const recentVideos = videoPerformance.slice(0, 8);
+    const topByViews = sortTopVideos(videoPerformance, "views");
+    const topByEngagement = sortTopVideos(videoPerformance, "engagement");
     const previousSubscribers = previousSubscriptionRows.length;
     const previousViews = previousVideoRows.reduce((sum, row) => sum + Number(row.views), 0);
     const previousLikes = previousVideoRows.reduce((sum, row) => sum + Number(row.likes), 0) + previousPostRows.reduce((sum, row) => sum + Number(row.likes), 0);
@@ -72,6 +77,6 @@ export const creatorAnalyticsRouter = router({
     const previousShares = previousPostRows.reduce((sum, row) => sum + Number(row.shares), 0);
     const previousVideos = previousVideoRows.length;
     const comparison = compareMetric;
-    return { days, category: input.category, hashtag: input.hashtag, startDate: dayKey(start), endDate: dayKey(end), subscribers, videos: videoRows.length, views, likes, comments: commentsTotal, shares, engagementRate, series, recentVideos, comparison: { subscribers: comparison(subscribers, previousSubscribers), videos: comparison(videoRows.length, previousVideos), views: comparison(views, previousViews), likes: comparison(likes, previousLikes), comments: comparison(commentsTotal, previousComments), shares: comparison(shares, previousShares) }, previousStartDate: dayKey(previousStart), previousEndDate: dayKey(previousEnd) };
+    return { days, category: input.category, hashtag: input.hashtag, startDate: dayKey(start), endDate: dayKey(end), subscribers, videos: videoRows.length, views, likes, comments: commentsTotal, shares, engagementRate, series, recentVideos, topByViews, topByEngagement, comparison: { subscribers: comparison(subscribers, previousSubscribers), videos: comparison(videoRows.length, previousVideos), views: comparison(views, previousViews), likes: comparison(likes, previousLikes), comments: comparison(commentsTotal, previousComments), shares: comparison(shares, previousShares) }, previousStartDate: dayKey(previousStart), previousEndDate: dayKey(previousEnd) };
   }),
 });

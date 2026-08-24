@@ -6,14 +6,20 @@ import { eq } from "drizzle-orm";
 import { buildHandleCandidates, handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
 import { inArray } from "drizzle-orm";
 
+const socialProviders = ["facebook", "instagram", "twitter", "youtube", "tiktok"] as const;
+const allowedSocialHosts: Record<(typeof socialProviders)[number], string[]> = { facebook: ["facebook.com", "www.facebook.com"], instagram: ["instagram.com", "www.instagram.com"], twitter: ["twitter.com", "www.twitter.com", "x.com", "www.x.com"], youtube: ["youtube.com", "www.youtube.com", "youtu.be"], tiktok: ["tiktok.com", "www.tiktok.com"] };
+export const socialLinksSchema = z.object(Object.fromEntries(socialProviders.map((provider) => [provider, z.string().trim().max(500).optional()])) as Record<(typeof socialProviders)[number], z.ZodOptional<z.ZodString>>).superRefine((value, ctx) => { for (const provider of socialProviders) { const raw = value[provider]; if (!raw) continue; let parsed: URL; try { parsed = new URL(raw); } catch { ctx.addIssue({ code: "custom", path: [provider], message: "Use a complete profile URL." }); continue; } if (parsed.protocol !== "https:" || !allowedSocialHosts[provider].includes(parsed.hostname.toLowerCase())) ctx.addIssue({ code: "custom", path: [provider], message: `Use an official ${provider} profile URL.` }); } });
+export function normalizeSocialLinks(value: z.infer<typeof socialLinksSchema> | null | undefined) { return Object.fromEntries(socialProviders.flatMap((provider) => value?.[provider] ? [[provider, value[provider]]] : [])) as Partial<Record<(typeof socialProviders)[number], string>>; }
+function readPublicSocialLinks(value: unknown) { const record = value && typeof value === "object" ? (value as Record<string, unknown>).socialLinks : undefined; const parsed = socialLinksSchema.safeParse(record); return parsed.success ? normalizeSocialLinks(parsed.data) : {}; }
+
 export const profileEditRouter = router({
   getByHandle: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input }) => {
     const validation = validateHandle(input.handle);
     if (!validation.valid) return null;
     const db = await getDb();
     if (!db) throw new Error("Database not available");
-    const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
-    return user ?? null;
+    const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode, activeProfileBadge: users.activeProfileBadge, activeProfileTheme: users.activeProfileTheme, linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
+    return user ? { id: user.id, name: user.name, handle: user.handle, profileImage: user.profileImage, bio: user.bio, accountMode: user.accountMode, activeProfileBadge: user.activeProfileBadge, activeProfileTheme: user.activeProfileTheme, socialLinks: readPublicSocialLinks(user.linkedAccounts) } : null;
   }),
 
   // Get current user profile
@@ -43,6 +49,7 @@ export const profileEditRouter = router({
         bio: z.string().max(500).optional(),
         website: z.string().url().optional(),
         profileImage: z.string().optional(),
+        socialLinks: socialLinksSchema.optional(),
       })
     )
     .mutation(async ({ input, ctx }: any) => {
@@ -55,6 +62,11 @@ export const profileEditRouter = router({
         if (input.bio) updateData.bio = input.bio;
         if (input.website) updateData.website = input.website;
         if (input.profileImage) updateData.profileImage = input.profileImage;
+        if (input.socialLinks) {
+          const [current] = await db.select({ linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+          const existingLinks = current?.linkedAccounts && typeof current.linkedAccounts === "object" ? (current.linkedAccounts as Record<string, unknown>) : {};
+          updateData.linkedAccounts = { ...existingLinks, socialLinks: normalizeSocialLinks(input.socialLinks) };
+        }
 
         updateData.updatedAt = new Date();
 

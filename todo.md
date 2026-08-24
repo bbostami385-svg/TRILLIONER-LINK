@@ -719,3 +719,14 @@
 - [x] Add invitation UI for creating, copying, and accepting friend invites.
 - [x] Add tests for profile sharing helpers, handle suggestions, @handle search, and invitation authorization/status rules.
 - [x] Run any required migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Invitation Tracking, QR Sharing, Preview, Bulk Review, and Interactive Comparisons
+
+- [x] Add invitation joined/success tracker with totals and per-invite status.
+- [x] Notify the inviter when an invite is accepted and a new follower is created.
+- [x] Generate a scannable QR code for public profile share links.
+- [x] Add mobile and desktop preview modes to Creator video/Short publishing.
+- [x] Add admin bulk approve/reject actions for moderation appeals with rejection reasons.
+- [x] Add interactive current-vs-previous comparison charts across the selected analytics date range.
+- [x] Add tests for tracker totals, invitation notifications, QR/share helpers, preview behavior, bulk actions, and comparison chart data.
+- [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

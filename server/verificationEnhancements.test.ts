@@ -221,3 +221,23 @@ describe("public discovery and invitations", () => {
     await expect(caller.accept({ token: "A12345678901234567890123456789012" })).rejects.toThrow();
   });
 });
+
+
+describe("invitation tracking and review enhancements", () => {
+  it("summarizes invitation totals into sent, joined, pending, and lifecycle buckets", async () => {
+    const { summarizeInvitationStatuses } = await import("./routers/invitations");
+    expect(summarizeInvitationStatuses([{ status: "accepted", total: "3" }, { status: "pending", total: 2 }, { status: "expired", total: 1 }, { status: "revoked", total: 4 }])).toEqual({ total: 10, joined: 3, pending: 2, expired: 1, revoked: 4 });
+  });
+
+  it("requires rejection reasons for bulk appeal rejection and bounds selection", async () => {
+    const { moderationAppealBulkResolveInput } = await import("./routers/moderationAppeals");
+    expect(moderationAppealBulkResolveInput.safeParse({ appealIds: [1], status: "rejected" }).success).toBe(false);
+    expect(moderationAppealBulkResolveInput.safeParse({ appealIds: [1, 2], status: "rejected", reviewerNote: "Policy context reviewed." }).success).toBe(true);
+    expect(moderationAppealBulkResolveInput.safeParse({ appealIds: Array.from({ length: 51 }, (_, index) => index + 1), status: "approved" }).success).toBe(false);
+  });
+
+  it("maps comparison data into chart-safe current and previous series", async () => {
+    const { buildComparisonChartData } = await import("../client/src/pages/CreatorDashboard");
+    expect(buildComparisonChartData({ views: { current: 120, previous: 80, percent: 50 }, subscribers: { current: 12, previous: 8, percent: 50 } })).toEqual([{ metric: "views", current: 120, previous: 80 }, { metric: "subscribers", current: 12, previous: 8 }]);
+  });
+});

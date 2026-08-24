@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -6,6 +6,8 @@ import { getRequiredDb } from "../db";
 import { moderationAppeals, notifications } from "../../drizzle/schema";
 
 export const moderationAppealAdminFilterSchema = z.object({ status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"), sort: z.enum(["newest", "oldest"]).default("newest"), page: z.number().int().min(1).default(1), limit: z.number().int().min(1).max(100).default(25) });
+
+export const moderationAppealBulkResolveInput = z.object({ appealIds: z.array(z.number().int().positive()).min(1).max(50), status: z.enum(["approved", "rejected"]), reviewerNote: z.string().trim().max(2_000).optional() }).superRefine((input, refinement) => { if (input.status === "rejected" && !input.reviewerNote) refinement.addIssue({ code: "custom", path: ["reviewerNote"], message: "A rejection reason is required." }); });
 
 export const moderationAppealInput = z.object({
   contentType: z.enum(["post", "comment", "video"]),
@@ -60,6 +62,15 @@ export const moderationAppealsRouter = router({
     ]);
     const total = Number(totalRows[0]?.total ?? 0);
     return { records: rows, page: input.page, pageSize: input.limit, total, hasNext: input.page * input.limit < total, hasPrevious: input.page > 1 };
+  }),
+
+  adminBulkResolve: adminProcedure.input(moderationAppealBulkResolveInput).mutation(async ({ ctx, input }) => {
+    const db = await getRequiredDb();
+    const appeals = await db.select({ id: moderationAppeals.id, userId: moderationAppeals.userId }).from(moderationAppeals).where(and(inArray(moderationAppeals.id, input.appealIds), eq(moderationAppeals.status, "pending")));
+    if (appeals.length === 0) throw new TRPCError({ code: "NOT_FOUND", message: "No selected pending appeals are available." });
+    await db.update(moderationAppeals).set({ status: input.status, reviewerId: ctx.user.id, reviewerNote: input.reviewerNote ?? null }).where(and(inArray(moderationAppeals.id, appeals.map((appeal) => appeal.id)), eq(moderationAppeals.status, "pending")));
+    await Promise.all(appeals.map((appeal) => db.insert(notifications).values({ userId: appeal.userId, fromUserId: ctx.user.id, type: "appeal_result", message: `your moderation appeal was ${input.status}.`, isRead: false })));
+    return { success: true, status: input.status, updated: appeals.length };
   }),
 
   adminResolve: adminProcedure.input(z.object({ appealId: z.number().int().positive(), status: z.enum(["approved", "rejected"]), reviewerNote: z.string().trim().max(2_000).optional() })).mutation(async ({ ctx, input }) => {

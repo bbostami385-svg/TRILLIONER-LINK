@@ -1,0 +1,15 @@
+{
+  "name": "TRILLIONER LINK",
+  "short_name": "TRILLIONER LINK",
+  "description": "A creator-first social and video platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b14",
+  "theme_color": "#080b14",
+  "categories": ["social", "video", "entertainment"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

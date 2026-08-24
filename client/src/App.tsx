@@ -48,6 +48,7 @@ import CreatorPlaylists from "./pages/CreatorPlaylists";
 import SubscriptionCollections from "./pages/SubscriptionCollections";
 import PublicPlaylist from "./pages/PublicPlaylist";
 import { VerificationGate } from "./components/VerificationGate";
+import InstallAppPrompt from "./components/InstallAppPrompt";
 import "./App.css";
 
 function Router() {
@@ -126,6 +127,7 @@ function App() {
           <VerificationGate>
             <Router />
           </VerificationGate>
+          <InstallAppPrompt />
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>

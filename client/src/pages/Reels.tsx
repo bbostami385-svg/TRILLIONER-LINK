@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import VideoFeedSkeleton from "@/components/VideoFeedSkeleton";
 
 export function ReelsPage() {
   const { user } = useAuth();
@@ -126,7 +127,7 @@ export function ReelsPage() {
         <div>
           <h2 className="text-2xl font-bold text-white mb-4">Trending Shorts</h2>
           {loadingReels ? (
-            <p className="text-purple-200">Loading Shorts...</p>
+            <VideoFeedSkeleton variant="short" />
           ) : trendingReels && trendingReels.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {trendingReels.map((reel) => (

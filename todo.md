@@ -794,3 +794,12 @@
 - [x] Add date/size sorting and quality/size metadata to Offline Library.
 - [x] Keep video discovery separated into Shorts and long-form feeds.
 - [x] Add topic-based subscription collections so subscribed Creator channels can be organized by user-defined topics.
+
+## 2026-08-24 Requested Enhancements
+
+- [x] Add social-media sharing controls to public read-only playlists with Web Share, clipboard, and channel-aware fallback options.
+- [x] Add smooth accessible loading skeletons to Shorts and long-form video feeds.
+- [x] Add Offline Library search with creator and playlist auto-suggestions and filtering.
+- [x] Make TRILLIONER LINK installable outside Play Store as a PWA with manifest, icons, install guidance, and offline shell compatibility; document the future Android/Play Store packaging path.
+- [x] Add focused tests for playlist sharing helpers, feed skeleton/search behavior, and PWA metadata/install guidance.
+- [x] Run typecheck, tests, production build, visual verification, checkpoint, and selected GitHub synchronization.

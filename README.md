@@ -126,3 +126,10 @@ TRILLIONER LINK - সম্পূর্ণ সোশ্যাল ও Creator ভ
 ## Render deployment
 
 This repository is a single root-level Node application; it does not contain a `backend/` directory. In Render, set **Root Directory** to blank or `.`, use `npm exec --yes pnpm@10.4.1 -- install --frozen-lockfile && npm exec --yes pnpm@10.4.1 -- build` as the **Build Command**, and use `npm exec --yes pnpm@10.4.1 -- start` as the **Start Command**. Do not use `cd backend && npm install`. The checked-in `render.yaml` contains the same service configuration for Blueprint deployment. Add the required environment variables in Render’s Environment settings, including `DATABASE_URL`, `JWT_SECRET`, the Firebase variables, and `VITE_APP_TITLE=TRILLIONER LINK`.
+
+
+## Install TRILLIONER LINK without the Play Store
+
+TRILLIONER LINK is now configured as an installable Progressive Web App. Publish the web application over HTTPS, open it in Chrome or another supported browser, and choose **Install app** from the in-app prompt or the browser menu. On Android this adds an app-style launcher entry and opens the platform in standalone mode; the service worker keeps the application shell and key media routes available when the network is interrupted. iPhone and iPad users can use **Share → Add to Home Screen** in Safari.
+
+This approach does not require a Play Store listing and does not require a separate APK for ordinary app-like use. It preserves the same web account, backend, and database. For a later Play Store release, the same production HTTPS URL can be packaged as an Android Trusted Web Activity or migrated into a dedicated Android wrapper, followed by Android signing, privacy-policy, data-safety, and Play Console review. The current PWA configuration is the low-maintenance distribution path; an APK/AAB should only be produced after the production domain, branding, privacy policy, and release signing key are finalized.

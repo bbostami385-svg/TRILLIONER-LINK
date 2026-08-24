@@ -817,3 +817,10 @@
 - [x] Add dedicated WhatsApp, Facebook, X, Telegram, and LinkedIn share buttons to share menus.
 - [x] Add double-tap likes, reaction picker, and animated heart feedback to Shorts and long-form videos.
 - [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.
+
+## 2026-08-24 Watch Later and Night Viewing Enhancements
+
+- [x] Add Watch Later saving and management for long-form videos and Shorts.
+- [x] Add Shorts/Long-form filtering to Offline Library search results.
+- [x] Add a persisted Dark/Night Mode toggle for comfortable nighttime viewing.
+- [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.

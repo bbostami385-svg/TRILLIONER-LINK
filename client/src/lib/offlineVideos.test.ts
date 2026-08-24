@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearOfflineSearchHistory, getOfflineSearchHistory, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -14,6 +14,12 @@ describe("offline video helpers", () => {
 
   it("sorts the largest cached files first and treats unknown size as zero", () => {
     expect(sortOfflineVideoRecords(records, "size").map((record) => record.id)).toEqual([1, 2, 3]);
+  });
+
+  it("filters Shorts and long-form records while treating legacy records as long-form", () => {
+    const typedRecords = [...records, { id: 4, title: "Short clip", videoUrl: "https://cdn.example/four.mp4", savedAt: "2026-08-24T13:00:00.000Z", mediaType: "short" as const }];
+    expect(filterOfflineVideoRecords(typedRecords, "short").map((record) => record.id)).toEqual([4]);
+    expect(filterOfflineVideoRecords(typedRecords, "long").map((record) => record.id)).toEqual([1, 2, 3]);
   });
 
   it("searches titles, creators, and playlists", () => {

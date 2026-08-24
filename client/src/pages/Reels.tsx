@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,11 @@ import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import VideoFeedSkeleton from "@/components/VideoFeedSkeleton";
-import { Heart, RefreshCw } from "lucide-react";
+import { Clock3, Heart, RefreshCw } from "lucide-react";
 import { ReactionPicker } from "@/components/VideoReactionControls";
 import VideoShareMenu from "@/components/VideoShareMenu";
+import { isWatchLaterSaved, toggleWatchLater } from "@/lib/watchLater";
+import { toast } from "sonner";
 
 export function ReelsPage() {
   const { user } = useAuth();
@@ -20,6 +22,7 @@ export function ReelsPage() {
   const formTouchStart = useRef<number | null>(null);
   const [selectedReactions, setSelectedReactions] = useState<Record<number, string>>({});
   const [heartBurstId, setHeartBurstId] = useState<number | null>(null);
+  const [watchLaterSaved, setWatchLaterSaved] = useState<Record<number, boolean>>({});
   const [formData, setFormData] = useState({
     videoUrl: "",
     caption: "",
@@ -61,8 +64,10 @@ export function ReelsPage() {
       console.error("Failed to like reel:", error);
     }
   };
+  useEffect(() => { if (trendingReels) setWatchLaterSaved(Object.fromEntries(trendingReels.map((reel) => [reel.id, isWatchLaterSaved(reel.id, "short")]))); }, [trendingReels]);
   const handleDoubleTapReel = (reelId: number) => { setHeartBurstId(reelId); window.setTimeout(() => setHeartBurstId((current) => current === reelId ? null : current), 850); void handleLikeReel(reelId); };
   const chooseReelReaction = (reelId: number, reaction: string) => { setSelectedReactions((current) => ({ ...current, [reelId]: reaction })); void handleLikeReel(reelId); };
+  const saveReelToWatchLater = (reel: NonNullable<typeof trendingReels>[number]) => { const result = toggleWatchLater({ id: reel.id, title: reel.caption || "TRILLIONER LINK Short", description: reel.caption, videoUrl: reel.videoUrl, thumbnailUrl: reel.thumbnail, creatorName: `Creator #${reel.userId}`, mediaType: "short" }); setWatchLaterSaved((current) => ({ ...current, [reel.id]: result.saved })); toast.success(result.saved ? "Short added to Watch Later." : "Short removed from Watch Later."); };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4" onTouchStart={onFeedTouchStart} onTouchMove={onFeedTouchMove} onTouchEnd={onFeedTouchEnd}><div className={`mx-auto flex items-center justify-center overflow-hidden text-xs text-purple-100 transition-all ${pullDistance > 0 || refreshing ? "h-9 opacity-100" : "h-0 opacity-0"}`} style={{ transform: `translateY(${Math.min(pullDistance, 20)}px)` }} aria-live="polite"><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Refreshing Shorts…" : pullDistance >= 72 ? "Release to refresh" : "Pull down to refresh"}</div>
@@ -164,7 +169,7 @@ export function ReelsPage() {
                     <span>❤️ {reel.likes} likes</span>
                     <span>💬 {reel.comments} comments</span>
                   </div>
-                  <div className="flex items-center gap-2"><ReactionPicker compact selected={selectedReactions[reel.id]} onSelect={(reaction) => chooseReelReaction(reel.id, reaction)} onLike={() => void handleLikeReel(reel.id)} /><VideoShareMenu title={reel.caption || "TRILLIONER LINK Short"} text={reel.caption || undefined} url={`${window.location.origin}/shorts?video=${reel.id}`} /></div>
+                  <div className="flex items-center gap-2"><ReactionPicker compact selected={selectedReactions[reel.id]} onSelect={(reaction) => chooseReelReaction(reel.id, reaction)} onLike={() => void handleLikeReel(reel.id)} /><VideoShareMenu title={reel.caption || "TRILLIONER LINK Short"} text={reel.caption || undefined} url={`${window.location.origin}/shorts?video=${reel.id}`} /><button type="button" aria-label={watchLaterSaved[reel.id] ? "Remove Short from Watch Later" : "Save Short to Watch Later"} onClick={() => saveReelToWatchLater(reel)} className={`grid h-10 w-10 place-items-center rounded-full transition ${watchLaterSaved[reel.id] ? "bg-amber-300 text-slate-950" : "bg-white/10 text-white hover:bg-white/20"}`}><Clock3 className="h-4 w-4" /></button></div>
                 </Card>
               ))}
             </div>

@@ -44,6 +44,7 @@ import HandleProfile from "./pages/HandleProfile";
 import Invitations from "./pages/Invitations";
 import ProfileRewards from "./pages/ProfileRewards";
 import OfflineVideos from "./pages/OfflineVideos";
+import WatchLater from "./pages/WatchLater";
 import CreatorPlaylists from "./pages/CreatorPlaylists";
 import SubscriptionCollections from "./pages/SubscriptionCollections";
 import PublicPlaylist from "./pages/PublicPlaylist";
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/invitations" component={Invitations} />
       <Route path="/profile-rewards" component={ProfileRewards} />
       <Route path="/offline-videos" component={OfflineVideos} />
+      <Route path="/watch-later" component={WatchLater} />
       <Route path="/creator-playlists" component={CreatorPlaylists} />
       <Route path="/subscription-topics" component={SubscriptionCollections} />
       <Route path="/playlist/:playlistId" component={PublicPlaylist} />

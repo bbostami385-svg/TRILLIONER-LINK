@@ -10,8 +10,8 @@ export const ThemeToggle: React.FC = () => {
     <button
       className="theme-toggle"
       onClick={toggleTheme}
-      aria-label="Toggle theme"
-      title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Enable Night Mode"}
+      title={theme === "dark" ? "Switch to light mode" : "Enable Night Mode"}
     >
       {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
     </button>

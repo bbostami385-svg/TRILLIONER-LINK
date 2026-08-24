@@ -1,0 +1,18 @@
+import { useEffect, useState } from "react";
+import { Clock3, Play, Trash2 } from "lucide-react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
+import { getWatchLaterItems, removeWatchLater, type WatchLaterItem } from "@/lib/watchLater";
+
+export default function WatchLater() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const [items, setItems] = useState<WatchLaterItem[]>([]);
+  useEffect(() => { setItems(getWatchLaterItems()); }, []);
+  if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="max-w-md border-white/10 bg-white/5 p-8 text-center"><Clock3 className="mx-auto h-10 w-10 text-cyan-300" /><h1 className="mt-4 text-2xl font-bold">Your Watch Later list</h1><p className="mt-2 text-slate-400">Sign in to keep a personal queue for videos you want to watch next.</p><Button className="mt-5" onClick={() => setLocation("/login")}>Sign in</Button></Card></main>;
+  const remove = (item: WatchLaterItem) => { setItems(removeWatchLater(item.id, item.mediaType)); toast.success("Removed from Watch Later."); };
+  return <main className="min-h-screen bg-[#080b14] px-4 py-8 text-white sm:px-8"><div className="mx-auto max-w-5xl space-y-6"><header className="rounded-3xl border border-cyan-300/20 bg-cyan-500/5 p-6"><p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">TRILLIONER LINK / Watch Later</p><h1 className="mt-2 text-3xl font-bold">Keep your next watch close.</h1><p className="mt-2 max-w-2xl text-slate-300">Save long-form videos and Shorts here without downloading them. The queue stays on this browser.</p></header>{items.length === 0 ? <Card className="border-white/10 bg-white/5 p-10 text-center"><Clock3 className="mx-auto h-10 w-10 text-slate-500" /><h2 className="mt-3 text-xl font-semibold">Your queue is empty</h2><p className="mt-2 text-sm text-slate-400">Use the clock button on a video or Short to save it for later.</p><Button className="mt-5" onClick={() => setLocation("/videos")}>Browse videos</Button></Card> : <div className="grid gap-4 md:grid-cols-2">{items.map((item) => <Card key={`${item.mediaType}-${item.id}`} className="overflow-hidden border-white/10 bg-white/[0.045]"><div className="aspect-video bg-black">{item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-slate-600"><Play className="h-8 w-8" /></div>}</div><div className="p-4"><div className="flex items-center justify-between gap-3"><span className="rounded-full bg-cyan-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-200">{item.mediaType === "short" ? "Short" : "Long-form"}</span><span className="text-xs text-slate-500">Saved {new Date(item.savedAt).toLocaleDateString()}</span></div><h2 className="mt-3 truncate font-semibold">{item.title}</h2>{item.creatorName && <p className="mt-1 text-sm text-slate-400">{item.creatorName}</p>}<div className="mt-4 flex gap-2"><Button className="flex-1" onClick={() => setLocation(item.mediaType === "short" ? `/shorts?video=${item.id}` : `/videos?video=${item.id}`)}><Play className="mr-2 h-4 w-4" />Watch now</Button><Button variant="outline" aria-label={`Remove ${item.title} from Watch Later`} onClick={() => remove(item)} className="border-rose-300/20 bg-transparent text-rose-200 hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /></Button></div></div></Card>)}</div>}</div></main>;
+}

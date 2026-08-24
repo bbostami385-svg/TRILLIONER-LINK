@@ -9,6 +9,7 @@ export type OfflineVideoRecord = {
   savedAt: string;
   qualityLabel?: string;
   sizeBytes?: number;
+  mediaType?: "short" | "long";
 };
 
 const CACHE_NAME = "trillioner-link-offline-videos-v1";
@@ -32,6 +33,7 @@ function writeRecords(records: OfflineVideoRecord[]) {
 
 export type OfflineSort = "date" | "size";
 export function sortOfflineVideoRecords(records: OfflineVideoRecord[], sortBy: OfflineSort) { return [...records].sort((a, b) => sortBy === "date" ? new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime() : (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0)); }
+export function filterOfflineVideoRecords(records: OfflineVideoRecord[], mediaType: "all" | "short" | "long") { return mediaType === "all" ? records : records.filter((record) => (record.mediaType ?? "long") === mediaType); }
 export function searchOfflineVideoRecords(records: OfflineVideoRecord[], query: string) { const normalized = query.trim().toLocaleLowerCase(); if (!normalized) return records; return records.filter((record) => [record.title, record.description, record.creatorName, record.playlistName].some((value) => value?.toLocaleLowerCase().includes(normalized))); }
 export function getOfflineSuggestions(records: OfflineVideoRecord[], query: string, limit = 6) { const normalized = query.trim().toLocaleLowerCase(); const values = records.flatMap((record) => [record.creatorName, record.playlistName]).filter((value): value is string => Boolean(value && (!normalized || value.toLocaleLowerCase().includes(normalized)))); return Array.from(new Set(values)).slice(0, limit); }
 export function getSuggestedOfflineVideoRecords(records: OfflineVideoRecord[], limit = 3) { return sortOfflineVideoRecords(records, "date").slice(0, limit); }
@@ -48,7 +50,7 @@ export async function saveVideoForOffline(record: Omit<OfflineVideoRecord, "save
   const cache = await window.caches.open(CACHE_NAME);
   await cache.put(record.videoUrl, response.clone());
   const blob = await response.blob();
-  const next = [...readRecords().filter((item) => item.id !== record.id), { ...record, sizeBytes: blob.size, savedAt: new Date().toISOString() }];
+  const next = [...readRecords().filter((item) => item.id !== record.id), { ...record, mediaType: record.mediaType ?? "long", sizeBytes: blob.size, savedAt: new Date().toISOString() }];
   writeRecords(next);
   return next.find((item) => item.id === record.id)!;
 }

@@ -43,6 +43,7 @@ import { NotificationBell } from "./components/NotificationBell";
 import HandleProfile from "./pages/HandleProfile";
 import Invitations from "./pages/Invitations";
 import ProfileRewards from "./pages/ProfileRewards";
+import OfflineVideos from "./pages/OfflineVideos";
 import { VerificationGate } from "./components/VerificationGate";
 import "./App.css";
 
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/@/:handle" component={HandleProfile} />
       <Route path="/invitations" component={Invitations} />
       <Route path="/profile-rewards" component={ProfileRewards} />
+      <Route path="/offline-videos" component={OfflineVideos} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />

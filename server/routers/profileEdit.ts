@@ -10,9 +10,11 @@ const socialProviders = ["facebook", "instagram", "twitter", "youtube", "tiktok"
 const allowedSocialHosts: Record<(typeof socialProviders)[number], string[]> = { facebook: ["facebook.com", "www.facebook.com"], instagram: ["instagram.com", "www.instagram.com"], twitter: ["twitter.com", "www.twitter.com", "x.com", "www.x.com"], youtube: ["youtube.com", "www.youtube.com", "youtu.be"], tiktok: ["tiktok.com", "www.tiktok.com"] };
 export const socialLinksSchema = z.object(Object.fromEntries(socialProviders.map((provider) => [provider, z.string().trim().max(500).optional()])) as Record<(typeof socialProviders)[number], z.ZodOptional<z.ZodString>>).superRefine((value, ctx) => { for (const provider of socialProviders) { const raw = value[provider]; if (!raw) continue; let parsed: URL; try { parsed = new URL(raw); } catch { ctx.addIssue({ code: "custom", path: [provider], message: "Use a complete profile URL." }); continue; } if (parsed.protocol !== "https:" || !allowedSocialHosts[provider].includes(parsed.hostname.toLowerCase())) ctx.addIssue({ code: "custom", path: [provider], message: `Use an official ${provider} profile URL.` }); } });
 export const socialLinkOrderSchema = z.array(z.enum(socialProviders)).max(socialProviders.length).default([...socialProviders]);
+export const socialLinkVisibilitySchema = z.object(Object.fromEntries(socialProviders.map((provider) => [provider, z.boolean().optional()])) as Record<(typeof socialProviders)[number], z.ZodOptional<z.ZodBoolean>>);
 export function normalizeSocialLinks(value: z.infer<typeof socialLinksSchema> | null | undefined) { return Object.fromEntries(socialProviders.flatMap((provider) => value?.[provider] ? [[provider, value[provider]]] : [])) as Partial<Record<(typeof socialProviders)[number], string>>; }
 export function normalizeSocialLinkOrder(order: readonly string[] | null | undefined, links: Partial<Record<(typeof socialProviders)[number], string>>) { const requested = (order ?? []).filter((provider, index, list): provider is (typeof socialProviders)[number] => socialProviders.includes(provider as (typeof socialProviders)[number]) && list.indexOf(provider) === index && Boolean(links[provider as (typeof socialProviders)[number]])); const remaining = socialProviders.filter((provider) => links[provider] && !requested.includes(provider)); return [...requested, ...remaining]; }
-function readPublicSocialLinks(value: unknown) { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const parsed = socialLinksSchema.safeParse(root.socialLinks); if (!parsed.success) return []; const links = normalizeSocialLinks(parsed.data); const order = Array.isArray(root.socialLinkOrder) ? root.socialLinkOrder.filter((item): item is string => typeof item === "string") : undefined; return normalizeSocialLinkOrder(order, links).map((provider) => ({ provider, url: links[provider]! })); }
+function readPublicSocialLinks(value: unknown) { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const parsed = socialLinksSchema.safeParse(root.socialLinks); if (!parsed.success) return []; const links = normalizeSocialLinks(parsed.data); const order = Array.isArray(root.socialLinkOrder) ? root.socialLinkOrder.filter((item): item is string => typeof item === "string") : undefined; const visibility = socialLinkVisibilitySchema.safeParse(root.socialLinkVisibility).success ? socialLinkVisibilitySchema.parse(root.socialLinkVisibility) : {};
+  return normalizeSocialLinkOrder(order, links).filter((provider) => visibility[provider] !== false).map((provider) => ({ provider, url: links[provider]! })); }
 
 export const profileEditRouter = router({
   getByHandle: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input }) => {
@@ -53,6 +55,7 @@ export const profileEditRouter = router({
         profileImage: z.string().optional(),
         socialLinks: socialLinksSchema.optional(),
         socialLinkOrder: socialLinkOrderSchema.optional(),
+        socialLinkVisibility: socialLinkVisibilitySchema.optional(),
       })
     )
     .mutation(async ({ input, ctx }: any) => {
@@ -69,7 +72,7 @@ export const profileEditRouter = router({
           const [current] = await db.select({ linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
           const existingLinks = current?.linkedAccounts && typeof current.linkedAccounts === "object" ? (current.linkedAccounts as Record<string, unknown>) : {};
           const normalizedLinks = normalizeSocialLinks(input.socialLinks);
-          updateData.linkedAccounts = { ...existingLinks, socialLinks: normalizedLinks, socialLinkOrder: normalizeSocialLinkOrder(input.socialLinkOrder, normalizedLinks) };
+          updateData.linkedAccounts = { ...existingLinks, socialLinks: normalizedLinks, socialLinkOrder: normalizeSocialLinkOrder(input.socialLinkOrder, normalizedLinks), socialLinkVisibility: input.socialLinkVisibility ?? existingLinks.socialLinkVisibility ?? {} };
         }
 
         updateData.updatedAt = new Date();

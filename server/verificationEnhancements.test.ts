@@ -305,3 +305,17 @@ describe("social ordering and top-video exports", () => {
     expect(buildTopVideosPdf(rows, "engagement", "selected window").output("arraybuffer").byteLength).toBeGreaterThan(100);
   });
 });
+
+
+describe("confirmation, preview, visibility, and offline viewing", () => {
+  it("keeps offline video metadata empty and safe outside a browser", async () => {
+    const { getOfflineVideoRecords, isOfflineVideoSaved } = await import("../client/src/lib/offlineVideos");
+    expect(getOfflineVideoRecords()).toEqual([]);
+    expect(isOfflineVideoSaved(42)).toBe(false);
+  });
+
+  it("does not expose raw offline cache capability as a server-side contract", async () => {
+    const { getOfflineVideoUrl } = await import("../client/src/lib/offlineVideos");
+    await expect(getOfflineVideoUrl("https://cdn.example/video.mp4")).resolves.toBeNull();
+  });
+});

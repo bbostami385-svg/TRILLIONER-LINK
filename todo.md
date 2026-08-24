@@ -759,3 +759,15 @@
 - [x] Add a live profile-style preview for locked badge and theme rewards before unlock.
 - [x] Add tests for social-link ordering, top-video exports, and reward preview mappings.
 - [x] Run typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Confirmation, Export Range, Visibility, and Offline Viewing
+
+- [x] Add a confirmation modal before admin bulk approve or reject actions.
+- [x] Add an explicit Creator Analytics Export Data flow for comparison CSV/PDF reports.
+- [x] Add custom date-range selection to top-video report exports and preserve selected filters.
+- [x] Add dark/light theme toggle inside the Creator publishing preview.
+- [x] Add next reward unlock progress showing required and remaining points.
+- [x] Add per-social-link hide/unhide toggles without deleting saved links.
+- [x] Add authenticated video save/download records and an offline viewing library using browser-supported caching.
+- [x] Add tests for confirmation state, export ranges, preview themes, reward progress, social visibility, and offline access rules.
+- [x] Run migrations if required, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

@@ -1,11 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { friendInvitations, follows, notifications, users } from "../../drizzle/schema";
 import { getRequiredDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 
 export const invitationTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{32,128}$/);
+export const INVITE_POINTS_PER_JOIN = 10;
+export function getInviteRewardProgress(joined: number) { const milestones = [1, 5, 10, 25, 50, 100]; const nextMilestone = milestones.find((milestone) => milestone > joined) ?? null; const previousMilestone = [...milestones].reverse().find((milestone) => milestone <= joined) ?? 0; return { joined, points: joined * INVITE_POINTS_PER_JOIN, nextMilestone, previousMilestone, percentToNext: nextMilestone ? Math.min(100, Math.round(((joined - previousMilestone) / (nextMilestone - previousMilestone)) * 100)) : 100 }; }
 export function summarizeInvitationStatuses(rows: Array<{ status: "pending" | "accepted" | "expired" | "revoked"; total: number | string }>) {
   const totals = { total: 0, joined: 0, pending: 0, expired: 0, revoked: 0 };
   for (const row of rows) { const value = Number(row.total); totals.total += value; if (row.status === "accepted") totals.joined += value; else if (row.status === "pending") totals.pending += value; else if (row.status === "expired") totals.expired += value; else totals.revoked += value; }
@@ -23,12 +25,14 @@ export const invitationRouter = router({
 
   mine: protectedProcedure.query(async ({ ctx }) => {
     const db = await getRequiredDb();
-    const [summaryRows, invitations] = await Promise.all([
+    const [summaryRows, invitations, accountRows] = await Promise.all([
       db.select({ status: friendInvitations.status, total: count(friendInvitations.id) }).from(friendInvitations).where(eq(friendInvitations.inviterId, ctx.user.id)).groupBy(friendInvitations.status),
       db.select({ id: friendInvitations.id, status: friendInvitations.status, expiresAt: friendInvitations.expiresAt, createdAt: friendInvitations.createdAt, acceptedAt: friendInvitations.acceptedAt, acceptedBy: friendInvitations.acceptedBy })
         .from(friendInvitations).where(eq(friendInvitations.inviterId, ctx.user.id)).orderBy(desc(friendInvitations.createdAt)).limit(20),
+      db.select({ successfulInvites: users.successfulInvites, inviteRewardPoints: users.inviteRewardPoints }).from(users).where(eq(users.id, ctx.user.id)).limit(1),
     ]);
-    return { totals: summarizeInvitationStatuses(summaryRows), invitations };
+    const totals = summarizeInvitationStatuses(summaryRows);
+    return { totals, invitations, reward: { ...getInviteRewardProgress(Number(accountRows[0]?.successfulInvites ?? totals.joined)), points: Number(accountRows[0]?.inviteRewardPoints ?? totals.joined * INVITE_POINTS_PER_JOIN) } };
   }),
 
   revoke: protectedProcedure.input(z.object({ invitationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
@@ -52,7 +56,8 @@ export const invitationRouter = router({
     if (!existingFollow) await db.insert(follows).values({ followerId: ctx.user.id, followingId: invite.inviterId });
     const accepted = await db.update(friendInvitations).set({ status: "accepted", acceptedBy: ctx.user.id, acceptedAt: new Date(), updatedAt: new Date() }).where(and(eq(friendInvitations.id, invite.id), eq(friendInvitations.status, "pending")));
     if (Number(accepted[0].affectedRows ?? 0) === 0) throw new Error("This invitation was accepted by someone else.");
-    await db.insert(notifications).values({ userId: invite.inviterId, fromUserId: ctx.user.id, type: "follow", message: "accepted your invitation and is now following you." });
+    await db.update(users).set({ successfulInvites: sql`${users.successfulInvites} + 1`, inviteRewardPoints: sql`${users.inviteRewardPoints} + ${INVITE_POINTS_PER_JOIN}` }).where(eq(users.id, invite.inviterId));
+    await db.insert(notifications).values({ userId: invite.inviterId, fromUserId: ctx.user.id, type: "follow", message: "accepted your invitation and is now following you. You earned 10 invite points." });
     const [inviter] = await db.select({ name: users.name, handle: users.handle }).from(users).where(eq(users.id, invite.inviterId)).limit(1);
     return { success: true, inviter: inviter ?? null };
   }),

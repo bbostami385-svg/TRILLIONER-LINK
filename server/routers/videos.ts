@@ -121,6 +121,7 @@ export const videosRouter = router({
       z.object({
         title: z.string().min(1).max(255),
         description: z.string().max(5000).optional(),
+        category: z.string().trim().min(1).max(80).optional(),
         videoUrl: z.string().url(),
         thumbnailUrl: z.string().url().optional(),
         hashtags: z.array(z.string().regex(/^#[a-z0-9_]+$/i)).max(30).default([]),
@@ -141,7 +142,8 @@ export const videosRouter = router({
         input.duration,
         input.hashtags,
         input.backgroundMusicUrl,
-        input.backgroundMusicTitle
+        input.backgroundMusicTitle,
+        input.category
       );
 
       if (!video) {

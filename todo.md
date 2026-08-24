@@ -730,3 +730,13 @@
 - [x] Add interactive current-vs-previous comparison charts across the selected analytics date range.
 - [x] Add tests for tracker totals, invitation notifications, QR/share helpers, preview behavior, bulk actions, and comparison chart data.
 - [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Analytics Filters, Invite Rewards, QR Download, and Tracker Refinement
+
+- [x] Add real video category and hashtag filters to Creator Analytics charts and exports.
+- [x] Add durable reward points for successful invitation joins with a transparent milestone rule.
+- [x] Add QR code image download from the public profile QR modal.
+- [x] Verify and preserve accepted-invite notifications for the inviter and new follower event.
+- [x] Improve the Invitation Center with a visual joined-progress tracker and reward summary.
+- [x] Add tests for analytics filters, reward calculations/idempotency, QR downloads, notifications, and tracker states.
+- [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

@@ -241,3 +241,24 @@ describe("invitation tracking and review enhancements", () => {
     expect(buildComparisonChartData({ views: { current: 120, previous: 80, percent: 50 }, subscribers: { current: 12, previous: 8, percent: 50 } })).toEqual([{ metric: "views", current: 120, previous: 80 }, { metric: "subscribers", current: 12, previous: 8 }]);
   });
 });
+
+
+describe("analytics filters, invite rewards, and QR sharing", () => {
+  it("accepts all/category/hashtag analytics filters and rejects malformed hashtags", async () => {
+    const { analyticsRangeSchema } = await import("./routers/creatorAnalytics");
+    expect(analyticsRangeSchema.parse({ days: 30, category: "all", hashtag: "all" }).category).toBe("all");
+    expect(analyticsRangeSchema.parse({ days: 30, category: "Education", hashtag: "#learning" }).hashtag).toBe("#learning");
+    expect(analyticsRangeSchema.safeParse({ days: 30, category: "Education", hashtag: "learning" }).success).toBe(false);
+  });
+
+  it("calculates transparent invite points and next milestone progress", async () => {
+    const { getInviteRewardProgress } = await import("./routers/invitations");
+    expect(getInviteRewardProgress(3)).toMatchObject({ joined: 3, points: 30, nextMilestone: 5, percentToNext: 50 });
+    expect(getInviteRewardProgress(100)).toMatchObject({ joined: 100, points: 1000, nextMilestone: null, percentToNext: 100 });
+  });
+
+  it("builds a stable public profile URL for share and QR generation", async () => {
+    const { getPublicProfileUrl } = await import("../client/src/pages/HandleProfile");
+    expect(getPublicProfileUrl("Creator_Name")).toMatch(/\/@Creator_Name$/);
+  });
+});

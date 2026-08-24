@@ -29,6 +29,9 @@ export const users = mysqlTable("users", {
   accountMode: mysqlEnum("accountMode", ["social", "creator"]).default("social").notNull(),
   /** Whether user has completed initial mode selection */
   modeSelected: boolean("modeSelected").default(false).notNull(),
+  /** Invitation rewards: awarded once per accepted invitation. */
+  successfulInvites: int("successfulInvites").default(0).notNull(),
+  inviteRewardPoints: int("inviteRewardPoints").default(0).notNull(),
   
   /** Age Verification Fields */
   dateOfBirth: date("dateOfBirth"),
@@ -163,6 +166,7 @@ export const videos = mysqlTable("videos", {
     .references(() => users.id),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
+  category: varchar("category", { length: 80 }),
   videoUrl: text("videoUrl").notNull(),
   thumbnailUrl: text("thumbnailUrl"),
   hashtags: json("hashtags").$type<string[]>().default([]),
@@ -480,6 +484,7 @@ export const reels = mysqlTable("reels", {
   caption: text("caption"),
   title: varchar("title", { length: 255 }),
   description: text("description"),
+  category: varchar("category", { length: 80 }),
   hashtags: json("hashtags").$type<string[]>().default([]),
   backgroundMusicUrl: text("backgroundMusicUrl"),
   backgroundMusicTitle: varchar("backgroundMusicTitle", { length: 255 }),

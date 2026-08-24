@@ -116,7 +116,7 @@ export async function updateUserProfile(userId: number, data: { bio?: string; pr
 }
 
 // ============ VIDEO QUERIES ============
-export async function createVideo(userId: number, title: string, description: string, videoUrl: string, thumbnailUrl?: string, duration?: number, hashtags: string[] = [], backgroundMusicUrl?: string, backgroundMusicTitle?: string): Promise<Video | null> {
+export async function createVideo(userId: number, title: string, description: string, videoUrl: string, thumbnailUrl?: string, duration?: number, hashtags: string[] = [], backgroundMusicUrl?: string, backgroundMusicTitle?: string, category?: string): Promise<Video | null> {
   const db = await getDb();
   if (!db) return null;
 
@@ -124,6 +124,7 @@ export async function createVideo(userId: number, title: string, description: st
     userId,
     title,
     description: description || null,
+    category: category || null,
     videoUrl,
     thumbnailUrl: thumbnailUrl || null,
     hashtags,

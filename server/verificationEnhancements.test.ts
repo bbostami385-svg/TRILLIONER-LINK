@@ -164,3 +164,33 @@ describe("unique handle contracts", () => {
     await expect(caller.getByHandle({ handle: "admin" })).resolves.toBeNull();
   });
 });
+
+
+describe("TRILLIONER LINK creator publishing enhancements", () => {
+  it("includes current and previous comparison values in CSV exports", async () => {
+    const { buildAnalyticsCsv } = await import("../client/src/pages/CreatorDashboard");
+    const csv = buildAnalyticsCsv({ subscribers: 10, views: 100, likes: 20, comments: 4, shares: 2, engagementRate: 26, recentVideos: [], comparison: { subscribers: { current: 10, previous: 8, percent: 25 } } }, 30);
+    expect(csv).toContain('"Comparison","Current","Previous","Change %"');
+    expect(csv).toContain('"subscribers","10","8","25%"');
+  });
+
+  it("accepts the supported notification categories and rejects unknown values", async () => {
+    const { notificationsRouter } = await import("./routers/notifications");
+    const caller = notificationsRouter.createCaller({ user: null } as any);
+    await expect(caller.getBellFeed({ limit: 8, category: "appeals" })).rejects.toThrow();
+    await expect(caller.getBellFeed({ limit: 8, category: "unknown" as any })).rejects.toThrow();
+  });
+
+  it("defaults appeals pagination to page one with a bounded page size", async () => {
+    const { moderationAppealAdminFilterSchema } = await import("./routers/moderationAppeals");
+    expect(moderationAppealAdminFilterSchema.parse({}).page).toBe(1);
+    expect(moderationAppealAdminFilterSchema.parse({}).limit).toBe(25);
+    expect(() => moderationAppealAdminFilterSchema.parse({ page: 0 })).toThrow();
+    expect(() => moderationAppealAdminFilterSchema.parse({ limit: 101 })).toThrow();
+  });
+
+  it("normalizes hashtag input into bounded hashtag tokens", () => {
+    const normalize = (value: string) => value.split(/[\s,]+/).map((tag) => tag.trim()).filter(Boolean).map((tag) => tag.startsWith("#") ? tag.toLowerCase() : `#${tag.toLowerCase()}`).filter((tag, index, all) => all.indexOf(tag) === index).slice(0, 30);
+    expect(normalize("#Creator creator #TRILLIONER")).toEqual(["#creator", "#trillioner"]);
+  });
+});

@@ -1,0 +1,50 @@
+import { Film, Image as ImageIcon, Loader2, Music2, Upload, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1] ?? ""); reader.onerror = () => reject(reader.error ?? new Error("Could not read file")); reader.readAsDataURL(file); });
+}
+
+export default function CreatorVideoPublisher({ onPublished }: { onPublished?: () => void }) {
+  const [format, setFormat] = useState<"long" | "short">("long");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [hashtagsInput, setHashtagsInput] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [soundId, setSoundId] = useState<string>("");
+  const sounds = trpc.reels.getTrendingSounds.useQuery({ limit: 20 }, { staleTime: 60_000 });
+  const uploadMedia = trpc.videos.uploadMedia.useMutation();
+  const createVideo = trpc.videos.createVideo.useMutation();
+  const createReel = trpc.reels.createReel.useMutation();
+  const busy = uploadMedia.isPending || createVideo.isPending || createReel.isPending;
+  const hashtags = useMemo(() => hashtagsInput.split(/[\s,]+/).map((tag) => tag.trim()).filter(Boolean).map((tag) => tag.startsWith("#") ? tag.toLowerCase() : `#${tag.toLowerCase()}`).filter((tag, index, all) => all.indexOf(tag) === index).slice(0, 30), [hashtagsInput]);
+
+  const publish = async () => {
+    if (!videoFile) return toast.error("Choose a video file first.");
+    if (format === "long" && !title.trim()) return toast.error("Add a title for your video.");
+    if (format === "short" && videoFile.size > 60 * 1024 * 1024) return toast.error("Short videos must be 60 MB or smaller.");
+    try {
+      const videoData = await fileToBase64(videoFile);
+      const uploadedVideo = await uploadMedia.mutateAsync({ fileName: videoFile.name, contentType: videoFile.type as never, data: videoData, kind: "video" });
+      let thumbnailUrl: string | undefined;
+      if (thumbnailFile) { const data = await fileToBase64(thumbnailFile); thumbnailUrl = (await uploadMedia.mutateAsync({ fileName: thumbnailFile.name, contentType: thumbnailFile.type as never, data, kind: "thumbnail" })).url; }
+      let backgroundMusicUrl: string | undefined;
+      let backgroundMusicTitle: string | undefined;
+      if (musicFile) { const data = await fileToBase64(musicFile); const uploaded = await uploadMedia.mutateAsync({ fileName: musicFile.name, contentType: musicFile.type as never, data, kind: "music" }); backgroundMusicUrl = uploaded.url; backgroundMusicTitle = musicFile.name; }
+      const selectedSound = sounds.data?.find((sound) => String(sound.id) === soundId);
+      if (selectedSound) { backgroundMusicUrl = selectedSound.audioUrl; backgroundMusicTitle = selectedSound.title; }
+      if (format === "long") await createVideo.mutateAsync({ title: title.trim(), description: description.trim() || undefined, videoUrl: uploadedVideo.url, thumbnailUrl, hashtags, backgroundMusicUrl, backgroundMusicTitle, isPublic: true });
+      else await createReel.mutateAsync({ videoUrl: uploadedVideo.url, title: title.trim() || undefined, caption: description.trim() || undefined, description: description.trim() || undefined, thumbnail: thumbnailUrl, hashtags, backgroundMusicUrl, backgroundMusicTitle, soundId: selectedSound?.id });
+      toast.success(format === "long" ? "Video published to your Creator channel." : "Short published to your Creator loop.");
+      setTitle(""); setDescription(""); setHashtagsInput(""); setVideoFile(null); setThumbnailFile(null); setMusicFile(null); setSoundId(""); onPublished?.();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not publish this video."); }
+  };
+
+  return <Card className="border-indigo-400/20 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_40%),rgba(255,255,255,0.045)] p-5 text-white"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Creator release desk</p><h2 className="mt-1 text-xl font-semibold">Publish a signal, not a status update.</h2><p className="mt-1 text-sm text-slate-400">A custom TRILLIONER LINK publishing flow for vertical shorts and full videos.</p></div><div className="flex rounded-xl border border-white/10 bg-black/20 p-1"><button onClick={() => setFormat("long")} className={`rounded-lg px-3 py-2 text-sm ${format === "long" ? "bg-white text-slate-950" : "text-slate-400"}`}><Film className="mr-1.5 inline h-4 w-4" />Long video</button><button onClick={() => setFormat("short")} className={`rounded-lg px-3 py-2 text-sm ${format === "short" ? "bg-white text-slate-950" : "text-slate-400"}`}><Upload className="mr-1.5 inline h-4 w-4" />Short</button></div></div><div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]"><div className="space-y-4"><label className="grid gap-1.5 text-sm text-slate-300"><span>{format === "long" ? "Title" : "Title (optional)"}</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={255} placeholder={format === "long" ? "Name the moment" : "Give this short a hook"} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-indigo-400" /></label><label className="grid gap-1.5 text-sm text-slate-300"><span>{format === "long" ? "Description" : "Caption / description"}</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={5000} rows={5} placeholder="Tell viewers what they are about to discover…" className="resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-indigo-400" /></label><label className="grid gap-1.5 text-sm text-slate-300"><span>Hashtags</span><input value={hashtagsInput} onChange={(event) => setHashtagsInput(event.target.value)} placeholder="#TRILLIONER #creator #story" className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-indigo-400" />{hashtags.length > 0 && <span className="text-xs text-indigo-200">{hashtags.join(" · ")}</span>}</label></div><div className="space-y-4"><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-white/15 bg-black/15 p-4 text-sm text-slate-300 hover:border-indigo-300/50"><Film className="h-5 w-5 text-indigo-300" /><span className="min-w-0 flex-1"><strong className="block text-white">Video file</strong><span className="block truncate text-xs text-slate-500">{videoFile?.name ?? "MP4, WebM, or QuickTime · up to 60 MB"}</span></span><input type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)} /></label><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-white/15 bg-black/15 p-4 text-sm text-slate-300 hover:border-cyan-300/50"><ImageIcon className="h-5 w-5 text-cyan-300" /><span className="min-w-0 flex-1"><strong className="block text-white">Thumbnail</strong><span className="block truncate text-xs text-slate-500">{thumbnailFile?.name ?? "JPG, PNG, or WebP · up to 5 MB"}</span></span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)} /></label><div className="rounded-xl border border-white/10 bg-black/15 p-4"><div className="flex items-center gap-2 text-sm font-medium"><Music2 className="h-4 w-4 text-rose-300" />Background music</div><select value={soundId} onChange={(event) => setSoundId(event.target.value)} className="mt-3 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"><option value="">Choose from Creator sounds</option>{sounds.data?.map((sound) => <option key={sound.id} value={sound.id}>{sound.title}{sound.artist ? ` — ${sound.artist}` : ""}</option>)}</select><label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-slate-400"><Upload className="h-3.5 w-3.5" />Or upload licensed audio<input type="file" accept="audio/mpeg,audio/wav,audio/mp4" className="hidden" onChange={(event) => { setMusicFile(event.target.files?.[0] ?? null); setSoundId(""); }} /></label>{musicFile && <p className="mt-2 truncate text-xs text-rose-200">{musicFile.name}</p>}</div></div></div><div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4"><p className="text-xs text-slate-500">Only upload media you own or have permission to use.</p><Button disabled={busy} onClick={() => void publish()} className="min-w-36 bg-indigo-500 text-white hover:bg-indigo-400">{busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Publishing</> : "Publish now"}</Button>{(videoFile || thumbnailFile || musicFile) && <button aria-label="Clear selected media" onClick={() => { setVideoFile(null); setThumbnailFile(null); setMusicFile(null); }} className="rounded-lg p-2 text-slate-500 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>}</div></Card>;
+}

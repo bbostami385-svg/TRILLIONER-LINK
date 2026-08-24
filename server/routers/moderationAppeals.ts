@@ -1,11 +1,11 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { moderationAppeals, notifications } from "../../drizzle/schema";
 
-export const moderationAppealAdminFilterSchema = z.object({ status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"), sort: z.enum(["newest", "oldest"]).default("newest"), limit: z.number().int().min(1).max(100).default(50) });
+export const moderationAppealAdminFilterSchema = z.object({ status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"), sort: z.enum(["newest", "oldest"]).default("newest"), page: z.number().int().min(1).default(1), limit: z.number().int().min(1).max(100).default(25) });
 
 export const moderationAppealInput = z.object({
   contentType: z.enum(["post", "comment", "video"]),
@@ -54,7 +54,12 @@ export const moderationAppealsRouter = router({
   adminList: adminProcedure.input(moderationAppealAdminFilterSchema).query(async ({ input }) => {
     const db = await getRequiredDb();
     const where = input.status === "all" ? undefined : eq(moderationAppeals.status, input.status);
-    return db.select().from(moderationAppeals).where(where).orderBy(input.sort === "oldest" ? moderationAppeals.createdAt : desc(moderationAppeals.createdAt)).limit(input.limit);
+    const [rows, totalRows] = await Promise.all([
+      db.select().from(moderationAppeals).where(where).orderBy(input.sort === "oldest" ? moderationAppeals.createdAt : desc(moderationAppeals.createdAt)).limit(input.limit).offset((input.page - 1) * input.limit),
+      db.select({ total: count() }).from(moderationAppeals).where(where),
+    ]);
+    const total = Number(totalRows[0]?.total ?? 0);
+    return { records: rows, page: input.page, pageSize: input.limit, total, hasNext: input.page * input.limit < total, hasPrevious: input.page > 1 };
   }),
 
   adminResolve: adminProcedure.input(z.object({ appealId: z.number().int().positive(), status: z.enum(["approved", "rejected"]), reviewerNote: z.string().trim().max(2_000).optional() })).mutation(async ({ ctx, input }) => {

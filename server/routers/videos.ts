@@ -4,6 +4,7 @@ import { follows, subscriptions, users, videos } from "../../drizzle/schema";
 import { getRequiredDb } from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { assertPublishable } from "../contentModeration";
+import { storagePut } from "../storage";
 import {
   createVideo,
   getVideoById,
@@ -103,6 +104,17 @@ export const videosRouter = router({
       return video;
     }),
 
+  uploadMedia: protectedProcedure
+    .input(z.object({ fileName: z.string().trim().min(1).max(160), contentType: z.enum(["video/mp4", "video/webm", "video/quicktime", "image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "audio/mp4"]), data: z.string().min(1), kind: z.enum(["video", "thumbnail", "music"]) }))
+    .mutation(async ({ input, ctx }) => {
+      const maxBytes = input.kind === "video" ? 60 * 1024 * 1024 : input.kind === "music" ? 12 * 1024 * 1024 : 5 * 1024 * 1024;
+      const bytes = Buffer.from(input.data, "base64");
+      if (bytes.byteLength > maxBytes) throw new Error(`The ${input.kind} file is too large.`);
+      const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const uploaded = await storagePut(`creator/${ctx.user.id}/${input.kind}/${Date.now()}-${safeName}`, bytes, input.contentType);
+      return { url: uploaded.url, key: uploaded.key };
+    }),
+
   // Create video (protected)
   createVideo: protectedProcedure
     .input(
@@ -111,7 +123,10 @@ export const videosRouter = router({
         description: z.string().max(5000).optional(),
         videoUrl: z.string().url(),
         thumbnailUrl: z.string().url().optional(),
-        duration: z.number().optional(),
+        hashtags: z.array(z.string().regex(/^#[a-z0-9_]+$/i)).max(30).default([]),
+        backgroundMusicUrl: z.string().url().optional(),
+        backgroundMusicTitle: z.string().trim().max(255).optional(),
+        duration: z.number().int().min(0).max(86_400).optional(),
         isPublic: z.boolean().default(true),
       })
     )
@@ -123,7 +138,10 @@ export const videosRouter = router({
         input.description || "",
         input.videoUrl,
         input.thumbnailUrl,
-        input.duration
+        input.duration,
+        input.hashtags,
+        input.backgroundMusicUrl,
+        input.backgroundMusicTitle
       );
 
       if (!video) {

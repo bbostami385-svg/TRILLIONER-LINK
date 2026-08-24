@@ -3,28 +3,40 @@ import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { reels, sounds } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "../db";
+import { assertPublishable } from "../contentModeration";
 
 export const reelsRouter = router({
   // Create a reel
   createReel: protectedProcedure
     .input(
       z.object({
-        videoUrl: z.string(),
-        caption: z.string().optional(),
-        thumbnail: z.string().optional(),
-        duration: z.number().optional(),
-        soundId: z.number().optional(),
+        videoUrl: z.string().url(),
+        caption: z.string().max(5000).optional(),
+        thumbnail: z.string().url().optional(),
+        title: z.string().trim().max(255).optional(),
+        description: z.string().max(5000).optional(),
+        hashtags: z.array(z.string().regex(/^#[a-z0-9_]+$/i)).max(30).default([]),
+        backgroundMusicUrl: z.string().url().optional(),
+        backgroundMusicTitle: z.string().trim().max(255).optional(),
+        duration: z.number().int().min(0).max(600).optional(),
+        soundId: z.number().int().positive().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      await assertPublishable({ text: `${input.title ?? ""}\n${input.description ?? input.caption ?? ""}`, mediaUrl: input.videoUrl, mediaType: "video" });
       
       const result = await db.insert(reels).values({
         userId: ctx.user.id,
         videoUrl: input.videoUrl,
         caption: input.caption,
         thumbnail: input.thumbnail,
+        title: input.title,
+        description: input.description,
+        hashtags: input.hashtags,
+        backgroundMusicUrl: input.backgroundMusicUrl,
+        backgroundMusicTitle: input.backgroundMusicTitle,
         duration: input.duration,
         soundId: input.soundId,
         likes: 0,

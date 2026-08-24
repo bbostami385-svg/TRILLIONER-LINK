@@ -165,6 +165,9 @@ export const videos = mysqlTable("videos", {
   description: text("description"),
   videoUrl: text("videoUrl").notNull(),
   thumbnailUrl: text("thumbnailUrl"),
+  hashtags: json("hashtags").$type<string[]>().default([]),
+  backgroundMusicUrl: text("backgroundMusicUrl"),
+  backgroundMusicTitle: varchar("backgroundMusicTitle", { length: 255 }),
   duration: int("duration"), // in seconds
   views: int("views").notNull(),
   likes: int("likes").notNull(),
@@ -475,6 +478,11 @@ export const reels = mysqlTable("reels", {
   videoUrl: text("videoUrl").notNull(),
   thumbnail: text("thumbnail"),
   caption: text("caption"),
+  title: varchar("title", { length: 255 }),
+  description: text("description"),
+  hashtags: json("hashtags").$type<string[]>().default([]),
+  backgroundMusicUrl: text("backgroundMusicUrl"),
+  backgroundMusicTitle: varchar("backgroundMusicTitle", { length: 255 }),
   duration: int("duration"), // in seconds
   likes: int("likes").notNull(),
   comments: int("comments").notNull(),

@@ -699,3 +699,13 @@
 - [x] Add public @handle lookup/routing behavior without breaking the existing profile route.
 - [x] Add unit tests for normalization, validation, reserved handles, availability, and authenticated procedure behavior.
 - [x] Run migration, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Notification Filters, Export, Appeal Pagination, and Custom Video Publishing
+
+- [x] Add notification category filtering for Subscriptions, Appeals, and other notification types.
+- [x] Export Creator Analytics comparison data as CSV and PDF.
+- [x] Add page-based admin moderation appeal browsing with total/next/previous state.
+- [x] Add custom Creator video metadata fields for title, description, hashtags, thumbnail, and background music.
+- [x] Validate and securely store thumbnail/music references without storing media bytes in the database.
+- [x] Add tests for notification filters, comparison exports, pagination, and video metadata validation.
+- [x] Run migration if needed, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.

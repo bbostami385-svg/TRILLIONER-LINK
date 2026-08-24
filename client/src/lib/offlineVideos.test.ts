@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOfflineSuggestions, getSuggestedOfflineVideoRecords, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { clearOfflineSearchHistory, getOfflineSearchHistory, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -28,6 +28,22 @@ describe("offline video helpers", () => {
 
   it("returns recent saved videos as the no-result fallback", () => {
     expect(getSuggestedOfflineVideoRecords(records, 2).map((record) => record.id)).toEqual([2, 3]);
+  });
+
+  it("stores recent searches newest-first, deduplicates case-insensitively, and clears them", () => {
+    const originalWindow = globalThis.window;
+    const values = new Map<string, string>();
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) } } });
+    try {
+      rememberOfflineSearch("Science");
+      rememberOfflineSearch("Music");
+      rememberOfflineSearch("science");
+      expect(getOfflineSearchHistory()).toEqual(["science", "Music"]);
+      clearOfflineSearchHistory();
+      expect(getOfflineSearchHistory()).toEqual([]);
+    } finally {
+      Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+    }
   });
 
   it("does not mutate the stored record array", () => {

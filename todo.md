@@ -810,3 +810,10 @@
 - [x] Show suggested popular saved videos when Offline Library search has no matches.
 - [x] Show an explicit success toast after copying a share link.
 - [x] Add focused tests and run typecheck, Vitest, build, visual verification, checkpoint, and GitHub synchronization.
+
+## 2026-08-24 Interaction Enhancements
+
+- [x] Add Offline Library recent search history beneath the search bar with clear controls.
+- [x] Add dedicated WhatsApp, Facebook, X, Telegram, and LinkedIn share buttons to share menus.
+- [x] Add double-tap likes, reaction picker, and animated heart feedback to Shorts and long-form videos.
+- [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.

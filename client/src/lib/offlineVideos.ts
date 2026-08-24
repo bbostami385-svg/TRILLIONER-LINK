@@ -13,6 +13,8 @@ export type OfflineVideoRecord = {
 
 const CACHE_NAME = "trillioner-link-offline-videos-v1";
 const STORAGE_KEY = "trillioner-link-offline-video-records";
+const SEARCH_HISTORY_KEY = "trillioner-link-offline-search-history";
+const SEARCH_HISTORY_LIMIT = 8;
 
 function readRecords(): OfflineVideoRecord[] {
   if (typeof window === "undefined") return [];
@@ -34,6 +36,9 @@ export function searchOfflineVideoRecords(records: OfflineVideoRecord[], query: 
 export function getOfflineSuggestions(records: OfflineVideoRecord[], query: string, limit = 6) { const normalized = query.trim().toLocaleLowerCase(); const values = records.flatMap((record) => [record.creatorName, record.playlistName]).filter((value): value is string => Boolean(value && (!normalized || value.toLocaleLowerCase().includes(normalized)))); return Array.from(new Set(values)).slice(0, limit); }
 export function getSuggestedOfflineVideoRecords(records: OfflineVideoRecord[], limit = 3) { return sortOfflineVideoRecords(records, "date").slice(0, limit); }
 export function getOfflineVideoRecords() { return readRecords(); }
+export function getOfflineSearchHistory() { if (typeof window === "undefined") return []; try { const parsed: unknown = JSON.parse(window.localStorage.getItem(SEARCH_HISTORY_KEY) ?? "[]"); return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, SEARCH_HISTORY_LIMIT) : []; } catch { return []; } }
+export function rememberOfflineSearch(query: string) { if (typeof window === "undefined") return getOfflineSearchHistory(); const normalized = query.trim(); if (!normalized) return getOfflineSearchHistory(); const next = [normalized, ...getOfflineSearchHistory().filter((item) => item.toLocaleLowerCase() !== normalized.toLocaleLowerCase())].slice(0, SEARCH_HISTORY_LIMIT); window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next)); return next; }
+export function clearOfflineSearchHistory() { if (typeof window !== "undefined") window.localStorage.removeItem(SEARCH_HISTORY_KEY); }
 export function isOfflineVideoSaved(videoId: number) { return readRecords().some((record) => record.id === videoId); }
 
 export async function saveVideoForOffline(record: Omit<OfflineVideoRecord, "savedAt" | "sizeBytes">) {

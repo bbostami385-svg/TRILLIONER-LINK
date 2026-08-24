@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import VideoFeedSkeleton from "@/components/VideoFeedSkeleton";
-import { RefreshCw } from "lucide-react";
+import { Heart, RefreshCw } from "lucide-react";
+import { ReactionPicker } from "@/components/VideoReactionControls";
+import VideoShareMenu from "@/components/VideoShareMenu";
 
 export function ReelsPage() {
   const { user } = useAuth();
@@ -16,6 +18,8 @@ export function ReelsPage() {
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const formTouchStart = useRef<number | null>(null);
+  const [selectedReactions, setSelectedReactions] = useState<Record<number, string>>({});
+  const [heartBurstId, setHeartBurstId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     videoUrl: "",
     caption: "",
@@ -57,6 +61,8 @@ export function ReelsPage() {
       console.error("Failed to like reel:", error);
     }
   };
+  const handleDoubleTapReel = (reelId: number) => { setHeartBurstId(reelId); window.setTimeout(() => setHeartBurstId((current) => current === reelId ? null : current), 850); void handleLikeReel(reelId); };
+  const chooseReelReaction = (reelId: number, reaction: string) => { setSelectedReactions((current) => ({ ...current, [reelId]: reaction })); void handleLikeReel(reelId); };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4" onTouchStart={onFeedTouchStart} onTouchMove={onFeedTouchMove} onTouchEnd={onFeedTouchEnd}><div className={`mx-auto flex items-center justify-center overflow-hidden text-xs text-purple-100 transition-all ${pullDistance > 0 || refreshing ? "h-9 opacity-100" : "h-0 opacity-0"}`} style={{ transform: `translateY(${Math.min(pullDistance, 20)}px)` }} aria-live="polite"><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Refreshing Shorts…" : pullDistance >= 72 ? "Release to refresh" : "Pull down to refresh"}</div>
@@ -142,8 +148,9 @@ export function ReelsPage() {
               {trendingReels.map((reel) => (
                 <Card
                   key={reel.id}
-                  className="p-4 bg-slate-800 border-purple-500 hover:border-pink-500 transition-colors overflow-hidden"
+                  className="relative p-4 bg-slate-800 border-purple-500 hover:border-pink-500 transition-colors overflow-hidden" onDoubleClick={() => handleDoubleTapReel(reel.id)}
                 >
+                  {heartBurstId === reel.id && <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center" aria-hidden="true"><Heart className="h-24 w-24 animate-ping text-rose-400 drop-shadow-[0_0_20px_rgba(251,113,133,0.8)]" /></div>}
                   {reel.thumbnail && (
                     <img
                       src={reel.thumbnail}
@@ -157,13 +164,7 @@ export function ReelsPage() {
                     <span>❤️ {reel.likes} likes</span>
                     <span>💬 {reel.comments} comments</span>
                   </div>
-                  <Button
-                    onClick={() => handleLikeReel(reel.id)}
-                    className="w-full bg-gradient-to-r from-red-600 to-pink-600"
-                    disabled={likeReelMutation.isPending}
-                  >
-                    ❤️ Like
-                  </Button>
+                  <div className="flex items-center gap-2"><ReactionPicker compact selected={selectedReactions[reel.id]} onSelect={(reaction) => chooseReelReaction(reel.id, reaction)} onLike={() => void handleLikeReel(reel.id)} /><VideoShareMenu title={reel.caption || "TRILLIONER LINK Short"} text={reel.caption || undefined} url={`${window.location.origin}/shorts?video=${reel.id}`} /></div>
                 </Card>
               ))}
             </div>

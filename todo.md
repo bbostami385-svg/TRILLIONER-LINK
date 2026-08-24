@@ -824,3 +824,10 @@
 - [x] Add Shorts/Long-form filtering to Offline Library search results.
 - [x] Add a persisted Dark/Night Mode toggle for comfortable nighttime viewing.
 - [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.
+
+## 2026-08-24 Watch Later, Playback, and Discovery Enhancements
+
+- [x] Add drag-and-drop ordering and custom folders to Watch Later.
+- [x] Add cross-page PiP or mini-player video playback.
+- [x] Add a real Trending/Popular section to the Home page.
+- [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.

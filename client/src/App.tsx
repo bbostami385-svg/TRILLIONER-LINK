@@ -50,6 +50,7 @@ import SubscriptionCollections from "./pages/SubscriptionCollections";
 import PublicPlaylist from "./pages/PublicPlaylist";
 import { VerificationGate } from "./components/VerificationGate";
 import InstallAppPrompt from "./components/InstallAppPrompt";
+import MiniPlayer, { MiniPlayerProvider } from "./components/MiniPlayer";
 import "./App.css";
 
 function Router() {
@@ -118,6 +119,7 @@ function App() {
         defaultTheme="dark"
         switchable
       >
+        <MiniPlayerProvider>
         <TooltipProvider>
           <div className="app-header">
             <div className="app-controls">
@@ -131,7 +133,9 @@ function App() {
           </VerificationGate>
           <InstallAppPrompt />
           <Toaster />
+          <MiniPlayer />
         </TooltipProvider>
+        </MiniPlayerProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

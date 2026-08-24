@@ -1,0 +1,17 @@
+import { ListVideo, Play, Video } from "lucide-react";
+import { useParams } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+
+export default function PublicPlaylist() {
+  const params = useParams<{ playlistId: string }>();
+  const playlistId = Number(params.playlistId);
+  const playlist = trpc.creatorPlaylists.publicItems.useQuery({ playlistId }, { enabled: Number.isInteger(playlistId) && playlistId > 0, retry: false });
+  const openVideo = (videoId: number) => { window.location.href = `/videos?video=${videoId}`; };
+
+  if (playlist.isLoading) return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="border-white/10 bg-white/5 p-8 text-center text-slate-300">Loading playlist…</Card></main>;
+  if (playlist.error || !playlist.data) return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="max-w-md border-white/10 bg-white/5 p-8 text-center"><ListVideo className="mx-auto h-10 w-10 text-slate-600" /><h1 className="mt-4 text-2xl font-bold">Playlist unavailable</h1><p className="mt-2 text-slate-400">This playlist is private, removed, or no longer available.</p><Button className="mt-5" onClick={() => { window.location.href = "/videos"; }}>Browse videos</Button></Card></main>;
+
+  return <main className="min-h-screen bg-[#080b14] px-4 py-8 text-white sm:px-8"><div className="mx-auto max-w-5xl space-y-6"><header className="rounded-3xl border border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_42%),rgba(255,255,255,0.04)] p-6 sm:p-8"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300"><ListVideo className="h-3.5 w-3.5" /> TRILLIONER LINK / Public playlist</p><h1 className="mt-3 text-3xl font-bold sm:text-4xl">{playlist.data.name}</h1><p className="mt-2 max-w-2xl text-slate-300">{playlist.data.description || "A curated long-form viewing path from a TRILLIONER LINK Creator."}</p><p className="mt-4 text-xs uppercase tracking-wider text-slate-500">{playlist.data.items.length} video{playlist.data.items.length === 1 ? "" : "s"} · Shorts stay in their own experience</p></header>{playlist.data.items.length === 0 ? <Card className="p-10 text-center border-white/10 bg-white/[0.045]"><Video className="mx-auto h-9 w-9 text-slate-600" /><p className="mt-3 text-slate-400">This playlist is ready for its first public video.</p></Card> : <div className="space-y-3">{playlist.data.items.map((item, index) => <button key={item.itemId} onClick={() => openVideo(item.videoId)} className="flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.08]"><span className="w-6 text-center text-sm text-slate-500">{index + 1}</span>{item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" className="h-20 w-32 rounded-xl object-cover" /> : <div className="grid h-20 w-32 place-items-center rounded-xl bg-slate-900 text-slate-600"><Play className="h-6 w-6" /></div>}<span className="min-w-0 flex-1"><span className="block truncate font-semibold">{item.title}</span><span className="mt-1 block line-clamp-2 text-sm text-slate-400">{item.description || "Open this Creator video."}</span><span className="mt-2 block text-xs text-slate-500">{item.views.toLocaleString()} views</span></span><Play className="h-5 w-5 shrink-0 text-cyan-300" /></button>)}</div>}</div></main>;
+}

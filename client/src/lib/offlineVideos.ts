@@ -6,6 +6,8 @@ export type OfflineVideoRecord = {
   thumbnailUrl?: string | null;
   creatorName?: string | null;
   savedAt: string;
+  qualityLabel?: string;
+  sizeBytes?: number;
 };
 
 const CACHE_NAME = "trillioner-link-offline-videos-v1";
@@ -25,16 +27,19 @@ function writeRecords(records: OfflineVideoRecord[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
 }
 
+export type OfflineSort = "date" | "size";
+export function sortOfflineVideoRecords(records: OfflineVideoRecord[], sortBy: OfflineSort) { return [...records].sort((a, b) => sortBy === "date" ? new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime() : (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0)); }
 export function getOfflineVideoRecords() { return readRecords(); }
 export function isOfflineVideoSaved(videoId: number) { return readRecords().some((record) => record.id === videoId); }
 
-export async function saveVideoForOffline(record: Omit<OfflineVideoRecord, "savedAt">) {
+export async function saveVideoForOffline(record: Omit<OfflineVideoRecord, "savedAt" | "sizeBytes">) {
   if (typeof window === "undefined" || !("caches" in window)) throw new Error("Offline saving is not supported in this browser.");
   const response = await fetch(record.videoUrl, { credentials: "omit" });
   if (!response.ok) throw new Error("The video could not be downloaded for offline viewing.");
   const cache = await window.caches.open(CACHE_NAME);
   await cache.put(record.videoUrl, response.clone());
-  const next = [...readRecords().filter((item) => item.id !== record.id), { ...record, savedAt: new Date().toISOString() }];
+  const blob = await response.blob();
+  const next = [...readRecords().filter((item) => item.id !== record.id), { ...record, sizeBytes: blob.size, savedAt: new Date().toISOString() }];
   writeRecords(next);
   return next.find((item) => item.id === record.id)!;
 }

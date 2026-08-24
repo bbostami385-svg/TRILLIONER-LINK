@@ -771,3 +771,26 @@
 - [x] Add authenticated video save/download records and an offline viewing library using browser-supported caching.
 - [x] Add tests for confirmation state, export ranges, preview themes, reward progress, social visibility, and offline access rules.
 - [x] Run migrations if required, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+## Social Clicks, Offline Quality, Playlists, and Topic Collections
+
+- [x] Track privacy-safe social-link click events and aggregate them in Creator Analytics.
+- [x] Add reward unlock success animation and confetti without changing point authorization.
+- [x] Add offline-library sorting by size and saved date.
+- [x] Add quality-aware full-video download choices only for legitimate available renditions.
+- [x] Keep Shorts and long videos separated in discovery and navigation.
+- [x] Add creator playlists with real video membership and public viewing.
+- [x] Add custom topic collections for subscribed channels and manage collection membership.
+- [x] Add tests for click tracking, reward celebration, offline sorting/download rules, media separation, playlists, and subscription collections.
+- [x] Run migrations if required, typecheck, tests, production build, visual verification, checkpoint, and GitHub synchronization.
+
+- [x] Refine Offline Library with sorting by saved date and cached file size.
+- [x] Add quality-aware offline downloads that use only creator-published 360p, 480p, or 1080p renditions when available.
+- [x] Keep video discovery separated into Shorts and long-form feeds.
+- [x] Add creator playlist management.
+- [x] Add topic-based subscription collections.
+- [x] Add reward-unlock celebration animation.
+- [x] Add nullable creator-published rendition metadata and safe quality selection to offline downloads.
+- [x] Add date/size sorting and quality/size metadata to Offline Library.
+- [x] Keep video discovery separated into Shorts and long-form feeds.
+- [x] Add topic-based subscription collections so subscribed Creator channels can be organized by user-defined topics.

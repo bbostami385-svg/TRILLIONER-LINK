@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex, date, decimal, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex, index, date, decimal, json, foreignKey } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -117,6 +117,37 @@ export const subscriptions = mysqlTable(
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 
+/** User-defined topics for organizing Creator subscriptions. */
+export const subscriptionCollections = mysqlTable("subscriptionCollections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 80 }).notNull(),
+  description: varchar("description", { length: 255 }),
+  color: varchar("color", { length: 20 }).default("cyan").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  ownerForeignKey: foreignKey({ name: "sc_owner_fk", columns: [table.userId], foreignColumns: [users.id] }).onDelete("cascade"),
+}));
+
+export type SubscriptionCollection = typeof subscriptionCollections.$inferSelect;
+export type InsertSubscriptionCollection = typeof subscriptionCollections.$inferInsert;
+
+/** Many-to-many membership between a user's topic and an active subscription. */
+export const subscriptionCollectionMembers = mysqlTable("subscriptionCollectionMembers", {
+  id: int("id").autoincrement().primaryKey(),
+  collectionId: int("collectionId").notNull(),
+  subscriptionId: int("subscriptionId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  uniqueCollectionSubscription: uniqueIndex("unique_collection_subscription").on(table.collectionId, table.subscriptionId),
+  collectionForeignKey: foreignKey({ name: "scm_collection_fk", columns: [table.collectionId], foreignColumns: [subscriptionCollections.id] }).onDelete("cascade"),
+  subscriptionForeignKey: foreignKey({ name: "scm_subscription_fk", columns: [table.subscriptionId], foreignColumns: [subscriptions.id] }).onDelete("cascade"),
+}));
+
+export type SubscriptionCollectionMember = typeof subscriptionCollectionMembers.$inferSelect;
+export type InsertSubscriptionCollectionMember = typeof subscriptionCollectionMembers.$inferInsert;
+
 /**
  * User Levels table for Follower-based leveling system
  * Levels 1-20 based on follower count
@@ -170,6 +201,8 @@ export const videos = mysqlTable("videos", {
   description: text("description"),
   category: varchar("category", { length: 80 }),
   videoUrl: text("videoUrl").notNull(),
+  /** Optional creator-published renditions; no transcoding or third-party download bypass is implied. */
+  renditionUrls: json("renditionUrls").$type<Partial<Record<"360p" | "480p" | "1080p", string>>>(),
   thumbnailUrl: text("thumbnailUrl"),
   hashtags: json("hashtags").$type<string[]>().default([]),
   backgroundMusicUrl: text("backgroundMusicUrl"),
@@ -942,3 +975,16 @@ export const profileRewards = mysqlTable("profileRewards", {
 }, (table) => ({ uniqueUserReward: uniqueIndex("unique_user_profile_reward").on(table.userId, table.rewardId) }));
 export type ProfileReward = typeof profileRewards.$inferSelect;
 export type InsertProfileReward = typeof profileRewards.$inferInsert;
+
+/** Privacy-safe clicks on public profile social links. No raw IP or device fingerprint is stored. */
+export const socialLinkClicks = mysqlTable("socialLinkClicks", {
+  id: int("id").autoincrement().primaryKey(),
+  profileOwnerId: int("profileOwnerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: mysqlEnum("provider", ["facebook", "instagram", "twitter", "youtube", "tiktok"]).notNull(),
+  viewerId: int("viewerId").references(() => users.id, { onDelete: "set null" }),
+  clickedAt: timestamp("clickedAt").defaultNow().notNull(),
+}, (table) => ({
+  ownerProviderDateIdx: index("social_link_click_owner_provider_date_idx").on(table.profileOwnerId, table.provider, table.clickedAt),
+}));
+export type SocialLinkClick = typeof socialLinkClicks.$inferSelect;
+export type InsertSocialLinkClick = typeof socialLinkClicks.$inferInsert;

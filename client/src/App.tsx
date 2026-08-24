@@ -44,6 +44,9 @@ import HandleProfile from "./pages/HandleProfile";
 import Invitations from "./pages/Invitations";
 import ProfileRewards from "./pages/ProfileRewards";
 import OfflineVideos from "./pages/OfflineVideos";
+import CreatorPlaylists from "./pages/CreatorPlaylists";
+import SubscriptionCollections from "./pages/SubscriptionCollections";
+import PublicPlaylist from "./pages/PublicPlaylist";
 import { VerificationGate } from "./components/VerificationGate";
 import "./App.css";
 
@@ -61,12 +64,16 @@ function Router() {
       <Route path={"/explore"} component={Explore} />
       <Route path={"/messages"} component={Messages} />
       <Route path={"/videos"} component={Videos} />
+      <Route path={"/shorts"} component={ReelsPage} />
       <Route path={"/stories"} component={Stories} />
       <Route path={"/profile"} component={Profile} />
       <Route path="/@/:handle" component={HandleProfile} />
       <Route path="/invitations" component={Invitations} />
       <Route path="/profile-rewards" component={ProfileRewards} />
       <Route path="/offline-videos" component={OfflineVideos} />
+      <Route path="/creator-playlists" component={CreatorPlaylists} />
+      <Route path="/subscription-topics" component={SubscriptionCollections} />
+      <Route path="/playlist/:playlistId" component={PublicPlaylist} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path="/ads-dashboard" component={AdsDashboard} />

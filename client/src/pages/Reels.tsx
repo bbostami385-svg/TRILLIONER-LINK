@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 export function ReelsPage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     videoUrl: "",
@@ -51,21 +53,20 @@ export function ReelsPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Reels</h1>
-          <p className="text-purple-200">Short-form vertical videos</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">TRILLIONER LINK / Short-form</p><h1 className="text-4xl font-bold text-white mb-2">Shorts</h1><p className="text-purple-200">Fast, vertical videos built for discovery.</p></div><Button onClick={() => setLocation("/videos")} variant="outline" className="border-purple-300/30 bg-transparent text-white hover:bg-purple-500/15 hover:text-white">Open long-form videos</Button></div>
         </div>
 
-        {/* Create Reel Button */}
+        {/* Create Short Button */}
         {user && (
           <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="mb-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
-            {showCreateForm ? "Cancel" : "Create Reel"}
+            {showCreateForm ? "Cancel" : "Create Short"}
           </Button>
         )}
 
-        {/* Create Reel Form */}
+        {/* Create Short Form */}
         {showCreateForm && (
           <Card className="mb-8 p-6 bg-slate-800 border-purple-500">
             <form onSubmit={handleCreateReel} className="space-y-4">
@@ -115,7 +116,7 @@ export function ReelsPage() {
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
                 disabled={createReelMutation.isPending}
               >
-                {createReelMutation.isPending ? "Creating..." : "Create Reel"}
+                {createReelMutation.isPending ? "Creating..." : "Create Short"}
               </Button>
             </form>
           </Card>
@@ -123,9 +124,9 @@ export function ReelsPage() {
 
         {/* Trending Reels */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-4">Trending Reels</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Trending Shorts</h2>
           {loadingReels ? (
-            <p className="text-purple-200">Loading reels...</p>
+            <p className="text-purple-200">Loading Shorts...</p>
           ) : trendingReels && trendingReels.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {trendingReels.map((reel) => (
@@ -157,7 +158,7 @@ export function ReelsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-purple-200">No reels available</p>
+            <p className="text-purple-200">No Shorts available yet</p>
           )}
         </div>
       </div>

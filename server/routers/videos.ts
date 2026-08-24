@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
-import { follows, subscriptions, users, videos } from "../../drizzle/schema";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { follows, subscriptions, subscriptionCollectionMembers, users, videos } from "../../drizzle/schema";
 import { getRequiredDb } from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { assertPublishable } from "../contentModeration";
@@ -38,6 +38,7 @@ export const videosRouter = router({
         title: videos.title,
         description: videos.description,
         videoUrl: videos.videoUrl,
+        renditionUrls: videos.renditionUrls,
         thumbnailUrl: videos.thumbnailUrl,
         duration: videos.duration,
         views: videos.views,
@@ -55,15 +56,18 @@ export const videosRouter = router({
 
   // Get videos published by Creator accounts the user subscribes to.
   getSubscriptionsFeed: protectedProcedure
-    .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+    .input(z.object({ limit: z.number().min(1).max(100).default(20), collectionId: z.number().int().positive().optional() }))
     .query(async ({ input, ctx }) => {
       const db = await getRequiredDb();
+      const subscriptionConditions = [eq(subscriptions.subscriberId, ctx.user.id), eq(videos.isPublic, true), eq(users.accountMode, "creator")];
+      if (input.collectionId) subscriptionConditions.push(inArray(subscriptions.id, db.select({ subscriptionId: subscriptionCollectionMembers.subscriptionId }).from(subscriptionCollectionMembers).where(eq(subscriptionCollectionMembers.collectionId, input.collectionId))));
       return db.select({
         id: videos.id,
         userId: videos.userId,
         title: videos.title,
         description: videos.description,
         videoUrl: videos.videoUrl,
+        renditionUrls: videos.renditionUrls,
         thumbnailUrl: videos.thumbnailUrl,
         duration: videos.duration,
         views: videos.views,
@@ -75,7 +79,7 @@ export const videosRouter = router({
       }).from(videos)
         .innerJoin(subscriptions, eq(subscriptions.creatorId, videos.userId))
         .innerJoin(users, eq(users.id, videos.userId))
-        .where(and(eq(subscriptions.subscriberId, ctx.user.id), eq(videos.isPublic, true), eq(users.accountMode, "creator")))
+        .where(and(...subscriptionConditions))
         .orderBy(desc(videos.createdAt)).limit(input.limit);
     }),
 

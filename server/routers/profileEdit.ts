@@ -1,7 +1,7 @@
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { users } from "../../drizzle/schema";
+import { socialLinkClicks, users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { buildHandleCandidates, handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
 import { inArray } from "drizzle-orm";
@@ -24,6 +24,19 @@ export const profileEditRouter = router({
     if (!db) throw new Error("Database not available");
     const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode, activeProfileBadge: users.activeProfileBadge, activeProfileTheme: users.activeProfileTheme, linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
     return user ? { id: user.id, name: user.name, handle: user.handle, profileImage: user.profileImage, bio: user.bio, accountMode: user.accountMode, activeProfileBadge: user.activeProfileBadge, activeProfileTheme: user.activeProfileTheme, socialLinks: readPublicSocialLinks(user.linkedAccounts) } : null;
+  }),
+
+  trackSocialLinkClick: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64), provider: z.enum(socialProviders) })).mutation(async ({ input, ctx }: any) => {
+    const validation = validateHandle(input.handle);
+    if (!validation.valid) return { success: false };
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [profile] = await db.select({ id: users.id, linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
+    if (!profile) return { success: false };
+    const links = readPublicSocialLinks(profile.linkedAccounts);
+    if (!links.some((link) => link.provider === input.provider)) return { success: false };
+    await db.insert(socialLinkClicks).values({ profileOwnerId: profile.id, provider: input.provider, viewerId: ctx.user?.id && ctx.user.id !== profile.id ? ctx.user.id : null });
+    return { success: true };
   }),
 
   // Get current user profile

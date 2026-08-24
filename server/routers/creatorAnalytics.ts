@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { posts, subscriptions, videos } from "../../drizzle/schema";
+import { posts, socialLinkClicks, subscriptions, videos } from "../../drizzle/schema";
 
 const dateInput = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must use YYYY-MM-DD format.");
 const categoryInput = z.string().trim().min(1).max(80);
@@ -49,6 +49,7 @@ export const creatorAnalyticsRouter = router({
     const videoRows = await db.select({ createdAt: videos.createdAt, title: videos.title, category: videos.category, hashtags: videos.hashtags, views: videos.views, likes: videos.likes, comments: videos.comments }).from(videos).where(videoWhere(ctx.user.id, start, end, input.category, input.hashtag)).orderBy(desc(videos.createdAt));
     const postRows = await db.select({ createdAt: posts.createdAt, likes: posts.likes, comments: posts.comments, shares: posts.shares }).from(posts).where(and(eq(posts.userId, ctx.user.id), gte(posts.createdAt, start), lte(posts.createdAt, end)));
     const subscriptionRows = await db.select({ createdAt: subscriptions.createdAt }).from(subscriptions).where(and(eq(subscriptions.creatorId, ctx.user.id), gte(subscriptions.createdAt, start), lte(subscriptions.createdAt, end)));
+    const socialClickRows = await db.select({ provider: socialLinkClicks.provider, total: sql<number>`count(*)` }).from(socialLinkClicks).where(and(eq(socialLinkClicks.profileOwnerId, ctx.user.id), gte(socialLinkClicks.clickedAt, start), lte(socialLinkClicks.clickedAt, end))).groupBy(socialLinkClicks.provider);
     const previousEnd = new Date(start.getTime() - 1);
     const previousStart = new Date(start.getTime() - (days * 86_400_000));
     const previousVideoRows = await db.select({ views: videos.views, likes: videos.likes, comments: videos.comments }).from(videos).where(videoWhere(ctx.user.id, previousStart, previousEnd, input.category, input.hashtag));
@@ -77,6 +78,8 @@ export const creatorAnalyticsRouter = router({
     const previousShares = previousPostRows.reduce((sum, row) => sum + Number(row.shares), 0);
     const previousVideos = previousVideoRows.length;
     const comparison = compareMetric;
-    return { days, category: input.category, hashtag: input.hashtag, startDate: dayKey(start), endDate: dayKey(end), subscribers, videos: videoRows.length, views, likes, comments: commentsTotal, shares, engagementRate, series, recentVideos, topByViews, topByEngagement, comparison: { subscribers: comparison(subscribers, previousSubscribers), videos: comparison(videoRows.length, previousVideos), views: comparison(views, previousViews), likes: comparison(likes, previousLikes), comments: comparison(commentsTotal, previousComments), shares: comparison(shares, previousShares) }, previousStartDate: dayKey(previousStart), previousEndDate: dayKey(previousEnd) };
+    const socialClicks = socialClickRows.map((row) => ({ provider: row.provider, clicks: Number(row.total) }));
+    const socialClickTotal = socialClicks.reduce((sum, row) => sum + row.clicks, 0);
+    return { days, category: input.category, hashtag: input.hashtag, startDate: dayKey(start), endDate: dayKey(end), subscribers, videos: videoRows.length, views, likes, comments: commentsTotal, shares, engagementRate, socialClicks, socialClickTotal, series, recentVideos, topByViews, topByEngagement, comparison: { subscribers: comparison(subscribers, previousSubscribers), videos: comparison(videoRows.length, previousVideos), views: comparison(views, previousViews), likes: comparison(likes, previousLikes), comments: comparison(commentsTotal, previousComments), shares: comparison(shares, previousShares) }, previousStartDate: dayKey(previousStart), previousEndDate: dayKey(previousEnd) };
   }),
 });

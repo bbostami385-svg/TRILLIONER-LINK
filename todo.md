@@ -988,3 +988,7 @@
 - [x] Improve face-verification loading animations and actionable error messages.
 - [x] Add user-facing KYC status and submission history to the profile experience.
 - [x] Add CSV and PDF export actions for the admin verification metrics dashboard.
+
+- [x] Audit every environment variable reference and classify it as required, optional, or unused for Firebase Google Login.
+- [x] Trace and, where safe, replace Manus OAuth entry points with Firebase Google Login authentication.
+- [x] Produce an exact minimal Firebase-only Vercel deployment matrix and validate it against the production build.

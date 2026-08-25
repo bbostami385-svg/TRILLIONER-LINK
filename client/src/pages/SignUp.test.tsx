@@ -1,21 +1,32 @@
 // @vitest-environment jsdom
 import React from "react";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SignUp from "./SignUp";
 
-const { getLoginUrl } = vi.hoisted(() => ({ getLoginUrl: vi.fn(() => "https://auth.example.com/login") }));
-vi.mock("@/const", () => ({ getLoginUrl }));
+const { signInWithGoogle, mutateAsync, setLocation } = vi.hoisted(() => ({
+  signInWithGoogle: vi.fn(),
+  mutateAsync: vi.fn(),
+  setLocation: vi.fn(),
+}));
+
+vi.mock("@/lib/firebase", () => ({ firebaseConfigured: true, signInWithGoogle }));
+vi.mock("@/lib/trpc", () => ({ trpc: { auth: { exchangeFirebaseToken: { useMutation: () => ({ mutateAsync, isPending: false }) } } } }));
+vi.mock("wouter", () => ({ useLocation: () => ["/signup", setLocation] }));
 
 describe("SignUp", () => {
   beforeEach(() => {
-    getLoginUrl.mockClear();
-    Object.defineProperty(window, "location", { configurable: true, value: { href: "" } });
+    signInWithGoogle.mockReset();
+    mutateAsync.mockReset();
+    setLocation.mockReset();
+    signInWithGoogle.mockResolvedValue({ user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") } });
+    mutateAsync.mockResolvedValue({ success: true });
   });
 
-  it("starts authentication with the verification return path", () => {
-    const { getByRole } = render(<SignUp />);
-    fireEvent.click(getByRole("button", { name: /sign up with trillioner link/i }));
-    expect(getLoginUrl).toHaveBeenCalledWith("/verify");
+  it("exchanges a Firebase Google token and routes new users to verification", async () => {
+    render(<SignUp />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ idToken: "firebase-id-token" }));
+    expect(setLocation).toHaveBeenCalledWith("/verify");
   });
 });

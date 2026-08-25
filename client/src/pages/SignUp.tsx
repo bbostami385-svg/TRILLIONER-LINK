@@ -1,13 +1,35 @@
 import React from "react";
+import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getLoginUrl } from "@/const";
-import { Users, Sparkles, Shield, Zap } from "lucide-react";
+import { signInWithGoogle, firebaseConfigured } from "@/lib/firebase";
+import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
+import { AlertCircle, Loader2, Users, Sparkles, Shield, Zap } from "lucide-react";
 
 export default function SignUp() {
-  const handleSignUp = () => {
-    window.location.href = getLoginUrl("/verify");
+  const [, setLocation] = useLocation();
+  const [error, setError] = useState<string | null>(null);
+  const exchangeFirebaseToken = trpc.auth.exchangeFirebaseToken.useMutation();
+
+  const handleGoogleSignUp = async () => {
+    if (!firebaseConfigured) {
+      setError("Google Login is not configured. Add the required VITE_FIREBASE_* variables in Vercel.");
+      return;
+    }
+    setError(null);
+    try {
+      const credential = await signInWithGoogle();
+      const idToken = await credential.user.getIdToken();
+      await exchangeFirebaseToken.mutateAsync({ idToken });
+      setLocation("/verify");
+    } catch (signInError) {
+      setError(signInError instanceof Error ? signInError.message : "Google Login could not be completed. Please try again.");
+    }
   };
+
+  const handleSignIn = () => setLocation("/login");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
@@ -75,11 +97,14 @@ export default function SignUp() {
             </div>
 
             <div className="space-y-4">
+              {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+
               <Button
-                onClick={handleSignUp}
+                onClick={handleGoogleSignUp}
+                disabled={exchangeFirebaseToken.isPending}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 rounded-lg transition transform hover:scale-105"
               >
-                Sign Up with TRILLIONER LINK
+                {exchangeFirebaseToken.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connecting securely…</> : "Continue with Google"}
               </Button>
 
               <div className="relative">
@@ -91,33 +116,14 @@ export default function SignUp() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  className="w-full py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3.7 12c0 2.05-1.65 3.7-3.7 3.7s-3.7-1.65-3.7-3.7 1.65-3.7 3.7-3.7 3.7 1.65 3.7 3.7z" />
-                  </svg>
-                  Google
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                  Facebook
-                </Button>
-              </div>
+              <p className="text-center text-sm text-gray-500">Your Google account is securely connected through Firebase Authentication.</p>
 
               <div className="mt-6 text-center">
                 <p className="text-gray-600">
                   Already have an account?{" "}
                   <Button
                     variant="link"
-                    onClick={handleSignUp}
+                    onClick={handleSignIn}
                     className="p-0 h-auto text-purple-600 font-semibold hover:text-purple-700 transition"
                   >
                     Sign in

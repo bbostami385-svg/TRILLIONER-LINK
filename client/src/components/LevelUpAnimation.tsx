@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getLevelEmoji, LEVEL_DESCRIPTIONS } from "@/lib/levelUtils";
 import { Sparkles, Trophy } from "lucide-react";
@@ -92,6 +92,8 @@ export const LevelUpAnimation: React.FC<LevelUpAnimationProps> = ({
 
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300">
+          <DialogTitle className="sr-only">Level {newLevel} reached</DialogTitle>
+          <DialogDescription className="sr-only">You advanced from Level {previousLevel} to Level {newLevel}.</DialogDescription>
           <div className="text-center space-y-6 py-8">
             {/* Trophy Icon */}
             <div className="flex justify-center">

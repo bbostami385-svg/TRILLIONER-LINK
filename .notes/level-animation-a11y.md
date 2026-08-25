@@ -1,0 +1,1 @@
+LevelUpAnimation currently renders DialogContent without DialogTitle or DialogDescription, causing Radix accessibility warnings in JSDOM tests. The project dialog wrapper exports DialogTitle and DialogDescription, so the component can add visually hidden title/description without changing its visible design.

@@ -39,6 +39,7 @@ import WelcomeScreen from "./pages/WelcomeScreen";
 import ModeSelection from "./pages/ModeSelection";
 import AdminVerification from "./pages/AdminVerification";
 import AdminModerationAppeals from "./pages/AdminModerationAppeals";
+import AdminModerationReports from "./pages/AdminModerationReports";
 import AdminMediaDashboard from "./pages/AdminMediaDashboard";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
@@ -93,6 +94,7 @@ function Router() {
       <Route path="/creator-dashboard" component={CreatorDashboard} />
       <Route path="/admin/verification" component={AdminVerification} />
       <Route path="/admin/moderation-appeals" component={AdminModerationAppeals} />
+      <Route path="/admin/moderation-reports" component={AdminModerationReports} />
       <Route path="/admin/media" component={AdminMediaDashboard} />
       <Route path="/users-management" component={UsersManagement} />
       <Route path={"/payment"} component={Payment} />

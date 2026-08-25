@@ -1,0 +1,37 @@
+import { useState } from "react";
+import { CheckCircle2, FileWarning, RefreshCw, XCircle } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+
+const statuses = ["all", "pending", "resolved", "rejected"] as const;
+type Status = (typeof statuses)[number];
+
+export default function AdminModerationReports() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [status, setStatus] = useState<Status>("pending");
+  const [page, setPage] = useState(0);
+  const [resolution, setResolution] = useState<Record<number, string>>({});
+  const reports = trpc.moderation.getModerationReports.useQuery({ status: status === "all" ? undefined : status, limit: 25, offset: page * 25 }, { enabled: user?.role === "admin", retry: false, staleTime: 10_000 });
+  const resolve = trpc.moderation.resolveReport.useMutation({ onSuccess: () => { toast.success("Moderation report resolved."); void reports.refetch(); }, onError: (error) => toast.error(error.message || "Could not resolve report.") });
+
+  if (user?.role !== "admin") return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="border-white/10 bg-white/5 p-8 text-center"><FileWarning className="mx-auto h-10 w-10 text-rose-300" /><h1 className="mt-4 text-2xl font-bold">Administrator access required</h1><p className="mt-2 text-slate-400">This moderation queue is restricted to authorized moderators.</p></Card></main>;
+
+  const total = reports.data?.total ?? 0;
+  const hasPrevious = page > 0;
+  const hasNext = (page + 1) * 25 < total;
+  return <main className="min-h-screen bg-[#080b14] px-4 py-8 text-white sm:px-8"><div className="mx-auto max-w-6xl space-y-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300">TRILLIONER LINK / Trust & safety</p><h1 className="mt-2 text-3xl font-bold">Moderation reports</h1><p className="mt-2 text-slate-400">Review user-submitted reports using the durable moderation queue.</p></div><div className="flex gap-2"><Button variant="outline" onClick={() => setLocation("/admin/moderation-appeals")} className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Appeals</Button><Button variant="outline" onClick={() => void reports.refetch()} className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button></div></header>
+    <Card className="border-white/10 bg-white/[0.045] p-4"><div className="flex flex-wrap gap-2" role="tablist" aria-label="Report status filter">{statuses.map((item) => <button key={item} role="tab" aria-selected={status === item} onClick={() => { setStatus(item); setPage(0); }} className={`rounded-full px-4 py-2 text-sm capitalize transition ${status === item ? "bg-white text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>{item}</button>)}</div></Card>
+    {reports.isLoading && <Card className="border-white/10 bg-white/[0.045] p-8 text-center text-slate-400">Loading reports…</Card>}
+    {reports.error && <Card className="border-rose-400/30 bg-rose-500/10 p-8 text-rose-200">Could not load reports. Confirm your administrator session and try again.</Card>}
+    {!reports.isLoading && !reports.error && reports.data?.reports.length === 0 && <Card className="border-white/10 bg-white/[0.045] p-10 text-center text-slate-400">No {status === "all" ? "reports" : `${status} reports`} found.</Card>}
+    <div className="space-y-4">{reports.data?.reports.map((report) => <Card key={report.id} className="border-white/10 bg-white/[0.045] p-5"><div className="flex flex-col gap-4 lg:flex-row lg:justify-between"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-semibold capitalize text-indigo-200">{report.contentType}</span><span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${report.status === "pending" ? "bg-amber-500/15 text-amber-200" : report.status === "resolved" ? "bg-emerald-500/15 text-emerald-200" : "bg-rose-500/15 text-rose-200"}`}>{report.status}</span><span className="text-xs text-slate-500">Report #{report.id} · {new Date(report.createdAt).toLocaleString()}</span></div><p className="mt-4 text-sm text-slate-300"><span className="font-semibold text-white">Reason:</span> {report.reason.replaceAll("_", " ")}</p>{report.description && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-black/20 p-3 text-sm text-slate-300">{report.description}</p>}{report.resolutionReason && <p className="mt-3 text-sm text-slate-400">Resolution: {report.resolutionReason}</p>}</div>{report.status === "pending" && <div className="w-full shrink-0 lg:max-w-sm"><Textarea value={resolution[report.id] ?? ""} onChange={(event) => setResolution((current) => ({ ...current, [report.id]: event.target.value }))} placeholder="Resolution note" maxLength={2000} rows={3} className="border-white/10 bg-black/20 text-white" /><div className="mt-3 flex gap-2"><Button disabled={resolve.isPending} onClick={() => resolve.mutate({ reportId: report.id, action: "approve", reason: resolution[report.id] })} className="flex-1 bg-emerald-600 hover:bg-emerald-500"><CheckCircle2 className="mr-1.5 h-4 w-4" />Resolve</Button><Button disabled={resolve.isPending || !resolution[report.id]?.trim()} onClick={() => resolve.mutate({ reportId: report.id, action: "reject", reason: resolution[report.id] })} variant="outline" className="flex-1 border-rose-400/30 bg-transparent text-rose-200 hover:bg-rose-500/10"><XCircle className="mr-1.5 h-4 w-4" />Reject</Button></div></div>}</div></Card>)}</div>
+    {total > 0 && <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-sm text-slate-400"><span>Page {page + 1} · {total} total reports</span><div className="flex gap-2"><Button variant="outline" disabled={!hasPrevious || reports.isFetching} onClick={() => setPage((value) => Math.max(0, value - 1))} className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Previous</Button><Button variant="outline" disabled={!hasNext || reports.isFetching} onClick={() => setPage((value) => value + 1)} className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white">Next</Button></div></div>}
+  </div></main>;
+}

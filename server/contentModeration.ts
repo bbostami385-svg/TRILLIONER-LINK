@@ -9,6 +9,19 @@ const DISALLOWED_TERMS = [
   "graphic gore",
 ];
 
+function normalizeModerationText(text: string) {
+  return text
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[0@]/g, "o")
+    .replace(/[1!|]/g, "i")
+    .replace(/[$5]/g, "s")
+    .replace(/[^a-z0-9_\s]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export type ModerationResult = {
   decision: "allow" | "block" | "review";
   category: "clean" | "hate" | "harassment" | "sexual" | "violence" | "self_harm" | "illegal" | "spam" | "unknown";
@@ -17,10 +30,18 @@ export type ModerationResult = {
 };
 
 function deterministicTextCheck(text: string): ModerationResult | null {
-  const normalized = text.toLocaleLowerCase();
+  const normalized = normalizeModerationText(text);
   const term = DISALLOWED_TERMS.find((candidate) => normalized.includes(candidate));
-  if (!term) return null;
-  return { decision: "block", category: "illegal", reason: "The content contains a prohibited safety term.", confidence: 1 };
+  if (term) {
+    return { decision: "block", category: "illegal", reason: "The content contains a prohibited safety term.", confidence: 1 };
+  }
+
+  const urlCount = text.toLocaleLowerCase().split("://").length - 1;
+  const repeatedCharacters = /(.)\1{7,}/.test(text);
+  if (urlCount >= 4 || repeatedCharacters) {
+    return { decision: "review", category: "spam", reason: "The comment resembles automated or repetitive spam and requires review.", confidence: 0.98 };
+  }
+  return null;
 }
 
 function normalizeResult(value: unknown): ModerationResult {

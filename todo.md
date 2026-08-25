@@ -919,3 +919,6 @@
 - [x] Harden ads metrics with validated budgets and active-only atomic impression/click increments.
 - [x] Add focused ads router tests and validate the complete project.
 - [x] Add focused Levels router procedure tests for authenticated level and leaderboard reads.
+
+- [x] Expand comment moderation rules with normalized text matching, safe media checks, and focused router coverage.
+- [x] Add moderation-rule tests covering blocked, review, and allowed comment outcomes.

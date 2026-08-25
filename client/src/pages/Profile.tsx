@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, Settings, Edit2, UserPlus, UserCheck } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Settings, Edit2, UserPlus, UserCheck, ShieldCheck } from 'lucide-react';
 import { LevelBadge } from '@/components/LevelBadge';
 import { LevelProgressBar } from '@/components/LevelProgressBar';
 import { ModeIndicator } from '@/components/ModeIndicator';
@@ -30,6 +30,8 @@ export default function Profile() {
   const { data: currentMode } = trpc.dualMode.getCurrentMode.useQuery();
   const { data: levelStats } = trpc.levels.getLevelStats.useQuery();
   const { data: userStats } = trpc.profileEdit.getUserStats.useQuery();
+  const { data: livenessStatus } = trpc.humanVerification.getLivenessStatus.useQuery();
+  const { data: kycStatus } = trpc.kyc.getKYCStatus.useQuery();
 
   const [user] = useState<UserProfile>({
     id: 1,
@@ -77,11 +79,10 @@ export default function Profile() {
               </button>
             </div>
             
-            {currentMode && (
-              <div className="mb-2">
-                <ModeIndicator mode={currentMode.currentMode} size="md" />
-              </div>
-            )}
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {currentMode && <ModeIndicator mode={currentMode.currentMode} size="md" />}
+              {livenessStatus?.isVerified && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200" title="Human presence verified"><ShieldCheck size={14} /> Human verified</span>}
+            </div>
             
             <p className="profile-bio">{user.bio}</p>
             
@@ -106,6 +107,7 @@ export default function Profile() {
               </div>
             </div>
             {userStats && <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3"><span>Joined {userStats.joinedAt ? new Date(userStats.joinedAt).toLocaleDateString() : "—"}</span><span>{userStats.videosCount.toLocaleString()} video uploads</span><span>{userStats.lifetimeViews.toLocaleString()} lifetime views</span></div>}
+            {kycStatus && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-slate-300"><span className="font-semibold text-amber-200">Identity verification:</span> {kycStatus.status === "approved" ? "Approved" : kycStatus.status === "pending" ? "Under review" : kycStatus.status === "rejected" ? "Needs resubmission" : "Not submitted"}. KYC is only used for monetization and payouts.</div>}
             
             <div className="profile-actions">
               {currentMode && (

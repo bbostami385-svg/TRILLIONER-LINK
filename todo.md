@@ -73,7 +73,7 @@
 - [x] Moderation endpoints
 - [x] Recommendation endpoints
 - [ ] Marketplace endpoints
-- [ ] Analytics endpoints
+- [x] Analytics endpoints
 
 ## Frontend-Backend Integration - Complete
 - [x] Wire Feed.tsx to trpc.feed API (getFeed, createPost, likePost, unlikePost)
@@ -476,7 +476,7 @@
 - [x] Create livenessVerificationRouter
 - [x] Implement startLivenessChallenge mutation (generate random movements)
 - [x] Implement submitLivenessVideo mutation (process video)
-- [x] Implement verifyLiveness mutation (check head movements)
+- [ ] Implement verifyLiveness mutation (check head movements)
 - [x] Implement getLivenessStatus query
 - [x] Implement getLivenessHistory query
 - [ ] Add liveness detection algorithm (head pose detection)
@@ -486,7 +486,7 @@
 - [x] Create LivenessChallenge component
 - [x] Add video recording with constraints
 - [x] Display random movement instructions (nod, turn left, turn right, blink)
-- [x] Add real-time feedback during recording
+- [ ] Add real-time feedback during recording
 - [x] Add retry logic for failed attempts
 - [x] Add progress indicator
 
@@ -535,20 +535,20 @@
 ## Social Account Linking (OAuth Integration) - NEW
 
 ### Phase 1: Database Schema
-- [ ] Create linkedAccounts table (provider, provider_id, access_token)
-- [ ] Add linked_accounts json field to users table
-- [ ] Create accountLinkingRecords table (audit trail)
-- [ ] Add indexes for provider lookups
+- [x] Create linkedAccounts table (provider, provider_id, access_token)
+- [x] Add linked_accounts json field to users table
+- [x] Create accountLinkingRecords table (audit trail)
+- [x] Add indexes for provider lookups
 
 ### Phase 2: Backend API
-- [ ] Create socialLinkingRouter
-- [ ] Implement generateOAuthURL mutation (for each provider)
-- [ ] Implement handleOAuthCallback mutation
-- [ ] Implement linkAccount mutation
-- [ ] Implement unlinkAccount mutation
-- [ ] Implement getLinkedAccounts query
-- [ ] Implement getProviderInfo query
-- [ ] Add OAuth state validation
+- [x] Create socialLinkingRouter
+- [x] Implement generateOAuthURL mutation (for each provider)
+- [x] Implement handleOAuthCallback mutation
+- [x] Implement linkAccount mutation
+- [x] Implement unlinkAccount mutation
+- [x] Implement getLinkedAccounts query
+- [x] Implement getProviderInfo query
+- [x] Add OAuth state validation
 
 ### Phase 3: OAuth Providers Setup
 - [ ] Google OAuth configuration
@@ -559,20 +559,20 @@
 - [ ] Store OAuth credentials securely
 
 ### Phase 4: Frontend Components
-- [ ] Create SocialLinking page
-- [ ] Add provider buttons (Google, YouTube, Facebook, Instagram, TikTok)
-- [ ] Add OAuth popup/redirect flow
-- [ ] Display linked accounts list
-- [ ] Add unlink functionality
-- [ ] Add verification status for each provider
-- [ ] Add sync data option (import followers, videos, etc.)
+- [x] Create SocialLinking page
+- [x] Add provider buttons (Google, YouTube, Facebook, Instagram, TikTok)
+- [x] Add OAuth popup/redirect flow
+- [x] Display linked accounts list
+- [x] Add unlink functionality
+- [x] Add verification status for each provider
+- [x] Add sync data option (import followers, videos, etc.)
 
 ### Phase 5: Integration
-- [ ] Add Social Linking to Settings page
-- [ ] Add linked account display to profile
-- [ ] Add cross-platform sharing options
-- [ ] Add data sync from linked accounts
-- [ ] Add notification for new linked accounts
+- [x] Add Social Linking to Settings page
+- [x] Add linked account display to profile
+- [x] Add cross-platform sharing options
+- [x] Add data sync from linked accounts
+- [x] Add notification for new linked accounts
 
 
 ## Verification Integration Continuation (2026-08-22)

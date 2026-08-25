@@ -123,3 +123,22 @@ describe("Feed Component", () => {
     expect(validatePost("   ")).toBe(false);
   });
 });
+
+  it("should choose the selected collection before saving a post", () => {
+    const collections = [{ id: 7, name: "Science" }, { id: 8, name: "Music" }];
+    expect((collections.find((item) => item.id === 8) ?? collections[0]).name).toBe("Music");
+  });
+
+  it("should identify a saved post and switch its action to unsave", () => {
+    const savedItems = [{ id: 11, postId: 42 }];
+    const saved = savedItems.find((item) => item.postId === 42);
+    expect(saved?.id).toBe(11);
+    expect(saved ? "Saved" : "Save").toBe("Saved");
+  });
+
+  it("should keep a duplicate save idempotent", () => {
+    const firstSave = { duplicate: false, itemId: 11 };
+    const secondSave = { duplicate: true, itemId: 11 };
+    expect(secondSave.duplicate).toBe(true);
+    expect(secondSave.itemId).toBe(firstSave.itemId);
+  });

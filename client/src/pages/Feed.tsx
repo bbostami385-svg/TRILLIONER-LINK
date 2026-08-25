@@ -15,13 +15,14 @@ export default function Feed() {
   const [newPost, setNewPost] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [appealOpen, setAppealOpen] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | undefined>();
   const utils = trpc.useUtils();
 
   // Fetch feed posts
-  const { data: feedData, isLoading: feedLoading } = trpc.feed.getFeed.useQuery(
-    { limit: 20, offset: 0 },
-    { enabled: isAuthenticated }
-  );
+  const { data: feedData, isLoading: feedLoading } = trpc.feed.getFeed.useQuery({ limit: 20, offset: 0 }, { enabled: isAuthenticated });
+  const { data: userCollections } = trpc.collections.getUserCollections.useQuery({ userId: user?.id ?? 0 }, { enabled: isAuthenticated && Boolean(user?.id) });
+  const activeCollectionId = selectedCollectionId ?? userCollections?.[0]?.id;
+  const { data: savedItems } = trpc.collections.getCollectionItems.useQuery({ collectionId: activeCollectionId ?? 0 }, { enabled: Boolean(activeCollectionId) });
 
   // Create post mutation
   const createPostMutation = trpc.feed.createPost.useMutation({
@@ -40,11 +41,9 @@ export default function Feed() {
   });
 
   // Unlike post mutation
-  const unlikePostMutation = trpc.feed.unlikePost.useMutation({
-    onSuccess: () => {
-      utils.feed.getFeed.invalidate();
-    },
-  });
+  const unlikePostMutation = trpc.feed.unlikePost.useMutation({ onSuccess: () => { utils.feed.getFeed.invalidate(); } });
+  const savePostMutation = trpc.collections.saveItem.useMutation();
+  const removeSavedItemMutation = trpc.collections.removeItem.useMutation();
 
 
 
@@ -76,6 +75,16 @@ export default function Feed() {
       else toast.error("We could not publish your post. Please try again.");
       console.error("Failed to create post:", error);
     }
+  };
+
+  const handleSavePost = async (postId: number) => {
+    if (!activeCollectionId) { toast.info("Create a collection first, then save posts into it.", { action: { label: "Create collection", onClick: () => setLocation("/collections") } }); return; }
+    const existing = savedItems?.find((item) => item.postId === postId);
+    try {
+      if (existing) { await removeSavedItemMutation.mutateAsync({ itemId: existing.id }); toast.success("Post removed from your collection."); }
+      else { const result = await savePostMutation.mutateAsync({ collectionId: activeCollectionId, postId }); toast.success(result.duplicate ? "Post is already saved in this collection." : "Post saved to your collection."); }
+      await utils.collections.getCollectionItems.invalidate({ collectionId: activeCollectionId });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update the saved post."); }
   };
 
   const handleLike = async (postId: number, isLiked: boolean) => {
@@ -194,6 +203,7 @@ export default function Feed() {
               </div>
 
               {/* Post Actions */}
+              {userCollections && userCollections.length > 0 && <label className="mb-2 flex items-center gap-2 text-xs text-slate-500">Save to <select value={activeCollectionId ?? ""} onChange={(event) => setSelectedCollectionId(Number(event.target.value))} className="rounded border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200"><option value="" disabled>Select collection</option>{userCollections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}</select></label>}
               <div className="post-actions-bar">
                 <button
                   className={`action-btn ${post.likes > 0 ? "liked" : ""}`}
@@ -203,6 +213,7 @@ export default function Feed() {
                   ❤️ Like
                 </button>
                 <button className="action-btn">💬 Comment</button>
+                <button className="action-btn" onClick={() => void handleSavePost(post.id)} disabled={savePostMutation.isPending || removeSavedItemMutation.isPending}>{savedItems?.some((item) => item.postId === post.id) ? "🔖 Saved" : "🔖 Save"}</button>
                 <button className="action-btn">↗️ Share</button>
               </div>
             </div>

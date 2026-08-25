@@ -69,14 +69,12 @@ export const collectionsRouter = router({
         throw new Error("Collection not found or not owned by user");
       }
 
-      await db.insert(savedItems).values({
-        collectionId: input.collectionId,
-        postId: input.postId,
-        videoId: input.videoId,
-        reelId: input.reelId,
-      });
-
-      return { success: true };
+      if (input.postId !== undefined) {
+        const duplicate = await db.select({ id: savedItems.id }).from(savedItems).where(and(eq(savedItems.collectionId, input.collectionId), eq(savedItems.postId, input.postId))).limit(1);
+        if (duplicate.length > 0) return { success: true, duplicate: true, itemId: duplicate[0].id };
+      }
+      await db.insert(savedItems).values({ collectionId: input.collectionId, postId: input.postId, videoId: input.videoId, reelId: input.reelId });
+      return { success: true, duplicate: false };
     }),
 
   // Remove item from collection
@@ -86,6 +84,8 @@ export const collectionsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
+      const item = await db.select().from(savedItems).innerJoin(collections, eq(savedItems.collectionId, collections.id)).where(eq(savedItems.id, input.itemId)).limit(1);
+      if (!item[0] || item[0].collections.userId !== ctx.user.id) throw new Error("Saved item not found or not owned by user");
       await db.delete(savedItems).where(eq(savedItems.id, input.itemId));
       return { success: true };
     }),

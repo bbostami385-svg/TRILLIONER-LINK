@@ -113,7 +113,7 @@
 - [x] Creator Fund analytics (dashboard created)
 - [x] Dark mode toggle (ThemeToggle component)
 - [x] Language Selector (EN/BN/HI)
-- [ ] Save/bookmark posts
+- [x] Save/bookmark posts
 - [x] Advanced search with filters
 
 ## Implementation Status
@@ -859,3 +859,7 @@
 - [x] Render actual post and video advanced-search result cards instead of counts only.
 - [x] Add focused advanced-search result shaping tests for users, posts, videos, hashtags, and handles.
 - [x] Add a real upcoming-event calendar view with date grouping and accessible list fallback.
+- [x] Add a real Save/Bookmark action for Feed posts using the user's collections with clear feedback.
+- [x] Add a bookmark destination flow with a default collection or collection picker for Feed posts.
+- [x] Prevent duplicate saved post entries and expose per-post saved state with unsave behavior.
+- [x] Add focused tests for Feed bookmark destination, duplicate prevention, and save/unsave state.

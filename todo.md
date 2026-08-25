@@ -876,3 +876,4 @@
 - [x] Add missing-creator error coverage for subscribeToCreator and complete dualModeRouter contract coverage.
 - [x] Remove fabricated marketplace ratings and review counts; show only verified data or a neutral no-ratings state.
 - [ ] Replace the placeholder Marketplace checkout with a real transaction-ready flow tied to authenticated payment confirmation.
+- [x] Fix Welcome mode-selector contrast so headings and descriptions remain readable on dark cards in the active theme.

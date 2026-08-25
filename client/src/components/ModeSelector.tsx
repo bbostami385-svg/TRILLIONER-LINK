@@ -75,8 +75,8 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
               </div>
             )}
             <Users className="w-16 h-16 text-purple-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Social Mode</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-2xl font-bold text-white mb-2">Social Mode</h3>
+            <p className="text-slate-300 mb-4">
               Connect with friends and communities
             </p>
 
@@ -132,8 +132,8 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
               </div>
             )}
             <Video className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Creator Mode</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-2xl font-bold text-white mb-2">Creator Mode</h3>
+            <p className="text-slate-300 mb-4">
               Publish videos and build your audience
             </p>
 

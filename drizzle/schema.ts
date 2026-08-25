@@ -1120,3 +1120,16 @@ export const mutedUsers = mysqlTable("mutedUsers", {
 }));
 export type MutedUser = typeof mutedUsers.$inferSelect;
 export type InsertMutedUser = typeof mutedUsers.$inferInsert;
+
+/** Durable interaction signals used by personalized recommendation workflows. */
+export const recommendationInteractions = mysqlTable("recommendationInteractions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contentId: int("contentId").notNull(),
+  contentType: mysqlEnum("contentType", ["post", "video", "comment"]).notNull(),
+  interactionType: mysqlEnum("interactionType", ["like", "comment", "share", "view"]).notNull(),
+  duration: int("duration"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RecommendationInteraction = typeof recommendationInteractions.$inferSelect;
+export type InsertRecommendationInteraction = typeof recommendationInteractions.$inferInsert;

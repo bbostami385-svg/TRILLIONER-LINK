@@ -74,3 +74,11 @@ describe("recommendation procedures", () => {
     expect(result).toEqual({ content: trending, total: 5 });
     expect(db.getTrendingVideos).toHaveBeenCalledWith(5);
   });
+
+  it("persists interaction signals with normalized view duration", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    vi.mocked(db.getDb).mockResolvedValue({ insert: vi.fn(() => ({ values })) } as never);
+    const result = await recommendationsRouter.createCaller({ user: { id: 7 } } as any).trackInteraction({ contentId: 8, contentType: "video", interactionType: "view", duration: 12.7 });
+    expect(result).toEqual({ success: true, message: "Interaction tracked" });
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, contentId: 8, duration: 13 }));
+  });

@@ -928,3 +928,5 @@
 - [x] Add focused recommendation procedure tests for persisted ranking, category filtering, and hashtag aggregation.
 
 - [x] Replace empty following and collaborative recommendation responses with persisted video queries and test their fallback behavior.
+
+- [x] Add durable recommendation interaction storage and persist view, like, comment, and share signals.

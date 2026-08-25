@@ -1,7 +1,7 @@
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb, getFeedPosts, getTrendingVideos } from "../db";
-import { follows, likes, users, videos } from "../../drizzle/schema";
+import { follows, likes, recommendationInteractions, users, videos } from "../../drizzle/schema";
 import { and, desc, eq, inArray, isNotNull, ne, notInArray } from "drizzle-orm";
 
 interface UserInteraction {
@@ -173,13 +173,14 @@ export const recommendationsRouter = router({
       try {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-
-        // Save interaction to database for recommendation model training
-
-        return {
-          success: true,
-          message: "Interaction tracked",
-        };
+        await db.insert(recommendationInteractions).values({
+          userId: ctx.user.id,
+          contentId: input.contentId,
+          contentType: input.contentType,
+          interactionType: input.interactionType,
+          duration: input.duration == null ? null : Math.max(0, Math.round(input.duration)),
+        });
+        return { success: true, message: "Interaction tracked" };
       } catch (error) {
         console.error("Error tracking interaction:", error);
         throw new Error("Failed to track interaction");

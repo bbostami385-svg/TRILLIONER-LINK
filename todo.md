@@ -465,71 +465,71 @@
 ## Human Verification (Face Liveness Detection) - NEW
 
 ### Phase 1: Database Schema
-- [ ] Add liveness_verified boolean field to users table
-- [ ] Add liveness_verification_at timestamp to users table
-- [ ] Add liveness_attempts int field to users table
-- [ ] Create faceLinessRecords table with video/image data
-- [ ] Create livenessChallenge table (random head movements)
-- [ ] Add indexes for performance
+- [x] Add liveness_verified boolean field to users table
+- [x] Add liveness_verification_at timestamp to users table
+- [x] Add liveness_attempts int field to users table
+- [x] Create faceLinessRecords table with video/image data
+- [x] Create livenessChallenge table (random head movements)
+- [x] Add indexes for performance
 
 ### Phase 2: Backend API
-- [ ] Create livenessVerificationRouter
-- [ ] Implement startLivenessChallenge mutation (generate random movements)
-- [ ] Implement submitLivenessVideo mutation (process video)
-- [ ] Implement verifyLiveness mutation (check head movements)
-- [ ] Implement getLivenessStatus query
-- [ ] Implement getLivenessHistory query
+- [x] Create livenessVerificationRouter
+- [x] Implement startLivenessChallenge mutation (generate random movements)
+- [x] Implement submitLivenessVideo mutation (process video)
+- [x] Implement verifyLiveness mutation (check head movements)
+- [x] Implement getLivenessStatus query
+- [x] Implement getLivenessHistory query
 - [ ] Add liveness detection algorithm (head pose detection)
 - [ ] Add bot detection logic
 
 ### Phase 3: Frontend Components
-- [ ] Create LivenessChallenge component
-- [ ] Add video recording with constraints
-- [ ] Display random movement instructions (nod, turn left, turn right, blink)
-- [ ] Add real-time feedback during recording
-- [ ] Add retry logic for failed attempts
-- [ ] Add progress indicator
+- [x] Create LivenessChallenge component
+- [x] Add video recording with constraints
+- [x] Display random movement instructions (nod, turn left, turn right, blink)
+- [x] Add real-time feedback during recording
+- [x] Add retry logic for failed attempts
+- [x] Add progress indicator
 
 ### Phase 4: Integration
-- [ ] Add liveness verification to registration flow
-- [ ] Make it required for all new users
-- [ ] Add liveness status check on app load
-- [ ] Add liveness badge to verified profiles
+- [x] Add liveness verification to registration flow
+- [x] Make it required for all new users
+- [x] Add liveness status check on app load
+- [x] Add liveness badge to verified profiles
 
 
 ## KYC (Identity Verification) System - NEW
 
 ### Phase 1: Database Schema
-- [ ] Create kyc_documents table (ID type, image URL, status)
-- [ ] Create kyc_verification_records table (audit trail)
-- [ ] Add kyc_verified boolean field to users table
-- [ ] Add kyc_verification_at timestamp to users table
-- [ ] Add kyc_document_type field to users table
-- [ ] Add kyc_status enum field (pending, approved, rejected)
+- [x] Create kyc_documents table (ID type, image URL, status)
+- [x] Create kyc_verification_records table (audit trail)
+- [x] Add kyc_verified boolean field to users table
+- [x] Add kyc_verification_at timestamp to users table
+- [x] Add kyc_document_type field to users table
+- [x] Add kyc_status enum field (pending, approved, rejected)
 
 ### Phase 2: Backend API
-- [ ] Create kycRouter
-- [ ] Implement submitKYCDocument mutation
-- [ ] Implement getKYCStatus query
-- [ ] Implement getKYCHistory query
-- [ ] Implement approveKYC admin procedure
-- [ ] Implement rejectKYC admin procedure
-- [ ] Add document validation logic
+- [x] Create kycRouter
+- [x] Implement submitKYCDocument mutation
+- [x] Implement getKYCStatus query
+- [x] Implement getKYCHistory query
+- [x] Implement approveKYC admin procedure
+- [x] Implement rejectKYC admin procedure
+- [x] Add document validation logic
 - [ ] Add OCR integration for ID extraction
 
 ### Phase 3: Frontend Components
-- [ ] Create KYCForm component
-- [ ] Add document type selector (Passport, Driver License, National ID)
-- [ ] Add document upload (front & back)
-- [ ] Add selfie with document verification
-- [ ] Add status display (pending, approved, rejected)
-- [ ] Add retry logic
+- [x] Create KYCForm component
+- [x] Add document type selector (Passport, Driver License, National ID)
+- [x] Add document upload (front & back)
+- [x] Add selfie with document verification
+- [x] Add status display (pending, approved, rejected)
+- [x] Add retry logic
 
 ### Phase 4: Integration
-- [ ] Add KYC check before monetization features
-- [ ] Add KYC status to profile
-- [ ] Add KYC requirement notification
-- [ ] Link to monetization features (YouTube Partner style)
+- [x] Add KYC check before monetization features
+- [x] Add KYC status to profile
+- [x] Add KYC requirement notification
+- [x] Link to monetization features (YouTube Partner style)
 
 
 ## Social Account Linking (OAuth Integration) - NEW

@@ -155,7 +155,7 @@
 - [x] Event RSVP system
 - [x] Events API router
 - [x] Events frontend page
-- [ ] Event calendar view
+- [x] Event calendar view
 - [ ] Event notifications
 
 ### Phase 3: Reels/Shorts and Sounds
@@ -858,3 +858,4 @@
 - [x] Add advanced Explore search filters for users, posts, videos, hashtags, and public handles.
 - [x] Render actual post and video advanced-search result cards instead of counts only.
 - [x] Add focused advanced-search result shaping tests for users, posts, videos, hashtags, and handles.
+- [x] Add a real upcoming-event calendar view with date grouping and accessible list fallback.

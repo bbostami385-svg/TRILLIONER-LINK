@@ -9,6 +9,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 export function Events() {
   const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [calendarMode, setCalendarMode] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -142,10 +143,12 @@ export function Events() {
 
         {/* Upcoming Events */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-4">Upcoming Events</h2>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="text-2xl font-bold text-white">Upcoming Events</h2><Button type="button" variant="outline" onClick={() => setCalendarMode((current) => !current)} className="w-fit border-purple-300/30 bg-transparent text-purple-100 hover:bg-white/10">{calendarMode ? "List view" : "Calendar view"}</Button></div>
           {loadingEvents ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <Card key={item} className="h-44 animate-pulse border-purple-500/30 bg-slate-800" />)}</div>
-          ) : upcomingEvents && upcomingEvents.length > 0 ? (
+          ) : upcomingEvents && upcomingEvents.length > 0 ? calendarMode ? (
+            <div className="space-y-4" aria-label="Upcoming events calendar"><p className="text-sm text-purple-200">Events grouped by their local calendar date.</p>{Object.entries((upcomingEvents ?? []).reduce<Record<string, any[]>>((groups, event) => { const key = new Date(event.startDate).toLocaleDateString(); (groups[key] ??= []).push(event); return groups; }, {})).map(([date, eventsForDate]) => <Card key={date} className="border-purple-500/40 bg-slate-800 p-4"><div className="mb-3 flex items-center justify-between"><h3 className="font-semibold text-white">{date}</h3><span className="text-xs text-purple-300">{eventsForDate.length} event{eventsForDate.length === 1 ? "" : "s"}</span></div><div className="space-y-2">{eventsForDate.map((event) => <div key={event.id} className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-white">{event.title}</p><p className="text-xs text-purple-200">{new Date(event.startDate).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}{event.location ? ` · ${event.location}` : ""}</p></div><Button onClick={() => handleRSVP(event.id, "going")} size="sm" className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" disabled={rsvpEventMutation.isPending}>Going</Button></div>)}</div></Card>)}</div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingEvents.map((event) => (
                 <Card

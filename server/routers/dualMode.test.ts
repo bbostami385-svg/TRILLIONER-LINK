@@ -114,7 +114,8 @@ describe("Dual mode relationship lifecycle", () => {
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 1 }]) }) })
-        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 2 }]) }) }),
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 2 }]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
       insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue({}) })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
     };
@@ -144,8 +145,9 @@ describe("Dual mode relationship lifecycle", () => {
       delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })),
       select: vi.fn()
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
-        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) }),
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
+      insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue({}) })),
     };
     vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
     const result = await dualModeRouter.createCaller({ user: { id: 42 } } as any).unsubscribeFromCreator({ creatorId: 7 });
@@ -169,7 +171,7 @@ describe("Dual mode conflict validation", () => {
   it("rejects duplicate subscriptions with a conflict error", async () => {
     const db = {
       select: vi.fn()
-        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7 }]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7, accountMode: "creator" }]) }) }) })
         .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 1 }]) }) }) }),
     };
     vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
@@ -195,7 +197,8 @@ describe("Dual mode following lifecycle", () => {
       delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })),
       select: vi.fn()
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 1 }]) }) })
-        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) }),
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
     };
     vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
@@ -212,10 +215,11 @@ describe("Dual mode subscription creation", () => {
     const values = vi.fn().mockResolvedValue({});
     const db = {
       select: vi.fn()
-        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7 }]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7, accountMode: "creator" }]) }) }) })
         .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) })
         .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
-        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 1 }]) }) }),
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 1 }]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) }),
       insert: vi.fn(() => ({ values })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
     };
@@ -231,5 +235,46 @@ describe("Dual mode subscription creation", () => {
     const db = { select: vi.fn(() => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) })) };
     vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
     await expect(dualModeRouter.createCaller({ user: { id: 42 } } as any).subscribeToCreator({ creatorId: 7, tier: "free" })).rejects.toThrow("Creator not found.");
+  });
+});
+
+
+describe("Dual mode audience-level integration", () => {
+  it("levels a Social Mode account and records a notification at the follower threshold", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    const db = {
+      select: vi.fn()
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7, accountMode: "social" }]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ id: 1 }]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve(Array.from({ length: 50 }, (_, id) => ({ id }))) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ currentLevel: 1, totalFollowers: 49, levelUpCount: 0, lastLevelUpAt: null }]) }) }) }),
+      insert: vi.fn(() => ({ values })),
+      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
+    };
+    vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
+    await dualModeRouter.createCaller({ user: { id: 42 } } as any).followUser({ targetUserId: 7 });
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, fromUserId: 42, type: "level_up" }));
+    expect(db.update).toHaveBeenCalledTimes(3);
+  });
+
+  it("levels a Creator Mode account from subscriber milestones", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    const db = {
+      select: vi.fn()
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 7, accountMode: "creator" }]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([]) }) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([]) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve(Array.from({ length: 50 }, (_, id) => ({ id }))) }) })
+        .mockReturnValueOnce({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ currentLevel: 1, totalFollowers: 49, levelUpCount: 0, lastLevelUpAt: null }]) }) }) }),
+      insert: vi.fn(() => ({ values })),
+      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
+    };
+    vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
+    await dualModeRouter.createCaller({ user: { id: 42 } } as any).subscribeToCreator({ creatorId: 7, tier: "premium" });
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ subscriberId: 42, creatorId: 7, subscriptionTier: "premium" }));
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, fromUserId: 42, type: "level_up" }));
   });
 });

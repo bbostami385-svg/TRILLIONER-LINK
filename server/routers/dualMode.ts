@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { follows, subscriptions, userModePreferences, users, notifications } from "../../drizzle/schema";
+import { calculateLevel } from "./levels";
+import { follows, notifications, subscriptions, userLevels, userModePreferences, users } from "../../drizzle/schema";
 
 const modeSchema = z.enum(["social", "creator"]);
 const idSchema = z.number().int().positive();
@@ -22,6 +23,18 @@ async function ensureModePreferences(db: Awaited<ReturnType<typeof getRequiredDb
       await db.insert(userModePreferences).values({ userId, mode });
     }
   }
+}
+
+async function syncAudienceLevel(db: Awaited<ReturnType<typeof getRequiredDb>>, userId: number, audienceCount: number, fromUserId: number) {
+  const [levelRecord] = await db.select().from(userLevels).where(eq(userLevels.userId, userId)).limit(1);
+  const newLevel = calculateLevel(audienceCount);
+  if (!levelRecord) {
+    await db.insert(userLevels).values({ userId, currentLevel: newLevel, totalFollowers: audienceCount, levelUpCount: 0, lastLevelUpAt: null });
+    return;
+  }
+  const leveledUp = newLevel > levelRecord.currentLevel;
+  await db.update(userLevels).set({ totalFollowers: audienceCount, ...(leveledUp ? { currentLevel: newLevel, levelUpCount: levelRecord.levelUpCount + 1, lastLevelUpAt: new Date() } : {}), updatedAt: new Date() }).where(eq(userLevels.userId, userId));
+  if (leveledUp) await db.insert(notifications).values({ userId, fromUserId, type: "level_up", message: `Congratulations! You reached Level ${newLevel}.`, isRead: false });
 }
 
 export const dualModeRouter = router({
@@ -69,7 +82,7 @@ export const dualModeRouter = router({
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.id === input.targetUserId) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot follow yourself." });
       const db = await getRequiredDb();
-      const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.targetUserId)).limit(1);
+      const [target] = await db.select({ id: users.id, accountMode: users.accountMode }).from(users).where(eq(users.id, input.targetUserId)).limit(1);
       if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
       const [existing] = await db.select({ id: follows.id }).from(follows).where(and(
         eq(follows.followerId, ctx.user.id), eq(follows.followingId, input.targetUserId)
@@ -86,6 +99,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
       ));
+      if (target.accountMode !== "creator") await syncAudienceLevel(db, input.targetUserId, followers.length, ctx.user.id);
       return { success: true, message: "Successfully followed user." };
     }),
 
@@ -102,6 +116,8 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
       ));
+      const [levelRecord] = await db.select().from(userLevels).where(eq(userLevels.userId, input.targetUserId)).limit(1);
+      if (levelRecord) await db.update(userLevels).set({ totalFollowers: followers.length, updatedAt: new Date() }).where(eq(userLevels.userId, input.targetUserId));
       return { success: true, message: "Successfully unfollowed user." };
     }),
 
@@ -142,8 +158,9 @@ export const dualModeRouter = router({
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.id === input.creatorId) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot subscribe to yourself." });
       const db = await getRequiredDb();
-      const [creator] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.creatorId)).limit(1);
+      const [creator] = await db.select({ id: users.id, accountMode: users.accountMode }).from(users).where(eq(users.id, input.creatorId)).limit(1);
       if (!creator) throw new TRPCError({ code: "NOT_FOUND", message: "Creator not found." });
+      if (creator.accountMode !== "creator") throw new TRPCError({ code: "BAD_REQUEST", message: "Subscriptions are available only for Creator Mode accounts." });
       const [existing] = await db.select({ id: subscriptions.id }).from(subscriptions).where(and(
         eq(subscriptions.subscriberId, ctx.user.id), eq(subscriptions.creatorId, input.creatorId)
       )).limit(1);
@@ -154,6 +171,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
       ));
+      await syncAudienceLevel(db, input.creatorId, count.length, ctx.user.id);
       await db.insert(notifications).values({
         userId: input.creatorId,
         fromUserId: ctx.user.id,
@@ -175,6 +193,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
       ));
+      await syncAudienceLevel(db, input.creatorId, count.length, ctx.user.id);
       return { success: true, message: "Successfully unsubscribed from creator." };
     }),
 

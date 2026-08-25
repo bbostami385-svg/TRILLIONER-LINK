@@ -373,7 +373,7 @@
 - [x] Test level up notifications
 - [x] Test leaderboard functionality
 - [ ] Test animation and confetti effects
-- [ ] Test integration with follow/subscribe system
+- [x] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
 - [ ] Create checkpoint with all changes
@@ -937,3 +937,9 @@
 - [x] Add focused age-verification tests for exact age thresholds, future dates, and adult human-liveness onboarding behavior.
 
 - [x] Persist a level-up notification when a user crosses a follower threshold and test the notification counter side effect.
+
+- [x] Synchronize creator level state when follower relationships change and test the Follow-to-Level integration.
+
+- [x] Synchronize creator level state for subscribe and unsubscribe flows if subscriber milestones are part of Creator Mode.
+- [x] Handle follower-count decreases consistently in level state and document the non-decreasing policy if intentional.
+- [x] Add an explicit integration test covering follow, subscribe, and resulting level or notification behavior across both modes.

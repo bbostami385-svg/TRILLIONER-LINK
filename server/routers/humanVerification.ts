@@ -5,7 +5,7 @@ import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { assessLivenessRisk } from "../livenessSignals";
-import { faceLivenessRecords, livenessChallenge, users, verificationAuditLogs } from "../../drizzle/schema";
+import { faceLivenessRecords, livenessChallenge, notifications, users, verificationAuditLogs } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -267,6 +267,7 @@ export const humanVerificationRouter = router({
           : { livenessVerified: false }).where(eq(users.id, record.userId))));
         await Promise.all(pending.map((record) => tx.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: input.action === "approve" ? "review_approved" : "review_rejected", details: input.reason ? { reason: input.reason.trim() } : null })));
       });
+      await Promise.all(pending.map((record) => db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: input.action === "approve" ? "Human verification approved. Your account is now protected." : `Human verification needs another attempt: ${input.reason!.trim()}`, isRead: false })));
       return { success: true, updated: pending.length, skipped: records.length - pending.length, reviewedBy: ctx.user.id };
     }),
 
@@ -282,6 +283,7 @@ export const humanVerificationRouter = router({
       await db.update(users).set({ livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 })
         .where(eq(users.id, record.userId));
       await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_approved", details: null });
+      await db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: "Human verification approved. Your account is now protected.", isRead: false });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification approved." };
     }),
 
@@ -297,6 +299,7 @@ export const humanVerificationRouter = router({
       await db.update(users).set({ livenessVerified: false })
         .where(eq(users.id, record.userId));
       await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_rejected", details: { reason: input.reason } });
+      await db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: `Human verification needs another attempt: ${input.reason}`, isRead: false });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification rejected." };
     }),
 });

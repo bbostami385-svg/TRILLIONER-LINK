@@ -5,13 +5,14 @@ import { getRequiredDb } from "../db";
 import { notifications, users } from "../../drizzle/schema";
 import { getNotifications, getUnreadNotifications, markAllNotificationsAsRead } from "../db";
 
-const notificationType = z.enum(["like", "comment", "follow", "subscribe", "share", "mention", "appeal_result"]);
-const notificationCategory = z.enum(["all", "subscriptions", "appeals", "social"]);
+const notificationType = z.enum(["like", "comment", "follow", "subscribe", "share", "mention", "appeal_result", "verification_reminder"]);
+const notificationCategory = z.enum(["all", "subscriptions", "appeals", "social", "verification"]);
 const categoryTypes: Record<z.infer<typeof notificationCategory>, z.infer<typeof notificationType>[]> = {
-  all: ["like", "comment", "follow", "subscribe", "share", "mention", "appeal_result"],
+  all: ["like", "comment", "follow", "subscribe", "share", "mention", "appeal_result", "verification_reminder"],
   subscriptions: ["subscribe"],
   appeals: ["appeal_result"],
   social: ["like", "comment", "follow", "share", "mention"],
+  verification: ["verification_reminder"],
 };
 
 function categoryWhere(userId: number, category: z.infer<typeof notificationCategory>) {

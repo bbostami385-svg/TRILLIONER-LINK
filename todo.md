@@ -439,23 +439,23 @@
 - [x] Add verification status check on app load
 - [x] Redirect unverified users to /verify page
 - [x] Add verification status badge to profile
-- [ ] Add verification reminder notifications
+- [x] Add verification reminder notifications
 
 ### Phase 6: Admin Panel & Review
 - [x] Create admin panel for verification review
 - [x] Add face verification approval/rejection interface
 - [x] Add audit log for all verification attempts
 - [x] Add bulk approval/rejection tools
-- [ ] Add analytics dashboard for verification metrics
+- [x] Add analytics dashboard for verification metrics
 
 ### Phase 7: Testing
 - [x] Write unit tests for age calculation
 - [x] Write unit tests for age validation
-- [ ] Write tests for face verification flow
+- [x] Write tests for face verification flow
 - [ ] Write integration tests for verification router
 - [x] Test age restriction enforcement (13+ minimum)
 - [x] Test face verification requirement (18+)
-- [ ] Test camera permissions handling
+- [x] Test camera permissions handling
 - [x] Test file upload validation
 
 ### Phase 8: Checkpoint & Delivery

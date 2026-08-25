@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
@@ -52,6 +53,10 @@ import CreatorPlaylists from "./pages/CreatorPlaylists";
 import SubscriptionCollections from "./pages/SubscriptionCollections";
 import PublicPlaylist from "./pages/PublicPlaylist";
 import { VerificationGate } from "./components/VerificationGate";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { shouldRedirectToWelcome } from "@/lib/modeOnboarding";
 import InstallAppPrompt from "./components/InstallAppPrompt";
 import MiniPlayer, { MiniPlayerProvider } from "./components/MiniPlayer";
 import "./App.css";
@@ -118,6 +123,19 @@ function Router() {
 //   to keep consistent foreground/background color across components
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
+function ModeSelectionGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const [location, setLocation] = useLocation();
+  const isPublicOrOnboarding = ["/login", "/signup", "/verify", "/welcome", "/mode-selection"].includes(location);
+  const currentMode = trpc.dualMode.getCurrentMode.useQuery(undefined, { enabled: isAuthenticated && !isPublicOrOnboarding, retry: false, staleTime: 30_000 });
+
+  useEffect(() => {
+    if (currentMode.data && shouldRedirectToWelcome({ isAuthenticated, location, modeSelected: currentMode.data.modeSelected })) setLocation("/welcome");
+  }, [currentMode.data, currentMode.isLoading, isAuthenticated, isPublicOrOnboarding, setLocation]);
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -135,7 +153,9 @@ function App() {
             </div>
           </div>
           <VerificationGate>
-            <Router />
+            <ModeSelectionGate>
+              <Router />
+            </ModeSelectionGate>
           </VerificationGate>
           <InstallAppPrompt />
           <Toaster />

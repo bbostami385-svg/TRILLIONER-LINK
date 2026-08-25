@@ -23,6 +23,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
 
   const initMutation = trpc.dualMode.initializeModePreferences.useMutation();
   const switchMutation = trpc.dualMode.switchMode.useMutation();
+  const utils = trpc.useUtils();
 
   const handleModeSelect = async (mode: "social" | "creator") => {
     setSelectedMode(mode);
@@ -34,6 +35,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
       } else {
         await switchMutation.mutateAsync({ newMode: mode });
       }
+      await utils.dualMode.getCurrentMode.invalidate();
       onModeSelected?.(mode);
     } catch (error) {
       console.error("Error selecting mode:", error);

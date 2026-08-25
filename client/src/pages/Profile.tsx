@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Heart, MessageCircle, Share2, Settings, Edit2, UserPlus, UserCheck, ShieldCheck } from 'lucide-react';
 import { LevelBadge } from '@/components/LevelBadge';
 import { LevelProgressBar } from '@/components/LevelProgressBar';
 import { ModeIndicator } from '@/components/ModeIndicator';
 import { DualModeButton } from '@/components/DualModeButton';
+import { ModeStatistics } from '@/components/ModeStatistics';
 import { trpc } from '@/lib/trpc';
 import './Profile.css';
 
@@ -32,6 +33,9 @@ export default function Profile() {
   const { data: userStats } = trpc.profileEdit.getUserStats.useQuery();
   const { data: livenessStatus } = trpc.humanVerification.getLivenessStatus.useQuery();
   const { data: kycStatus } = trpc.kyc.getKYCStatus.useQuery();
+  const audiencePage = useMemo(() => ({ limit: 5, offset: 0 }), []);
+  const { data: followersPreview } = trpc.dualMode.getFollowers.useQuery({ userId: 1, ...audiencePage }, { enabled: currentMode?.currentMode === "social", retry: false });
+  const { data: subscribersPreview } = trpc.dualMode.getSubscribers.useQuery({ creatorId: 1, ...audiencePage }, { enabled: currentMode?.currentMode === "creator", retry: false });
 
   const [user] = useState<UserProfile>({
     id: 1,
@@ -92,19 +96,11 @@ export default function Profile() {
               </a>
             )}
             
+            <div className="mb-4"><ModeStatistics userId={user.id} currentMode={currentMode?.currentMode ?? "social"} /></div>
             <div className="profile-stats">
-              <div className="stat">
-                <span className="stat-value">{userStats?.postsCount ?? user.posts}</span>
-                <span className="stat-label">Posts</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">{(userStats?.followersCount ?? user.followers).toLocaleString()}</span>
-                <span className="stat-label">Followers</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">{(userStats?.followingCount ?? user.following).toLocaleString()}</span>
-                <span className="stat-label">Following</span>
-              </div>
+              <div className="stat"><span className="stat-value">{currentMode?.currentMode === "creator" ? (userStats?.videosCount ?? 0) : (userStats?.postsCount ?? user.posts)}</span><span className="stat-label">{currentMode?.currentMode === "creator" ? "Videos" : "Posts"}</span></div>
+              <div className="stat"><span className="stat-value">{(currentMode?.currentMode === "creator" ? (currentMode?.statistics?.subscribers ?? 0) : (userStats?.followersCount ?? user.followers)).toLocaleString()}</span><span className="stat-label">{currentMode?.currentMode === "creator" ? "Subscribers" : "Followers"}</span></div>
+              <div className="stat"><span className="stat-value">{(currentMode?.currentMode === "creator" ? (currentMode?.statistics?.totalViews ?? userStats?.lifetimeViews ?? 0) : (userStats?.followingCount ?? user.following)).toLocaleString()}</span><span className="stat-label">{currentMode?.currentMode === "creator" ? "Views" : "Following"}</span></div>
             </div>
             {userStats && <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3"><span>Joined {userStats.joinedAt ? new Date(userStats.joinedAt).toLocaleDateString() : "—"}</span><span>{userStats.videosCount.toLocaleString()} video uploads</span><span>{userStats.lifetimeViews.toLocaleString()} lifetime views</span></div>}
             {kycStatus && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-slate-300"><span className="font-semibold text-amber-200">Identity verification:</span> {kycStatus.status === "approved" ? "Approved" : kycStatus.status === "pending" ? "Under review" : kycStatus.status === "rejected" ? "Needs resubmission" : "Not submitted"}. KYC is only used for monetization and payouts.</div>}
@@ -124,6 +120,9 @@ export default function Profile() {
               </button>
             </div>
             
+            {currentMode?.currentMode === "social" && <div className="mt-4 rounded-xl border border-purple-300/20 bg-purple-500/5 p-3"><p className="text-xs font-semibold uppercase tracking-wider text-purple-200">Followers</p><div className="mt-2 flex flex-wrap gap-2">{followersPreview?.followers.map((person) => <span key={person.id} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-slate-200">{person.name || "Community member"}</span>)}{followersPreview?.followers.length === 0 && <span className="text-xs text-slate-400">Your follower list will appear here.</span>}</div></div>}
+            {currentMode?.currentMode === "creator" && <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-500/5 p-3"><p className="text-xs font-semibold uppercase tracking-wider text-rose-200">Subscribers</p><div className="mt-2 flex flex-wrap gap-2">{subscribersPreview?.subscribers.map((person) => <span key={person.id} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-slate-200">{person.name || "Subscriber"}</span>)}{subscribersPreview?.subscribers.length === 0 && <span className="text-xs text-slate-400">Your subscriber list will appear here.</span>}</div></div>}
+
             {levelStats && (
               <div className="mt-4">
                 <LevelProgressBar

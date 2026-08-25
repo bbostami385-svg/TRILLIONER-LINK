@@ -2,6 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Users, Video, Eye } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { selectModeStatistics } from "@/lib/modeOnboarding";
 
 interface ModeStatisticsProps {
   userId: number;
@@ -30,7 +31,10 @@ export const ModeStatistics: React.FC<ModeStatisticsProps> = ({
     );
   }
 
-  const stats = currentMode === "social" ? modeStats?.social : modeStats?.creator;
+  const stats = selectModeStatistics(modeStats ? [
+    ...(modeStats.social ? [{ ...modeStats.social, mode: "social" as const }] : []),
+    ...(modeStats.creator ? [{ ...modeStats.creator, mode: "creator" as const }] : []),
+  ] : undefined, currentMode);
 
   if (!stats) {
     return null;

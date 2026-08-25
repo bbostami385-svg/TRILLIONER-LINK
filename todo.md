@@ -242,7 +242,7 @@
 - [ ] Pages router: Add real page-followers relationship table and implement follower management
 - [ ] Moderation router: Implement proper comment filtering and content scanning
 - [x] Event notifications: Add notification system for event RSVPs
-- [ ] Story sharing: Implement share to stories feature
+- [x] Story sharing: Implement share to stories feature
 
 ### Phase 4 Gaps (Error Handling & Cache)
 - [x] Add proper error handling to all mutation pages
@@ -282,30 +282,30 @@
 - [x] Create ModeSelector component (choose between modes)
 
 ### Phase 4: Welcome Screen & First-Time Setup
-- [ ] Create WelcomeScreen page with ModeSelector
-- [ ] Add route to App.tsx for /welcome
-- [ ] Check modeSelected flag on app load
-- [ ] Redirect to welcome if modeSelected is false
+- [x] Create WelcomeScreen page with ModeSelector
+- [x] Add route to App.tsx for /welcome
+- [x] Check modeSelected flag on app load
+- [x] Redirect to welcome if modeSelected is false
 
 ### Phase 5: Settings Page Integration
-- [ ] Add Mode Switching section to Settings page
-- [ ] Display current mode with ModeIndicator
-- [ ] Add ModeSelector component to settings
-- [ ] Show mode-specific statistics in settings
+- [x] Add Mode Switching section to Settings page
+- [x] Display current mode with ModeIndicator
+- [x] Add ModeSelector component to settings
+- [x] Show mode-specific statistics in settings
 
 ### Phase 6: Profile Page Integration
-- [ ] Update Profile page to use ModeStatistics
-- [ ] Display Follow/Subscribe button based on mode
-- [ ] Show followers/subscribers list based on mode
-- [ ] Update profile header with ModeIndicator
+- [x] Update Profile page to use ModeStatistics
+- [x] Display Follow/Subscribe button based on mode
+- [x] Show followers/subscribers list based on mode
+- [x] Update profile header with ModeIndicator
 
 ### Phase 7: Testing & Verification
-- [ ] Write unit tests for dualModeRouter
-- [ ] Test Follow/Unfollow functionality
-- [ ] Test Subscribe/Unsubscribe functionality
-- [ ] Test mode switching
-- [ ] Test statistics updates
-- [ ] Test first-time setup flow
+- [x] Write unit tests for dualModeRouter
+- [x] Test Follow/Unfollow functionality
+- [x] Test Subscribe/Unsubscribe functionality
+- [x] Test mode switching
+- [x] Test statistics updates
+- [x] Test first-time setup flow
 
 ### Phase 8: Checkpoint & Delivery
 - [ ] Create checkpoint with all changes
@@ -868,3 +868,9 @@
 - [x] Add a dedicated share-to-story backend procedure with source metadata and supported-media validation.
 - [x] Expand Share to Stories to Shorts and keep success/error/loading feedback consistent across media surfaces.
 - [x] Add focused story-sharing tests for authentication, media validation, and created-story metadata.
+- [x] Add focused dualModeRouter tests for mode initialization, switching, and follow/subscribe mutations.
+- [x] Add focused onboarding redirect and mode-specific statistics tests for the first-time flow and profile surfaces.
+- [x] Add focused tests for remaining dualModeRouter queries and follow/subscribe lifecycle procedures.
+- [x] Add dualModeRouter error-case tests for self actions, duplicates, and missing targets.
+- [x] Add a successful subscribeToCreator test for creation, subscriber-count update, and creator notification.
+- [x] Add missing-creator error coverage for subscribeToCreator and complete dualModeRouter contract coverage.

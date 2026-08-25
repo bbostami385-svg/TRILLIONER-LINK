@@ -933,3 +933,5 @@
 
 - [x] Add privacy-conscious advisory OCR signals to KYC submissions without auto-approving or rejecting identity documents.
 - [x] Add KYC OCR fallback tests for successful extraction and unavailable OCR.
+
+- [x] Add focused age-verification tests for exact age thresholds, future dates, and adult human-liveness onboarding behavior.

@@ -5,7 +5,7 @@ import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { extractKycOcrSignals } from "../kycOcr";
-import { kycDocuments, kycVerificationRecords, users } from "../../drizzle/schema";
+import { kycDocuments, kycVerificationRecords, notifications, users } from "../../drizzle/schema";
 
 export const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -121,6 +121,7 @@ export const kycRouter = router({
           ? { kycVerified: true, kycStatus: "approved", kycVerificationAt: new Date() }
           : { kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, document.userId))));
       });
+      await Promise.all(pending.map((document) => db.insert(notifications).values({ userId: document.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: input.action === "approve" ? "Identity verification approved. Monetization review can now continue." : `Identity verification needs another submission: ${input.reason!.trim()}`, isRead: false })));
       return { success: true, updated: pending.length, skipped: documents.length - pending.length, reviewedBy: ctx.user.id };
     }),
 
@@ -143,6 +144,7 @@ export const kycRouter = router({
         kycStatus: "approved",
         kycVerificationAt: new Date(),
       }).where(eq(users.id, input.userId));
+      await db.insert(notifications).values({ userId: input.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: "Identity verification approved. Monetization review can now continue.", isRead: false });
       return { success: true, message: "KYC approved." };
     }),
 
@@ -165,6 +167,7 @@ export const kycRouter = router({
         notes: input.notes,
       }).where(eq(kycVerificationRecords.documentId, document.id));
       await db.update(users).set({ kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, input.userId));
+      await db.insert(notifications).values({ userId: input.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: `Identity verification needs another submission: ${input.rejectionReason}`, isRead: false });
       return { success: true, message: "KYC rejected; the user may resubmit." };
     }),
 

@@ -366,7 +366,7 @@
 
 ### Phase 10: Testing & Verification
 - [ ] Write unit tests for levelsRouter
-- [ ] Test level calculation logic
+- [x] Test level calculation logic
 - [ ] Test level up notifications
 - [ ] Test leaderboard functionality
 - [ ] Test animation and confetti effects

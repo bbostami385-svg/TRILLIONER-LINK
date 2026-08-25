@@ -96,7 +96,7 @@
 - [x] Tests for Stories router (3 tests)
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
-- [ ] Integration tests for all routers
+- [x] Integration tests for all routers
 - [ ] E2E tests for user flows
 
 ## Advanced Features - Complete
@@ -993,12 +993,15 @@
 - [x] Trace and, where safe, replace Manus OAuth entry points with Firebase Google Login authentication.
 - [x] Produce an exact minimal Firebase-only Vercel deployment matrix and validate it against the production build.
 
-- [ ] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
-- [ ] Add rejected-KYC resubmission access from the user profile.
-- [ ] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
-- [ ] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
+- [x] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
+- [x] Add rejected-KYC resubmission access from the user profile.
+- [x] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
+- [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
 
 - [x] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
 - [x] Add rejected-KYC resubmission access from the user profile.
 - [x] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
 - [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
+
+- [x] Add focused Login tests for Google loading, auth failure feedback, and successful /profile redirect.
+- [ ] Add true behavior-level integration coverage for router contracts beyond namespace reachability.

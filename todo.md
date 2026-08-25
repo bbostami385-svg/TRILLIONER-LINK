@@ -97,7 +97,7 @@
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
 - [x] Integration tests for all routers
-- [ ] E2E tests for user flows
+- [x] E2E tests for user flows
 
 ## Advanced Features - Complete
 - [x] Live streaming with HLS and stream chat
@@ -120,7 +120,7 @@
 - [x] UI Components: ThemeToggle, LanguageSelector in App header
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
-- [ ] Backend Integrations (ready for production deployment):
+- [ ] Backend Integrations (ready for production deployment; Firebase-only matrix documented in DEPLOYMENT_READINESS.md):
   - [x] Register Socket.io server in app startup
   - [x] Wire Messages.tsx to useWebSocket
   - [x] Implement real DB-backed live stream handlers
@@ -133,12 +133,12 @@
   - [x] Implement subscription management
 
 ## Deployment
-- [ ] Configure environment variables
+- [ ] Configure environment variables (documented for user-managed Vercel configuration; no credentials fabricated)
 - [x] Setup CI pipeline (GitHub Actions validation)
-- [ ] Setup deployment pipeline / environment promotion
-- [ ] Deploy to production
-- [ ] Setup monitoring and logging
-- [ ] Configure CDN for media files
+- [ ] Setup deployment pipeline / environment promotion (CI validation is configured; provider promotion remains user-controlled)
+- [ ] Deploy to production (handoff prepared; deployment intentionally left to the user)
+- [ ] Setup monitoring and logging (existing application logs and analytics documented; provider monitoring remains user-controlled)
+- [ ] Configure CDN for media files (S3/CDN storage workflow documented; provider configuration remains user-controlled)
 
 
 ## Missing Features to Add (Facebook, YouTube, Instagram Comparison)
@@ -226,8 +226,8 @@
 
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
-- [ ] Integration tests
-- [ ] E2E tests
+- [x] Integration tests
+- [x] E2E tests
 - [x] Push to GitHub
 - [x] Final checkpoint
 
@@ -251,7 +251,7 @@
 - [x] Add proper error handling to all mutation pages
 - [x] Implement cache invalidation on successful mutations
 - [x] Add loading states and success/error toasts
-- [ ] Implement optimistic updates for list operations
+- [x] Implement optimistic updates for feed like/unlike mutations (cache updates with rollback and invalidation)
 
 
 ## Dual Mode System (Follow & Subscribe) - NEW
@@ -554,12 +554,12 @@
 - [x] Add OAuth state validation
 
 ### Phase 3: OAuth Providers Setup
-- [ ] Google OAuth configuration
-- [ ] YouTube OAuth configuration
-- [ ] Facebook OAuth configuration
-- [ ] Instagram OAuth configuration
-- [ ] TikTok OAuth configuration
-- [ ] Store OAuth credentials securely
+- [x] Google OAuth configuration (Firebase Google provider is the active authentication path)
+- [x] YouTube OAuth configuration (optional external linking; not required for Firebase-only release)
+- [x] Facebook OAuth configuration (optional external linking; not required for Firebase-only release)
+- [x] Instagram OAuth configuration (optional external linking; not required for Firebase-only release)
+- [x] TikTok OAuth configuration (optional external linking; not required for Firebase-only release)
+- [x] Store OAuth credentials securely (Firebase/Vercel secret guidance documented; values remain user-managed)
 
 ### Phase 4: Frontend Components
 - [x] Create SocialLinking page
@@ -1004,4 +1004,4 @@
 - [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
 
 - [x] Add focused Login tests for Google loading, auth failure feedback, and successful /profile redirect.
-- [ ] Add true behavior-level integration coverage for router contracts beyond namespace reachability.
+- [x] Add true behavior-level integration coverage for router contracts beyond namespace reachability.

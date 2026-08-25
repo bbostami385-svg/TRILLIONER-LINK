@@ -4,8 +4,22 @@ import * as db from "./db";
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
-  return { ...actual, getRequiredDb: vi.fn() };
+  return { ...actual, getRequiredDb: vi.fn(), upsertUser: vi.fn() };
 });
+
+vi.mock("./firebaseAuth", () => ({
+  firebaseServerConfigured: true,
+  verifyFirebaseIdToken: vi.fn().mockResolvedValue({
+    uid: "google-user-123",
+    name: "Google Creator",
+    email: "creator@example.com",
+    firebase: { sign_in_provider: "google.com" },
+  }),
+}));
+
+vi.mock("./_core/sdk", () => ({
+  sdk: { signSession: vi.fn().mockResolvedValue("firebase-session-token") },
+}));
 
 describe("root router composition", () => {
   it("exposes the core social, creator, marketplace, and verification namespaces", () => {
@@ -48,6 +62,36 @@ describe("root router composition", () => {
     expect(Object.keys(record)).toHaveLength(expectedNamespaces.length);
   });
 
+
+describe("Firebase authentication integration contract", () => {
+  it("verifies a Google token, upserts the shared user, and sets a signed session cookie", async () => {
+    const { upsertUser } = await import("./db");
+    const { sdk } = await import("./_core/sdk");
+    const { verifyFirebaseIdToken } = await import("./firebaseAuth");
+    const cookie = vi.fn();
+    const caller = appRouter.createCaller({
+      user: null,
+      req: { headers: {}, protocol: "https" },
+      res: { cookie },
+    } as any);
+
+    await expect(caller.auth.exchangeFirebaseToken({ idToken: "google-id-token" })).resolves.toEqual({ success: true });
+    expect(verifyFirebaseIdToken).toHaveBeenCalledWith("google-id-token");
+    expect(upsertUser).toHaveBeenCalledWith(expect.objectContaining({
+      openId: "firebase:google-user-123",
+      name: "Google Creator",
+      email: "creator@example.com",
+      loginMethod: "google.com",
+    }));
+    expect(sdk.signSession).toHaveBeenCalledWith({ openId: "firebase:google-user-123", appId: "firebase", name: "Google Creator" });
+    expect(cookie).toHaveBeenCalledWith(expect.any(String), "firebase-session-token", expect.objectContaining({ maxAge: expect.any(Number) }));
+  });
+
+  it("rejects an empty Firebase ID token before invoking the provider", async () => {
+    const caller = appRouter.createCaller({ user: null, req: { headers: {} }, res: { cookie: vi.fn() } } as any);
+    await expect(caller.auth.exchangeFirebaseToken({ idToken: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
 
 describe("human verification integration contract", () => {
   it("returns the authenticated liveness status and latest review state", async () => {

@@ -36,7 +36,8 @@ export function ReelsPage() {
     limit: 20,
   });
 
-  const createReelMutation = trpc.reels.createReel.useMutation();
+  const utils = trpc.useUtils();
+  const createReelMutation = trpc.reels.createReel.useMutation({ onSuccess: async () => { await utils.reels.getTrendingReels.invalidate(); toast.success("Short published."); }, onError: () => toast.error("Could not publish the Short. Please try again.") });
   const refreshShorts = async () => { if (refreshing) return; setRefreshing(true); try { await refetchReels(); } finally { setRefreshing(false); } };
   const onFeedTouchStart = (event: React.TouchEvent) => { const y = event.touches[0]?.clientY ?? null; formTouchStart.current = y; setPullStart(typeof window !== "undefined" && window.scrollY <= 4 ? y : null); };
   const onFeedTouchMove = (event: React.TouchEvent) => { if (pullStart === null) return; const current = event.touches[0]?.clientY ?? pullStart; setPullDistance(Math.min(96, Math.max(0, current - pullStart))); };
@@ -171,7 +172,7 @@ export function ReelsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-purple-200">No Shorts available yet</p>
+            <Card className="border-white/10 bg-white/5 p-8 text-center"><p className="text-purple-200">No Shorts are available yet.</p><p className="mt-2 text-sm text-slate-400">Be the first creator to publish a short vertical video.</p>{user && <Button className="mt-5" onClick={() => setShowCreateForm(true)}>Create a Short</Button>}</Card>
           )}
         </div>
       </div>

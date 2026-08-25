@@ -849,3 +849,4 @@
 - [x] Add regression coverage for playback-triggered history recording and revalidate Watch History end to end.
 - [x] Polish Collections frontend with real loading, empty, error, mutation feedback, and cache refresh states.
 - [x] Polish Events frontend with loading skeletons, empty guidance, mutation feedback, and query invalidation.
+- [x] Polish Reels with create feedback, cache invalidation, and an informative empty state.

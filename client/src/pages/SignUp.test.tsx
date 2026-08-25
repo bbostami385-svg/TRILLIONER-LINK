@@ -16,6 +16,6 @@ describe("SignUp", () => {
   it("starts authentication with the verification return path", () => {
     const { getByRole } = render(<SignUp />);
     fireEvent.click(getByRole("button", { name: /sign up with trillioner link/i }));
-    expect(getLoginUrl).toHaveBeenCalledWith();
+    expect(getLoginUrl).toHaveBeenCalledWith("/verify");
   });
 });

@@ -1,5 +1,6 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
+import { parse as parseCookieHeader } from "cookie";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
@@ -43,8 +44,10 @@ export function registerOAuthRoutes(app: Express) {
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      res.redirect(302, "/");
+      const returnPath = parseCookieHeader(req.headers.cookie ?? "").trillioner_return_path;
+      const safeReturnPath = returnPath && returnPath.startsWith("/") && !returnPath.startsWith("//") ? decodeURIComponent(returnPath) : "/";
+      res.clearCookie("trillioner_return_path", { path: "/" });
+      res.redirect(302, safeReturnPath);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

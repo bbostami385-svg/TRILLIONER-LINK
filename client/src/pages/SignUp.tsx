@@ -6,7 +6,7 @@ import { Users, Sparkles, Shield, Zap } from "lucide-react";
 
 export default function SignUp() {
   const handleSignUp = () => {
-    window.location.href = getLoginUrl();
+    window.location.href = getLoginUrl("/verify");
   };
 
   return (

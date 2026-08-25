@@ -435,7 +435,7 @@
 - [x] Add route to App.tsx (/verify)
 
 ### Phase 5: Registration Flow Integration
-- [ ] Update SignUp page to redirect to /verify after account creation
+- [x] Update SignUp page to redirect to /verify after account creation
 - [x] Add verification status check on app load
 - [x] Redirect unverified users to /verify page
 - [x] Add verification status badge to profile

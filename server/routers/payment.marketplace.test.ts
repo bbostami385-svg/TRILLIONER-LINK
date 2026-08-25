@@ -24,6 +24,22 @@ describe("Marketplace transaction procedures", () => {
     expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, currency: "BDT", amountMinor: 499900 }));
   });
 
+  it("rejects a client amount that does not match live listing prices", async () => {
+    const db = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn().mockResolvedValue([{ id: 7, name: "Headphones", priceMinor: 1000, stock: 5, status: "active" }]) })) })),
+      insert: vi.fn(),
+    };
+    vi.mocked(dbModule.getDb).mockResolvedValue(db as never);
+    await expect(caller().createMarketplaceTransaction({
+      orderId: "ORD-42-002",
+      productName: "Headphones",
+      amountMinor: 999,
+      currency: "BDT",
+      items: [{ productId: 7, quantity: 1 }],
+    })).rejects.toThrow("Marketplace amount mismatch");
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
   it("returns only the authenticated user's transaction history", async () => {
     const transactions = [{ id: 1, orderId: "ORD-42-001", status: "initiated" }];
     const db = {

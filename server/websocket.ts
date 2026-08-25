@@ -1,6 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { createServer } from "http";
-import express from "express";
+import type { Server as HttpServer } from "http";
 import { messages, conversations } from "../drizzle/schema";
 import { getDb } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -13,8 +12,7 @@ interface ConnectedUser {
 
 const connectedUsers = new Map<number, ConnectedUser>();
 
-export function setupWebSocket(app: express.Application) {
-  const httpServer = createServer(app);
+export function setupWebSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: {
       origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -153,7 +151,7 @@ export function setupWebSocket(app: express.Application) {
     });
   });
 
-  return httpServer;
+  return io;
 }
 
 export function getConnectedUsers() {

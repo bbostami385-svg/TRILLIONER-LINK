@@ -121,7 +121,7 @@
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
 - [ ] Backend Integrations (ready for production deployment):
-  - [ ] Register Socket.io server in app startup
+  - [x] Register Socket.io server in app startup
   - [ ] Wire Messages.tsx to useWebSocket
   - [ ] Implement real DB-backed live stream handlers
   - [x] Implement real DB-backed moderation workflows

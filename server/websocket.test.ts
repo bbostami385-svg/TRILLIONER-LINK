@@ -79,3 +79,19 @@ describe("WebSocket Server", () => {
     });
   });
 });
+
+
+describe("Socket.io startup integration", () => {
+  it("attaches to the canonical HTTP server instance", async () => {
+    const { createServer } = await import("http");
+    const { setupWebSocket } = await import("./websocket");
+    const httpServer = createServer();
+    const io = setupWebSocket(httpServer);
+
+    expect(io).toBeDefined();
+    expect(typeof io.close).toBe("function");
+
+    io.close();
+    httpServer.close();
+  });
+});

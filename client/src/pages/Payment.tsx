@@ -3,6 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { CreditCard, Zap, Crown, Gift } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 import "./Payment.css";
 
 export default function Payment() {
@@ -10,6 +11,7 @@ export default function Payment() {
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const initiatePayment = trpc.payment.initiatePayment.useMutation();
 
   if (!isAuthenticated) {
     return (
@@ -72,29 +74,22 @@ export default function Payment() {
   const handlePayment = async (planId: string, price: number) => {
     setLoading(true);
     try {
-      // Call payment API
-      const response = await fetch("/api/trpc/payment.initiatePayment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: price,
-          productName: `${planId.toUpperCase()} Plan`,
-          customerName: user?.name || "User",
-          customerEmail: user?.email || "user@example.com",
-          customerPhone: "01700000000",
-          orderId: `ORDER-${Date.now()}`,
-        }),
+      const data = await initiatePayment.mutateAsync({
+        amount: price,
+        productName: `${planId.toUpperCase()} Plan`,
+        productDescription: `${planId.toUpperCase()} subscription plan`,
+        customerName: user?.name || "User",
+        customerEmail: user?.email || "user@example.com",
+        customerPhone: "01700000000",
+        orderId: `ORDER-${Date.now()}`,
+        currency: "BDT",
       });
-
-      const data = await response.json();
-      if (data.redirectGatewayURL) {
-        window.location.href = data.redirectGatewayURL;
-      }
+      const gatewayUrl = data.redirectGatewayURL || data.GatewayPageURL;
+      if (!gatewayUrl) throw new Error("The payment gateway did not return a redirect URL.");
+      window.location.assign(gatewayUrl);
     } catch (error) {
       console.error("Payment error:", error);
-      alert("Payment initiation failed");
+      alert(error instanceof Error ? error.message : "Payment initiation failed");
     } finally {
       setLoading(false);
     }
@@ -145,7 +140,7 @@ export default function Payment() {
               <Button
                 className={`subscribe-btn ${plan.popular ? "primary" : "secondary"}`}
                 onClick={() => handlePayment(plan.id, plan.price)}
-                disabled={loading}
+                disabled={loading || initiatePayment.isPending}
               >
                 {loading && selectedPlan === plan.id ? "Processing..." : "Subscribe Now"}
               </Button>

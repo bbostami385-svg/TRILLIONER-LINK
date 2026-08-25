@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { userLevels } from "../../drizzle/schema";
+import { notifications, userLevels } from "../../drizzle/schema";
 
 export const LEVEL_THRESHOLDS: Record<number, number> = {
   1: 0,
@@ -86,6 +86,14 @@ export const levelsRouter = router({
             levelUpCount: 0,
             lastLevelUpAt: newLevel > 1 ? new Date() : null,
           });
+          if (newLevel > 1) {
+            await db.insert(notifications).values({
+              userId: ctx.user.id,
+              type: "level_up",
+              message: `Congratulations! You reached Level ${newLevel}.`,
+              isRead: false,
+            });
+          }
           return { success: true, leveledUp: newLevel > 1, newLevel, previousLevel: 1, levelUpCount: 0 };
         }
 
@@ -101,6 +109,14 @@ export const levelsRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(userLevels.userId, ctx.user.id));
+        if (leveledUp) {
+          await db.insert(notifications).values({
+            userId: ctx.user.id,
+            type: "level_up",
+            message: `Congratulations! You reached Level ${newLevel}.`,
+            isRead: false,
+          });
+        }
 
         return {
           success: true,

@@ -124,7 +124,7 @@
   - [ ] Register Socket.io server in app startup
   - [ ] Wire Messages.tsx to useWebSocket
   - [ ] Implement real DB-backed live stream handlers
-  - [ ] Implement real DB-backed moderation workflows
+  - [x] Implement real DB-backed moderation workflows
   - [x] Implement real recommendation algorithm
   - [ ] Complete SSLCommerz payment flow
   - [ ] Apply i18n translations across all pages
@@ -207,7 +207,7 @@
 - [x] Sponsored Posts/Ads database table
 - [x] Comment moderation rules
 - [x] Ads API router
-- [ ] Moderation API router
+- [x] Moderation API router
 - [x] Ads dashboard page
 - [x] Finish Ads dashboard UX with success/error toasts, query states, and mutation refresh.
 - [x] Add focused Ads dashboard UI tests for mutation refresh and error handling.
@@ -370,7 +370,7 @@
 ### Phase 10: Testing & Verification
 - [x] Write unit tests for levelsRouter
 - [x] Test level calculation logic
-- [ ] Test level up notifications
+- [x] Test level up notifications
 - [x] Test leaderboard functionality
 - [ ] Test animation and confetti effects
 - [ ] Test integration with follow/subscribe system
@@ -935,3 +935,5 @@
 - [x] Add KYC OCR fallback tests for successful extraction and unavailable OCR.
 
 - [x] Add focused age-verification tests for exact age thresholds, future dates, and adult human-liveness onboarding behavior.
+
+- [x] Persist a level-up notification when a user crosses a follower threshold and test the notification counter side effect.

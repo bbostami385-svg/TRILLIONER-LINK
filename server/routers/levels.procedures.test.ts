@@ -89,3 +89,27 @@ describe("levels router lifecycle procedures", () => {
     expect(databaseStub.select).toHaveBeenCalledTimes(1);
   });
 });
+
+  it("writes a level-up notification when an existing user crosses a threshold", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    const databaseStub = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ currentLevel: 3, totalFollowers: 120, levelUpCount: 2, lastLevelUpAt: null }]) })) })) })),
+      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) })) })),
+      insert: vi.fn(() => ({ values })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    await expect(caller().updateUserLevel({ newFollowerCount: 500 })).resolves.toMatchObject({ leveledUp: true, newLevel: 4, levelUpCount: 3 });
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, type: "level_up", isRead: false }));
+  });
+
+  it("notifies a user whose first persisted level is above Level 1", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    const databaseStub = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([]) })) })) })),
+      insert: vi.fn(() => ({ values })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    await expect(caller().updateUserLevel({ newFollowerCount: 50 })).resolves.toMatchObject({ leveledUp: true, newLevel: 2, previousLevel: 1 });
+    expect(values).toHaveBeenCalledTimes(2);
+    expect(values).toHaveBeenLastCalledWith(expect.objectContaining({ type: "level_up", message: "Congratulations! You reached Level 2." }));
+  });

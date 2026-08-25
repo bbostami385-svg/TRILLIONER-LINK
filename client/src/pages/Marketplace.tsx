@@ -29,6 +29,7 @@ export default function Marketplace() {
   const allListingsQuery = trpc.marketplace.listProducts.useQuery({ category: "all", limit: 100 }, { enabled: isAuthenticated });
   const myProductsQuery = trpc.marketplace.listMyProducts.useQuery({ limit: 100 }, { enabled: isAuthenticated });
   const createProduct = trpc.marketplace.createProduct.useMutation();
+  const updateProduct = trpc.marketplace.updateProduct.useMutation();
   const archiveProduct = trpc.marketplace.archiveProduct.useMutation();
   const createTransaction = trpc.payment.createMarketplaceTransaction.useMutation();
   const initiatePayment = trpc.payment.initiatePayment.useMutation();
@@ -40,6 +41,7 @@ export default function Marketplace() {
   const [cartOpen, setCartOpen] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [sellerForm, setSellerForm] = useState({ name: "", category: "", description: "", price: "", stock: "", imageUrl: "" });
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
 
   const products: Product[] = (productsQuery.data ?? []).map((product) => ({
     id: product.id,
@@ -103,16 +105,11 @@ export default function Marketplace() {
     const price = Number(sellerForm.price);
     const stock = Number(sellerForm.stock);
     if (!sellerForm.name.trim() || !sellerForm.category.trim() || !Number.isFinite(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) return;
-    await createProduct.mutateAsync({
-      name: sellerForm.name.trim(),
-      category: sellerForm.category.trim(),
-      description: sellerForm.description.trim() || undefined,
-      priceMinor: Math.round(price * 100),
-      stock,
-      currency: "BDT",
-      imageUrl: sellerForm.imageUrl.trim() || undefined,
-    });
+    const input = { name: sellerForm.name.trim(), category: sellerForm.category.trim(), description: sellerForm.description.trim() || undefined, priceMinor: Math.round(price * 100), stock, currency: "BDT" as const, imageUrl: sellerForm.imageUrl.trim() || undefined };
+    if (editingProductId) await updateProduct.mutateAsync({ id: editingProductId, ...input });
+    else await createProduct.mutateAsync(input);
     setSellerForm({ name: "", category: "", description: "", price: "", stock: "", imageUrl: "" });
+    setEditingProductId(null);
     await Promise.all([myProductsQuery.refetch(), allListingsQuery.refetch(), productsQuery.refetch()]);
   };
 
@@ -236,9 +233,9 @@ export default function Marketplace() {
           <input required type="number" min="0" step="1" value={sellerForm.stock} onChange={(event) => setSellerForm({ ...sellerForm, stock: event.target.value })} placeholder="Stock quantity" className="rounded border px-3 py-2" />
           <input type="url" value={sellerForm.imageUrl} onChange={(event) => setSellerForm({ ...sellerForm, imageUrl: event.target.value })} placeholder="Product image URL (optional)" className="rounded border px-3 py-2 md:col-span-2" />
           <textarea value={sellerForm.description} onChange={(event) => setSellerForm({ ...sellerForm, description: event.target.value })} placeholder="Description (optional)" className="rounded border px-3 py-2 md:col-span-2" rows={2} />
-          <button type="submit" disabled={createProduct.isPending} className="rounded bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-60 md:col-span-2">{createProduct.isPending ? "Publishing…" : "Publish listing"}</button>
+          <div className="flex gap-2 md:col-span-2"><button type="submit" disabled={createProduct.isPending || updateProduct.isPending} className="rounded bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-60">{createProduct.isPending || updateProduct.isPending ? "Saving…" : editingProductId ? "Save changes" : "Publish listing"}</button>{editingProductId && <button type="button" className="rounded border px-4 py-2" onClick={() => { setEditingProductId(null); setSellerForm({ name: "", category: "", description: "", price: "", stock: "", imageUrl: "" }); }}>Cancel</button>}</div>
         </form>
-        {myProductsQuery.data?.length ? <div className="mt-5 space-y-2">{myProductsQuery.data.map((product) => <div key={product.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span><strong>{product.name}</strong> · {product.stock} in stock · {product.status}</span>{product.status === "active" && <button type="button" className="text-red-600" disabled={archiveProduct.isPending} onClick={async () => { await archiveProduct.mutateAsync({ id: product.id }); await Promise.all([myProductsQuery.refetch(), allListingsQuery.refetch(), productsQuery.refetch()]); }}>Archive</button>}</div>)}</div> : <p className="mt-4 text-sm text-slate-500">You have not published a listing yet.</p>}
+        {myProductsQuery.data?.length ? <div className="mt-5 space-y-2">{myProductsQuery.data.map((product) => <div key={product.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span><strong>{product.name}</strong> · {product.stock} in stock · {product.status}</span><div className="flex gap-3">{product.status === "active" && <button type="button" className="text-slate-700" onClick={() => { setEditingProductId(product.id); setSellerForm({ name: product.name, category: product.category, description: product.description ?? "", price: (product.priceMinor / 100).toString(), stock: product.stock.toString(), imageUrl: product.imageUrl ?? "" }); }}>Edit</button>}{product.status === "active" && <button type="button" className="text-red-600" disabled={archiveProduct.isPending} onClick={async () => { await archiveProduct.mutateAsync({ id: product.id }); await Promise.all([myProductsQuery.refetch(), allListingsQuery.refetch(), productsQuery.refetch()]); }}>Archive</button>}</div></div>)}</div> : <p className="mt-4 text-sm text-slate-500">You have not published a listing yet.</p>}
       </section>
 
       <section className="mx-auto mt-8 max-w-5xl rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm" aria-labelledby="marketplace-transactions-heading">

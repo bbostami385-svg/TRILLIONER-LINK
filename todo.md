@@ -896,3 +896,4 @@
 - [x] Derive Marketplace category options from the live listing contract instead of a fixed page-only list.
 - [x] Fix remaining un-awaited rejects.toThrow assertions in the test suite.
 - [x] Add checkout regression coverage for server-side listing price and stock validation.
+- [x] Add edit mode to the seller Marketplace form and connect updateProduct end to end.

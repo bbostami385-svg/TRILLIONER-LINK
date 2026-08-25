@@ -479,7 +479,7 @@
 - [x] Implement verifyLiveness mutation (check head movements)
 - [x] Implement getLivenessStatus query
 - [x] Implement getLivenessHistory query
-- [ ] Add liveness detection algorithm (head pose detection)
+- [x] Add liveness detection algorithm (head pose detection) — client-side movement signal only; approval remains server-reviewed.
 - [ ] Add bot detection logic
 
 ### Phase 3: Frontend Components
@@ -901,3 +901,4 @@
 - [x] Add focused tests for expired, incomplete, and valid liveness challenge submissions.
 - [x] Synchronize all verified TRILLIONER LINK changes only to bbostami385-svg/TRILLIONER-LINK and do not create or use another repository.
 - [x] Add transparent client-side face movement feedback that guides capture without approving verification locally.
+- [x] Add safe Vite manual code-splitting for large third-party bundles without changing runtime behavior.

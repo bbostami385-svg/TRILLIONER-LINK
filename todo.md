@@ -840,3 +840,8 @@
 - [x] Add profile join date, uploads, lifetime views, and per-video metrics.
 - [x] Add team-ready admin dashboard with daily and total upload counters.
 - [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.
+
+## Next Video Platform Backlog
+
+- [x] Add a real Watch History view backed by the existing history procedures.
+- [x] Add focused Watch History tests, validation, build, visual verification, checkpoint, and GitHub synchronization.

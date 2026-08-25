@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { watchHistory } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { watchHistory, videos } from "../../drizzle/schema";
+import { and, eq, desc } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const historyRouter = router({
@@ -16,7 +16,7 @@ export const historyRouter = router({
       const existing = await db
         .select()
         .from(watchHistory)
-        .where(eq(watchHistory.videoId, input.videoId))
+        .where(and(eq(watchHistory.userId, ctx.user.id), eq(watchHistory.videoId, input.videoId)))
         .limit(1);
 
       if (existing.length === 0) {
@@ -31,14 +31,15 @@ export const historyRouter = router({
 
   // Get watch history
   getWatchHistory: protectedProcedure
-    .input(z.object({ limit: z.number().default(20) }))
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       return db
-        .select()
+        .select({ history: watchHistory, video: videos })
         .from(watchHistory)
+        .innerJoin(videos, eq(watchHistory.videoId, videos.id))
         .where(eq(watchHistory.userId, ctx.user.id))
         .orderBy(desc(watchHistory.watchedAt))
         .limit(input.limit);

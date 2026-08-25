@@ -25,6 +25,7 @@ import { Groups } from "./pages/Groups";
 import { Events } from "./pages/Events";
 import { ReelsPage } from "./pages/Reels";
 import { Collections } from "./pages/Collections";
+import CollectionDetail from "./pages/CollectionDetail";
 import { Challenges } from "./pages/Challenges";
 import { Verification } from "./pages/Verification";
 import { Polls } from "./pages/Polls";
@@ -96,7 +97,8 @@ function Router() {
       <Route path={"/groups"} component={Groups} />
       <Route path={"/events"} component={Events} />
       <Route path={"/reels"} component={ReelsPage} />
-      <Route path={"/collections"} component={Collections} />
+      <Route path="/collections" component={Collections} />
+      <Route path="/collection/:collectionId" component={CollectionDetail} />
       <Route path={"/challenges"} component={Challenges} />
       <Route path={"/verification"} component={Verification} />
       <Route path={"/polls"} component={Polls} />

@@ -32,7 +32,7 @@ export function ReelsPage() {
     duration: 0,
   });
 
-  const { data: trendingReels, isLoading: loadingReels, refetch: refetchReels } = trpc.reels.getTrendingReels.useQuery({
+  const { data: trendingReels, isLoading: loadingReels, isError: reelsError, refetch: refetchReels } = trpc.reels.getTrendingReels.useQuery({
     limit: 20,
   });
 
@@ -152,15 +152,17 @@ export function ReelsPage() {
           <h2 className="text-2xl font-bold text-white mb-4">Trending Shorts</h2>
           {loadingReels ? (
             <VideoFeedSkeleton variant="short" />
+          ) : reelsError ? (
+            <Card className="border-rose-300/30 bg-rose-500/10 p-6 text-rose-100"><p className="font-semibold">Shorts are temporarily unavailable.</p><p className="mt-1 text-sm text-rose-100/70">Refresh the page and try again shortly.</p><Button onClick={() => void refetchReels()} variant="outline" className="mt-4 border-white/20 bg-transparent text-white">Retry</Button></Card>
           ) : trendingReels && trendingReels.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mx-auto max-w-2xl space-y-6">
               {trendingReels.map((reel) => (
                 <Card
                   key={reel.id}
-                  className="relative p-4 bg-slate-800 border-purple-500 hover:border-pink-500 transition-colors overflow-hidden" onDoubleClick={() => handleDoubleTapReel(reel.id)}
+                  className="relative overflow-hidden rounded-2xl border border-purple-500 bg-slate-800 p-4 shadow-2xl shadow-purple-950/30 transition-colors hover:border-pink-500" onDoubleClick={() => handleDoubleTapReel(reel.id)}
                 >
                   {heartBurstId === reel.id && <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center" aria-hidden="true"><Heart className="h-24 w-24 animate-ping text-rose-400 drop-shadow-[0_0_20px_rgba(251,113,133,0.8)]" /></div>}
-                  <video src={reel.videoUrl} poster={reel.thumbnail || undefined} controls playsInline onPlay={() => recordReelPlayback(reel.id)} className="w-full h-48 rounded mb-3 bg-black object-cover" aria-label={reel.caption || "Short video"} />
+                  <video src={reel.videoUrl} poster={reel.thumbnail || undefined} controls playsInline onPlay={() => recordReelPlayback(reel.id)} className="aspect-[9/16] max-h-[72vh] w-full rounded-xl mb-3 bg-black object-cover" aria-label={reel.caption || "Short video"} />
                   <p className="text-purple-200 text-sm mb-3 line-clamp-2">{reel.caption}</p>
                   <div className="flex justify-between items-center text-xs text-purple-300 mb-3">
                     <span>👁️ {reel.views} views</span>

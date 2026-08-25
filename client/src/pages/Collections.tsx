@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 export function Collections() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -116,7 +118,7 @@ export function Collections() {
                       <span className="text-xs text-purple-300">
                         {collection.isPublic ? "🌐 Public" : "🔒 Private"}
                       </span>
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                      <Button size="sm" onClick={() => setLocation(`/collection/${collection.id}`)} className="bg-purple-600 hover:bg-purple-700">
                         View
                       </Button>
                     </div>

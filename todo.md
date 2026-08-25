@@ -154,7 +154,7 @@
 - [x] Events database table
 - [x] Event RSVP system
 - [x] Events API router
-- [ ] Events frontend page
+- [x] Events frontend page
 - [ ] Event calendar view
 - [ ] Event notifications
 
@@ -184,7 +184,7 @@
 - [x] Watch History database table
 - [x] Collections API router
 - [x] History API router
-- [ ] Collections frontend page
+- [x] Collections frontend page
 - [x] Watch history view
 
 ### Phase 6: Verification and Mentions
@@ -232,7 +232,7 @@
 ## Implementation Gaps to Fix
 
 ### Phase 2 Gaps (Frontend Pages)
-- [ ] Reels page: Implement real vertical video feed with loading/empty/error states
+- [x] Reels page: Implement real vertical video feed with loading/empty/error states
 - [x] Polls page: Fetch and display polls, options, results, and voting UI with proper error handling
 - [x] AR Filters page: Replace hardcoded search with real searchable/listable filters flow
 - [x] Watch history view: Create page to display user's watch history
@@ -853,3 +853,5 @@
 - [x] Harden poll voting against invalid options and expired polls.
 - [x] Add focused Polls router tests for recent listing, invalid options, and expired voting.
 - [x] Replace AR Filters hardcoded creator search with real name search, loading/empty/error states, and toast feedback.
+- [x] Add real collection detail navigation or remove the placeholder Collections View action.
+- [x] Refactor Reels into a true stacked vertical player flow and add an explicit query error state.

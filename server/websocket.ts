@@ -2,7 +2,8 @@ import { Server, Socket } from "socket.io";
 import type { Server as HttpServer } from "http";
 import { messages, conversations } from "../drizzle/schema";
 import { getDb } from "./db";
-import { eq, and } from "drizzle-orm";
+import { sdk } from "./_core/sdk";
+import { eq, and, or } from "drizzle-orm";
 
 interface ConnectedUser {
   userId: number;
@@ -14,36 +15,66 @@ const connectedUsers = new Map<number, ConnectedUser>();
 
 export function setupWebSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
+    allowRequest: (_req, callback) => callback(null, true),
     cors: {
       origin: process.env.FRONTEND_URL || "http://localhost:3000",
       methods: ["GET", "POST"],
     },
   });
 
+  io.use(async (socket, next) => {
+    try {
+      const user = await sdk.authenticateRequest({
+        headers: { cookie: socket.handshake.headers.cookie },
+      } as any);
+      socket.data.user = user;
+      next();
+    } catch {
+      next(new Error("Unauthorized WebSocket connection"));
+    }
+  });
+
+  const isConversationMember = async (conversationId: number, userId: number) => {
+    const db = await getDb();
+    if (!db) return false;
+    const [conversation] = await db.select({ id: conversations.id })
+      .from(conversations)
+      .where(and(
+        eq(conversations.id, conversationId),
+        or(eq(conversations.participant1Id, userId), eq(conversations.participant2Id, userId)),
+      ))
+      .limit(1);
+    return Boolean(conversation);
+  };
+
   io.on("connection", (socket: Socket) => {
+    const authenticatedUserId = socket.data.user.id as number;
+    connectedUsers.set(authenticatedUserId, {
+      userId: authenticatedUserId,
+      socketId: socket.id,
+      conversationIds: [],
+    });
+    io.emit("user:online", { userId: authenticatedUserId, status: "online" });
     console.log(`User connected: ${socket.id}`);
 
     // User joins
-    socket.on("user:join", (userId: number) => {
-      connectedUsers.set(userId, {
-        userId,
-        socketId: socket.id,
-        conversationIds: [],
-      });
-      io.emit("user:online", { userId, status: "online" });
+    socket.on("user:join", () => {
+      // The authenticated handshake already registers this socket; ignore client IDs.
     });
 
     // Join conversation room
-    socket.on("conversation:join", (conversationId: number) => {
-      const user = connectedUsers.get(parseInt(socket.handshake.auth.userId));
-      if (user) {
-        user.conversationIds.push(conversationId);
-        socket.join(`conversation:${conversationId}`);
-        io.to(`conversation:${conversationId}`).emit("user:joined", {
-          conversationId,
-          userId: user.userId,
-        });
+    socket.on("conversation:join", async (conversationId: number) => {
+      if (!Number.isInteger(conversationId) || !(await isConversationMember(conversationId, authenticatedUserId))) {
+        socket.emit("error", { message: "Conversation access denied" });
+        return;
       }
+      const user = connectedUsers.get(authenticatedUserId);
+      if (user && !user.conversationIds.includes(conversationId)) user.conversationIds.push(conversationId);
+      socket.join(`conversation:${conversationId}`);
+      io.to(`conversation:${conversationId}`).emit("user:joined", {
+        conversationId,
+        userId: authenticatedUserId,
+      });
     });
 
     // Leave conversation room
@@ -58,6 +89,12 @@ export function setupWebSocket(httpServer: HttpServer) {
     socket.on("message:send", async (data: any) => {
       try {
         const { conversationId, content, senderId } = data;
+        if (!Number.isInteger(conversationId) || senderId !== authenticatedUserId ||
+          typeof content !== "string" || content.trim().length === 0 || content.length > 5000 ||
+          !(await isConversationMember(conversationId, authenticatedUserId))) {
+          socket.emit("error", { message: "Message access denied" });
+          return;
+        }
 
         // Save message to database
         const db = await getDb();
@@ -106,6 +143,10 @@ export function setupWebSocket(httpServer: HttpServer) {
     socket.on("messages:read", async (data: any) => {
       try {
         const { conversationId, userId } = data;
+        if (userId !== authenticatedUserId || !(await isConversationMember(conversationId, authenticatedUserId))) {
+          socket.emit("error", { message: "Conversation access denied" });
+          return;
+        }
 
         // Update read status in database
         const db = await getDb();

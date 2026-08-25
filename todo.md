@@ -122,14 +122,14 @@
 - [x] Integration Tests: 58 tests passing
 - [ ] Backend Integrations (ready for production deployment):
   - [x] Register Socket.io server in app startup
-  - [ ] Wire Messages.tsx to useWebSocket
+  - [x] Wire Messages.tsx to useWebSocket
   - [ ] Implement real DB-backed live stream handlers
   - [x] Implement real DB-backed moderation workflows
   - [x] Implement real recommendation algorithm
   - [ ] Complete SSLCommerz payment flow
   - [ ] Apply i18n translations across all pages
   - [ ] Implement real HLS video player
-  - [ ] Add real chat persistence
+  - [x] Add real chat persistence
   - [ ] Implement subscription management
 
 ## Deployment
@@ -943,3 +943,6 @@
 - [x] Synchronize creator level state for subscribe and unsubscribe flows if subscriber milestones are part of Creator Mode.
 - [x] Handle follower-count decreases consistently in level state and document the non-decreasing policy if intentional.
 - [x] Add an explicit integration test covering follow, subscribe, and resulting level or notification behavior across both modes.
+
+- [x] Wire Messages.tsx to persisted tRPC conversations and authenticated WebSocket events without relying on hardcoded chat data.
+- [x] Add a server-authorized WebSocket handshake and conversation membership checks before accepting live message events.

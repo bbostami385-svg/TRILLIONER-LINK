@@ -952,3 +952,5 @@
 - [x] Add durable live-stream and stream-chat tables with safe lifecycle status fields.
 - [x] Replace live-stream mock handlers with persisted start, end, list, details, viewer, chat, and recording workflows.
 - [x] Add focused live-stream router tests for lifecycle ownership and chat persistence.
+
+- [x] Wire LiveStreaming page to persisted stream discovery, native playback source, viewer tracking, and persisted chat.

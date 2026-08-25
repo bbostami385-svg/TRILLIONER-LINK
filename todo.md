@@ -436,25 +436,25 @@
 
 ### Phase 5: Registration Flow Integration
 - [ ] Update SignUp page to redirect to /verify after account creation
-- [ ] Add verification status check on app load
-- [ ] Redirect unverified users to /verify page
-- [ ] Add verification status badge to profile
+- [x] Add verification status check on app load
+- [x] Redirect unverified users to /verify page
+- [x] Add verification status badge to profile
 - [ ] Add verification reminder notifications
 
 ### Phase 6: Admin Panel & Review
-- [ ] Create admin panel for verification review
-- [ ] Add face verification approval/rejection interface
+- [x] Create admin panel for verification review
+- [x] Add face verification approval/rejection interface
 - [x] Add audit log for all verification attempts
-- [ ] Add bulk approval/rejection tools
+- [x] Add bulk approval/rejection tools
 - [ ] Add analytics dashboard for verification metrics
 
 ### Phase 7: Testing
-- [ ] Write unit tests for age calculation
-- [ ] Write unit tests for age validation
+- [x] Write unit tests for age calculation
+- [x] Write unit tests for age validation
 - [ ] Write tests for face verification flow
 - [ ] Write integration tests for verification router
-- [ ] Test age restriction enforcement (13+ minimum)
-- [ ] Test face verification requirement (18+)
+- [x] Test age restriction enforcement (13+ minimum)
+- [x] Test face verification requirement (18+)
 - [ ] Test camera permissions handling
 - [ ] Test file upload validation
 

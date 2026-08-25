@@ -29,6 +29,7 @@ interface Post {
 export default function Profile() {
   const { data: currentMode } = trpc.dualMode.getCurrentMode.useQuery();
   const { data: levelStats } = trpc.levels.getLevelStats.useQuery();
+  const { data: userStats } = trpc.profileEdit.getUserStats.useQuery();
 
   const [user] = useState<UserProfile>({
     id: 1,
@@ -92,18 +93,19 @@ export default function Profile() {
             
             <div className="profile-stats">
               <div className="stat">
-                <span className="stat-value">{user.posts}</span>
+                <span className="stat-value">{userStats?.postsCount ?? user.posts}</span>
                 <span className="stat-label">Posts</span>
               </div>
               <div className="stat">
-                <span className="stat-value">{user.followers.toLocaleString()}</span>
+                <span className="stat-value">{(userStats?.followersCount ?? user.followers).toLocaleString()}</span>
                 <span className="stat-label">Followers</span>
               </div>
               <div className="stat">
-                <span className="stat-value">{user.following.toLocaleString()}</span>
+                <span className="stat-value">{(userStats?.followingCount ?? user.following).toLocaleString()}</span>
                 <span className="stat-label">Following</span>
               </div>
             </div>
+            {userStats && <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3"><span>Joined {userStats.joinedAt ? new Date(userStats.joinedAt).toLocaleDateString() : "—"}</span><span>{userStats.videosCount.toLocaleString()} video uploads</span><span>{userStats.lifetimeViews.toLocaleString()} lifetime views</span></div>}
             
             <div className="profile-actions">
               {currentMode && (

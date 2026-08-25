@@ -831,3 +831,12 @@
 - [x] Add cross-page PiP or mini-player video playback.
 - [x] Add a real Trending/Popular section to the Home page.
 - [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.
+
+## 2026-08-24 Analytics and Admin Expansion
+
+- [x] Add watched progress indicators to Home Trending cards.
+- [x] Add player comments and Related Videos list.
+- [x] Add Remove Watched action to Watch Later.
+- [x] Add profile join date, uploads, lifetime views, and per-video metrics.
+- [x] Add team-ready admin dashboard with daily and total upload counters.
+- [x] Add focused tests, run validation/build/visual checks, checkpoint, and synchronize GitHub.

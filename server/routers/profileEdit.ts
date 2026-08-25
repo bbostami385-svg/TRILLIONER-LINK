@@ -1,10 +1,10 @@
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { socialLinkClicks, users } from "../../drizzle/schema";
+import { comments, follows, posts, socialLinkClicks, subscriptions, users, videos } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { buildHandleCandidates, handleSchema, normalizeHandle, validateHandle } from "../handleUtils";
-import { inArray } from "drizzle-orm";
+import { count, inArray, sum } from "drizzle-orm";
 
 const socialProviders = ["facebook", "instagram", "twitter", "youtube", "tiktok"] as const;
 const allowedSocialHosts: Record<(typeof socialProviders)[number], string[]> = { facebook: ["facebook.com", "www.facebook.com"], instagram: ["instagram.com", "www.instagram.com"], twitter: ["twitter.com", "www.twitter.com", "x.com", "www.x.com"], youtube: ["youtube.com", "www.youtube.com", "youtu.be"], tiktok: ["tiktok.com", "www.tiktok.com"] };
@@ -16,14 +16,27 @@ export function normalizeSocialLinkOrder(order: readonly string[] | null | undef
 function readPublicSocialLinks(value: unknown) { const root = value && typeof value === "object" ? (value as Record<string, unknown>) : {}; const parsed = socialLinksSchema.safeParse(root.socialLinks); if (!parsed.success) return []; const links = normalizeSocialLinks(parsed.data); const order = Array.isArray(root.socialLinkOrder) ? root.socialLinkOrder.filter((item): item is string => typeof item === "string") : undefined; const visibility = socialLinkVisibilitySchema.safeParse(root.socialLinkVisibility).success ? socialLinkVisibilitySchema.parse(root.socialLinkVisibility) : {};
   return normalizeSocialLinkOrder(order, links).filter((provider) => visibility[provider] !== false).map((provider) => ({ provider, url: links[provider]! })); }
 
+async function getProfileMetrics(db: any, userId: number) {
+  const [[followers], [following], [subscribers], [videoTotals], [postTotals]] = await Promise.all([
+    db.select({ value: count() }).from(follows).where(eq(follows.followingId, userId)),
+    db.select({ value: count() }).from(follows).where(eq(follows.followerId, userId)),
+    db.select({ value: count() }).from(subscriptions).where(eq(subscriptions.creatorId, userId)),
+    db.select({ uploads: count(), views: sum(videos.views), likes: sum(videos.likes), comments: sum(videos.comments) }).from(videos).where(eq(videos.userId, userId)),
+    db.select({ value: count() }).from(posts).where(eq(posts.userId, userId)),
+  ]);
+  return { followers: Number(followers?.value ?? 0), following: Number(following?.value ?? 0), subscribers: Number(subscribers?.value ?? 0), videoUploads: Number(videoTotals?.uploads ?? 0), lifetimeViews: Number(videoTotals?.views ?? 0), videoLikes: Number(videoTotals?.likes ?? 0), videoComments: Number(videoTotals?.comments ?? 0), postCount: Number(postTotals?.value ?? 0) };
+}
+
 export const profileEditRouter = router({
   getByHandle: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64) })).query(async ({ input }) => {
     const validation = validateHandle(input.handle);
     if (!validation.valid) return null;
     const db = await getDb();
     if (!db) throw new Error("Database not available");
-    const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode, activeProfileBadge: users.activeProfileBadge, activeProfileTheme: users.activeProfileTheme, linkedAccounts: users.linkedAccounts }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
-    return user ? { id: user.id, name: user.name, handle: user.handle, profileImage: user.profileImage, bio: user.bio, accountMode: user.accountMode, activeProfileBadge: user.activeProfileBadge, activeProfileTheme: user.activeProfileTheme, socialLinks: readPublicSocialLinks(user.linkedAccounts) } : null;
+    const [user] = await db.select({ id: users.id, name: users.name, handle: users.handle, profileImage: users.profileImage, bio: users.bio, accountMode: users.accountMode, activeProfileBadge: users.activeProfileBadge, activeProfileTheme: users.activeProfileTheme, linkedAccounts: users.linkedAccounts, createdAt: users.createdAt }).from(users).where(eq(users.handleNormalized, validation.normalized)).limit(1);
+    if (!user) return null;
+    const metrics = await getProfileMetrics(db, user.id);
+    return { id: user.id, name: user.name, handle: user.handle, profileImage: user.profileImage, bio: user.bio, accountMode: user.accountMode, activeProfileBadge: user.activeProfileBadge, activeProfileTheme: user.activeProfileTheme, createdAt: user.createdAt, ...metrics, socialLinks: readPublicSocialLinks(user.linkedAccounts) };
   }),
 
   trackSocialLinkClick: publicProcedure.input(z.object({ handle: z.string().trim().min(1).max(64), provider: z.enum(socialProviders) })).mutation(async ({ input, ctx }: any) => {
@@ -207,16 +220,9 @@ export const profileEditRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      // Mock statistics for now
-      return {
-        postsCount: 42,
-        followersCount: 1234,
-        followingCount: 567,
-        videosCount: 12,
-        storiesCount: 8,
-        likesCount: 5678,
-        commentsCount: 234,
-      };
+      const [user] = await db.select({ createdAt: users.createdAt }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      const metrics = await getProfileMetrics(db, ctx.user.id);
+      return { joinedAt: user?.createdAt ?? null, postsCount: metrics.postCount, followersCount: metrics.followers, followingCount: metrics.following, subscribersCount: metrics.subscribers, videosCount: metrics.videoUploads, lifetimeViews: metrics.lifetimeViews, likesCount: metrics.videoLikes, commentsCount: metrics.videoComments };
     } catch (error) {
       console.error("Error fetching user stats:", error);
       throw new Error("Failed to fetch user stats");

@@ -46,6 +46,7 @@ import { invitationRouter } from "./routers/invitations";
 import { profileRewardsRouter } from "./routers/profileRewards";
 import { creatorPlaylistsRouter } from "./routers/creatorPlaylists";
 import { subscriptionCollectionsRouter } from "./routers/subscriptionCollections";
+import { adminMediaRouter } from "./routers/adminMedia";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -114,6 +115,7 @@ export const appRouter = router({
   profileRewards: profileRewardsRouter,
   creatorPlaylists: creatorPlaylistsRouter,
   subscriptionCollections: subscriptionCollectionsRouter,
+  adminMedia: adminMediaRouter,
 });
 
 export type AppRouter = typeof appRouter;

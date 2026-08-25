@@ -5,7 +5,7 @@ import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { assessLivenessRisk } from "../livenessSignals";
-import { faceLivenessRecords, livenessChallenge, users } from "../../drizzle/schema";
+import { faceLivenessRecords, livenessChallenge, users, verificationAuditLogs } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -39,6 +39,7 @@ export const humanVerificationRouter = router({
 
     if (active && active.status === "active" && active.expiresAt <= now) {
       await db.update(livenessChallenge).set({ status: "expired" }).where(eq(livenessChallenge.id, active.id));
+      await db.insert(verificationAuditLogs).values({ userId: ctx.user.id, event: "challenge_expired", details: { challengeId: active.id } });
     }
 
     const challenges = generateChallenges();
@@ -49,6 +50,7 @@ export const humanVerificationRouter = router({
       status: "active",
       expiresAt,
     });
+    await db.insert(verificationAuditLogs).values({ userId: ctx.user.id, event: "challenge_started", details: { challengeId: Number(result[0].insertId), challenges } });
 
     return {
       challengeId: Number(result[0].insertId),
@@ -93,6 +95,7 @@ export const humanVerificationRouter = router({
         await tx.insert(faceLivenessRecords).values(records);
         await tx.update(livenessChallenge).set({ status: "completed" }).where(eq(livenessChallenge.id, challenge.id));
         await tx.update(users).set({ livenessAttempts: user.livenessAttempts + 1 }).where(eq(users.id, ctx.user.id));
+        await tx.insert(verificationAuditLogs).values({ userId: ctx.user.id, event: "submission_pending", details: { challengeId: challenge.id, stepCount: records.length } });
       });
       return { success: false, status: "pending" as const, challengeId: challenge.id, message: "All liveness steps were submitted for secure human review." };
     }),
@@ -262,6 +265,7 @@ export const humanVerificationRouter = router({
         await Promise.all(pending.map((record) => tx.update(users).set(input.action === "approve"
           ? { livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 }
           : { livenessVerified: false }).where(eq(users.id, record.userId))));
+        await Promise.all(pending.map((record) => tx.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: input.action === "approve" ? "review_approved" : "review_rejected", details: input.reason ? { reason: input.reason.trim() } : null })));
       });
       return { success: true, updated: pending.length, skipped: records.length - pending.length, reviewedBy: ctx.user.id };
     }),
@@ -277,6 +281,7 @@ export const humanVerificationRouter = router({
         .where(eq(faceLivenessRecords.id, input.recordId));
       await db.update(users).set({ livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 })
         .where(eq(users.id, record.userId));
+      await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_approved", details: null });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification approved." };
     }),
 
@@ -291,6 +296,7 @@ export const humanVerificationRouter = router({
         .where(eq(faceLivenessRecords.id, input.recordId));
       await db.update(users).set({ livenessVerified: false })
         .where(eq(users.id, record.userId));
+      await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_rejected", details: { reason: input.reason } });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification rejected." };
     }),
 });

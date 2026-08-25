@@ -441,7 +441,7 @@
 ### Phase 6: Admin Panel & Review
 - [ ] Create admin panel for verification review
 - [ ] Add face verification approval/rejection interface
-- [ ] Add audit log for all verification attempts
+- [x] Add audit log for all verification attempts
 - [ ] Add bulk approval/rejection tools
 - [ ] Add analytics dashboard for verification metrics
 
@@ -908,3 +908,4 @@
 - [x] Expand the user guide with follower levels, progress, leaderboard, and level-up celebration guidance.
 - [x] Add GitHub Actions CI validation for install, typecheck, tests, and production build in TRILLIONER-LINK.
 - [x] Connect the durable analytics snapshot query to CreatorDashboard with a historical coverage indicator.
+- [x] Add an append-only verification audit log for liveness lifecycle events and reviewer decisions.

@@ -1059,3 +1059,18 @@ export const creatorAnalyticsSnapshots = mysqlTable("creatorAnalyticsSnapshots",
 }));
 export type CreatorAnalyticsSnapshot = typeof creatorAnalyticsSnapshots.$inferSelect;
 export type InsertCreatorAnalyticsSnapshot = typeof creatorAnalyticsSnapshots.$inferInsert;
+/** Append-only audit trail for human verification lifecycle events. */
+export const verificationAuditLogs = mysqlTable("verificationAuditLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  livenessRecordId: int("livenessRecordId").references(() => faceLivenessRecords.id, { onDelete: "set null" }),
+  event: mysqlEnum("event", ["challenge_started", "challenge_expired", "submission_pending", "review_approved", "review_rejected"]).notNull(),
+  actorUserId: int("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  details: json("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userDateIdx: index("verification_audit_user_date_idx").on(table.userId, table.createdAt),
+  recordDateIdx: index("verification_audit_record_date_idx").on(table.livenessRecordId, table.createdAt),
+}));
+export type VerificationAuditLog = typeof verificationAuditLogs.$inferSelect;
+export type InsertVerificationAuditLog = typeof verificationAuditLogs.$inferInsert;

@@ -368,10 +368,10 @@
 - [x] Show level-up history
 
 ### Phase 10: Testing & Verification
-- [ ] Write unit tests for levelsRouter
+- [x] Write unit tests for levelsRouter
 - [x] Test level calculation logic
 - [ ] Test level up notifications
-- [ ] Test leaderboard functionality
+- [x] Test leaderboard functionality
 - [ ] Test animation and confetti effects
 - [ ] Test integration with follow/subscribe system
 
@@ -918,3 +918,4 @@
 - [x] Add direct navigation from the admin appeals console to the moderation reports queue.
 - [x] Harden ads metrics with validated budgets and active-only atomic impression/click increments.
 - [x] Add focused ads router tests and validate the complete project.
+- [x] Add focused Levels router procedure tests for authenticated level and leaderboard reads.

@@ -1074,3 +1074,49 @@ export const verificationAuditLogs = mysqlTable("verificationAuditLogs", {
 }));
 export type VerificationAuditLog = typeof verificationAuditLogs.$inferSelect;
 export type InsertVerificationAuditLog = typeof verificationAuditLogs.$inferInsert;
+/** Persistent moderation reports submitted by users for review. */
+export const moderationReports = mysqlTable("moderationReports", {
+  id: int("id").autoincrement().primaryKey(),
+  reporterId: int("reporterId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contentType: mysqlEnum("contentType", ["post", "video", "comment", "user"]).notNull(),
+  contentId: int("contentId").notNull(),
+  reason: mysqlEnum("reason", ["spam", "inappropriate", "harassment", "violence", "hate_speech", "other"]).notNull(),
+  description: varchar("description", { length: 2000 }),
+  status: mysqlEnum("status", ["pending", "resolved", "rejected"]).notNull().default("pending"),
+  reviewerId: int("reviewerId").references(() => users.id, { onDelete: "set null" }),
+  resolutionReason: varchar("resolutionReason", { length: 2000 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  resolvedAt: timestamp("resolvedAt"),
+}, (table) => ({
+  statusDateIdx: index("moderation_reports_status_date_idx").on(table.status, table.createdAt),
+  contentIdx: index("moderation_reports_content_idx").on(table.contentType, table.contentId),
+}));
+export type ModerationReport = typeof moderationReports.$inferSelect;
+export type InsertModerationReport = typeof moderationReports.$inferInsert;
+
+/** User-level block relationships. */
+export const blockedUsers = mysqlTable("blockedUsers", {
+  id: int("id").autoincrement().primaryKey(),
+  blockerId: int("blockerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  blockedId: int("blockedId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  blockerBlockedUnique: uniqueIndex("blocked_users_blocker_blocked_unique").on(table.blockerId, table.blockedId),
+  blockerDateIdx: index("blocked_users_blocker_date_idx").on(table.blockerId, table.createdAt),
+}));
+export type BlockedUser = typeof blockedUsers.$inferSelect;
+export type InsertBlockedUser = typeof blockedUsers.$inferInsert;
+
+/** User-level mute relationships with optional expiry. */
+export const mutedUsers = mysqlTable("mutedUsers", {
+  id: int("id").autoincrement().primaryKey(),
+  muterId: int("muterId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  mutedId: int("mutedId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  muterMutedUnique: uniqueIndex("muted_users_muter_muted_unique").on(table.muterId, table.mutedId),
+  muterDateIdx: index("muted_users_muter_date_idx").on(table.muterId, table.createdAt),
+}));
+export type MutedUser = typeof mutedUsers.$inferSelect;
+export type InsertMutedUser = typeof mutedUsers.$inferInsert;

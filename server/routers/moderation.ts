@@ -1,275 +1,112 @@
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getDb } from "../db";
+import { getRequiredDb } from "../db";
+import { moderateContent } from "../contentModeration";
+import { blockedUsers, moderationReports, mutedUsers } from "../../drizzle/schema";
 
-const INAPPROPRIATE_KEYWORDS = [
-  "spam",
-  "abuse",
-  "hate",
-  "violence",
-  "explicit",
-];
+const reportReason = z.enum(["spam", "inappropriate", "harassment", "violence", "hate_speech", "other"]);
+const contentType = z.enum(["post", "video", "comment", "user"]);
+const positiveUserId = z.number().int().positive();
+
+function requireAdmin(ctx: { user: { role: string } }) {
+  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
+}
 
 export const moderationRouter = router({
-  // Report content
   reportContent: protectedProcedure
-    .input(
-      z.object({
-        contentType: z.enum(["post", "video", "comment", "user"]),
-        contentId: z.number(),
-        reason: z.enum([
-          "spam",
-          "inappropriate",
-          "harassment",
-          "violence",
-          "hate_speech",
-          "other",
-        ]),
-        description: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Save report to database
-        // Notify moderators
-
-        return {
-          success: true,
-          reportId: `report-${Date.now()}`,
-          message: "Content reported successfully",
-        };
-      } catch (error) {
-        console.error("Error reporting content:", error);
-        throw new Error("Failed to report content");
-      }
+    .input(z.object({ contentType, contentId: positiveUserId, reason: reportReason, description: z.string().trim().max(2000).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      const [existing] = await db.select({ id: moderationReports.id }).from(moderationReports)
+        .where(and(eq(moderationReports.reporterId, ctx.user.id), eq(moderationReports.contentType, input.contentType), eq(moderationReports.contentId, input.contentId), eq(moderationReports.status, "pending"))).limit(1);
+      if (existing) return { success: true, reportId: existing.id, duplicate: true, message: "Your report is already under review." };
+      const result = await db.insert(moderationReports).values({ reporterId: ctx.user.id, contentType: input.contentType, contentId: input.contentId, reason: input.reason, description: input.description || null });
+      return { success: true, reportId: Number(result[0].insertId), duplicate: false, message: "Content reported successfully." };
     }),
 
-  // Block user
   blockUser: protectedProcedure
-    .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Add user to blocked list
-        // Hide user's content from current user
-
-        return {
-          success: true,
-          message: "User blocked successfully",
-        };
-      } catch (error) {
-        console.error("Error blocking user:", error);
-        throw new Error("Failed to block user");
-      }
+    .input(z.object({ userId: positiveUserId }))
+    .mutation(async ({ input, ctx }) => {
+      if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot block your own account." });
+      const db = await getRequiredDb();
+      const [existing] = await db.select({ id: blockedUsers.id }).from(blockedUsers).where(and(eq(blockedUsers.blockerId, ctx.user.id), eq(blockedUsers.blockedId, input.userId))).limit(1);
+      if (!existing) await db.insert(blockedUsers).values({ blockerId: ctx.user.id, blockedId: input.userId });
+      return { success: true, alreadyBlocked: Boolean(existing), message: "User blocked successfully." };
     }),
 
-  // Unblock user
   unblockUser: protectedProcedure
-    .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Remove user from blocked list
-
-        return {
-          success: true,
-          message: "User unblocked successfully",
-        };
-      } catch (error) {
-        console.error("Error unblocking user:", error);
-        throw new Error("Failed to unblock user");
-      }
+    .input(z.object({ userId: positiveUserId }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      await db.delete(blockedUsers).where(and(eq(blockedUsers.blockerId, ctx.user.id), eq(blockedUsers.blockedId, input.userId)));
+      return { success: true, message: "User unblocked successfully." };
     }),
 
-  // Get blocked users
   getBlockedUsers: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(50).default(20),
-        offset: z.number().min(0).default(0),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Get blocked users from database
-
-        return {
-          users: [],
-          total: 0,
-        };
-      } catch (error) {
-        console.error("Error fetching blocked users:", error);
-        throw new Error("Failed to fetch blocked users");
-      }
+    .input(z.object({ limit: z.number().int().min(1).max(50).default(20), offset: z.number().int().min(0).default(0) }))
+    .query(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      const users = await db.select({ userId: blockedUsers.blockedId, blockedAt: blockedUsers.createdAt }).from(blockedUsers)
+        .where(eq(blockedUsers.blockerId, ctx.user.id)).orderBy(desc(blockedUsers.createdAt)).limit(input.limit).offset(input.offset);
+      return { users, total: users.length === input.limit ? input.offset + users.length + 1 : input.offset + users.length };
     }),
 
-  // Mute user
   muteUser: protectedProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        duration: z.number().optional(), // in hours
-      })
-    )
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Mute user notifications
-
-        return {
-          success: true,
-          message: "User muted successfully",
-        };
-      } catch (error) {
-        console.error("Error muting user:", error);
-        throw new Error("Failed to mute user");
-      }
+    .input(z.object({ userId: positiveUserId, duration: z.number().int().min(1).max(24 * 365).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot mute your own account." });
+      const db = await getRequiredDb();
+      const expiresAt = input.duration ? new Date(Date.now() + input.duration * 60 * 60 * 1000) : null;
+      const [existing] = await db.select({ id: mutedUsers.id }).from(mutedUsers).where(and(eq(mutedUsers.muterId, ctx.user.id), eq(mutedUsers.mutedId, input.userId))).limit(1);
+      if (existing) await db.update(mutedUsers).set({ expiresAt }).where(eq(mutedUsers.id, existing.id));
+      else await db.insert(mutedUsers).values({ muterId: ctx.user.id, mutedId: input.userId, expiresAt });
+      return { success: true, message: "User muted successfully.", expiresAt };
     }),
 
-  // Unmute user
   unmuteUser: protectedProcedure
-    .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Unmute user
-
-        return {
-          success: true,
-          message: "User unmuted successfully",
-        };
-      } catch (error) {
-        console.error("Error unmuting user:", error);
-        throw new Error("Failed to unmute user");
-      }
+    .input(z.object({ userId: positiveUserId }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      await db.delete(mutedUsers).where(and(eq(mutedUsers.muterId, ctx.user.id), eq(mutedUsers.mutedId, input.userId)));
+      return { success: true, message: "User unmuted successfully." };
     }),
 
-  // Check content for inappropriate keywords
   scanContent: publicProcedure
-    .input(z.object({ content: z.string() }))
+    .input(z.object({ content: z.string().trim().min(1).max(20_000) }))
     .query(async ({ input }) => {
-      try {
-        const lowerContent = input.content.toLowerCase();
-        const foundKeywords = INAPPROPRIATE_KEYWORDS.filter((keyword) =>
-          lowerContent.includes(keyword)
-        );
-
-        return {
-          isClean: foundKeywords.length === 0,
-          flaggedKeywords: foundKeywords,
-          score: (foundKeywords.length / INAPPROPRIATE_KEYWORDS.length) * 100,
-        };
-      } catch (error) {
-        console.error("Error scanning content:", error);
-        throw new Error("Failed to scan content");
-      }
+      const result = await moderateContent({ text: input.content });
+      return { isClean: result.decision === "allow", decision: result.decision, category: result.category, flaggedKeywords: result.decision === "allow" ? [] : [result.category], score: Math.round(result.confidence * 100), reason: result.reason } as const;
     }),
 
-  // Get moderation reports (admin only)
   getModerationReports: protectedProcedure
-    .input(
-      z.object({
-        status: z.enum(["pending", "resolved", "rejected"]).optional(),
-        limit: z.number().min(1).max(50).default(20),
-        offset: z.number().min(0).default(0),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        // Check if user is admin
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized");
-        }
-
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Get reports from database
-
-        return {
-          reports: [],
-          total: 0,
-        };
-      } catch (error) {
-        console.error("Error fetching moderation reports:", error);
-        throw new Error("Failed to fetch moderation reports");
-      }
+    .input(z.object({ status: z.enum(["pending", "resolved", "rejected"]).optional(), limit: z.number().int().min(1).max(50).default(20), offset: z.number().int().min(0).default(0) }))
+    .query(async ({ input, ctx }) => {
+      requireAdmin(ctx);
+      const db = await getRequiredDb();
+      const where = input.status ? eq(moderationReports.status, input.status) : undefined;
+      const reports = await db.select().from(moderationReports).where(where).orderBy(desc(moderationReports.createdAt)).limit(input.limit).offset(input.offset);
+      const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(moderationReports).where(where);
+      return { reports, total: Number(total) };
     }),
 
-  // Resolve report (admin only)
   resolveReport: protectedProcedure
-    .input(
-      z.object({
-        reportId: z.string(),
-        action: z.enum(["approve", "reject", "remove_content"]),
-        reason: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        // Check if user is admin
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized");
-        }
-
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Update report status
-        // Take action if needed (remove content, ban user, etc.)
-
-        return {
-          success: true,
-          message: "Report resolved successfully",
-        };
-      } catch (error) {
-        console.error("Error resolving report:", error);
-        throw new Error("Failed to resolve report");
-      }
+    .input(z.object({ reportId: positiveUserId, action: z.enum(["approve", "reject", "remove_content"]), reason: z.string().trim().min(3).max(2000).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      requireAdmin(ctx);
+      const db = await getRequiredDb();
+      const [report] = await db.select({ id: moderationReports.id, status: moderationReports.status }).from(moderationReports).where(eq(moderationReports.id, input.reportId)).limit(1);
+      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Moderation report not found." });
+      if (report.status !== "pending") throw new TRPCError({ code: "CONFLICT", message: "This report has already been resolved." });
+      await db.update(moderationReports).set({ status: input.action === "reject" ? "rejected" : "resolved", reviewerId: ctx.user.id, resolutionReason: input.reason || input.action, resolvedAt: new Date() }).where(eq(moderationReports.id, input.reportId));
+      return { success: true, message: "Report resolved successfully.", action: input.action, reviewedBy: ctx.user.id };
     }),
 
-  // Ban user (admin only)
   banUser: protectedProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        reason: z.string(),
-        duration: z.number().optional(), // in days, null for permanent
-      })
-    )
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        // Check if user is admin
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized");
-        }
-
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Ban user from platform
-
-        return {
-          success: true,
-          message: "User banned successfully",
-        };
-      } catch (error) {
-        console.error("Error banning user:", error);
-        throw new Error("Failed to ban user");
-      }
+    .input(z.object({ userId: positiveUserId, reason: z.string().trim().min(3).max(1000), duration: z.number().int().min(1).max(3650).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      requireAdmin(ctx);
+      return { success: false, message: "Account bans require a dedicated enforcement policy and are not enabled by this endpoint." } as const;
     }),
 });

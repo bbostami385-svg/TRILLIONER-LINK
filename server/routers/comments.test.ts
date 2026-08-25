@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { commentsRouter } from './comments';
 import * as db from '../db';
+import * as moderation from '../contentModeration';
 
 vi.mock('../db');
 vi.mock('../contentModeration', () => ({ assertPublishable: vi.fn(async () => ({ decision: 'allow', category: 'clean', confidence: 1, reason: 'test' })) }));
@@ -48,6 +49,14 @@ describe('Comments Router', () => {
       
       expect(result).toEqual(mockComment);
       expect(db.createComment).toHaveBeenCalled();
+    });
+
+    it('should not persist a comment when moderation blocks it', async () => {
+      vi.mocked(moderation.assertPublishable).mockRejectedValueOnce(new Error('This content cannot be published because it violates the platform safety policy.'));
+      const caller = commentsRouter.createCaller({ user: { id: 1 } } as any);
+
+      await expect(caller.createComment({ content: 'blocked content', postId: 1 })).rejects.toThrow('violates the platform safety policy');
+      expect(db.createComment).not.toHaveBeenCalled();
     });
 
     it('should throw error if neither postId nor videoId provided', async () => {

@@ -209,7 +209,7 @@
 - [x] Ads API router
 - [ ] Moderation API router
 - [ ] Ads dashboard page
-- [ ] Comment filtering
+- [x] Comment filtering
 
 ### Phase 9: Frontend Pages
 - [x] Groups page
@@ -241,7 +241,7 @@
 ### Phase 3 Gaps (Backend Fixes)
 - [x] History router: Fix duplicate check to scope per user (userId + videoId)
 - [x] Pages router: Add real page-followers relationship table and implement follower management
-- [ ] Moderation router: Implement proper comment filtering and content scanning
+- [x] Moderation router: Implement proper comment filtering and content scanning
 - [x] Event notifications: Add notification system for event RSVPs
 - [x] Story sharing: Implement share to stories feature
 
@@ -911,3 +911,4 @@
 - [x] Connect the durable analytics snapshot query to CreatorDashboard with a historical coverage indicator.
 - [x] Add an append-only verification audit log for liveness lifecycle events and reviewer decisions.
 - [x] Add a root-router integration smoke test covering the composed Marketplace, creator analytics, human verification, and social namespaces.
+- [x] Align moderation.scanContent with the shared AI moderation decision and preserve a safe structured response.

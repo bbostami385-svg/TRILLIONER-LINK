@@ -10,9 +10,8 @@ export default function Explore() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"trending" | "suggested" | "categories">(
-    "trending"
-  );
+  const [activeTab, setActiveTab] = useState<"trending" | "suggested" | "categories">("trending");
+  const [searchType, setSearchType] = useState<"all" | "users" | "posts" | "videos" | "hashtags">("all");
 
   // Fetch trending hashtags
   const { data: trendingData, isLoading: trendingLoading } = trpc.search.getTrendingHashtags.useQuery(
@@ -21,19 +20,18 @@ export default function Explore() {
   );
 
   // Search users
-  const { data: usersData, isLoading: usersLoading } = trpc.search.searchUsers.useQuery(
-    { query: searchQuery, limit: 20 },
-    { enabled: isAuthenticated && searchQuery.length > 0 }
-  );
+  const { data: usersData, isLoading: usersLoading } = trpc.search.searchUsers.useQuery({ query: searchQuery.trim(), limit: 20 }, { enabled: isAuthenticated && searchQuery.trim().length > 0 && !searchQuery.trim().startsWith("@") });
+  const { data: postsData, isLoading: postsLoading, isError: postsError } = trpc.search.searchPosts.useQuery({ query: searchQuery.trim(), limit: 20 }, { enabled: isAuthenticated && searchQuery.trim().length > 0 && !searchQuery.trim().startsWith("@") });
+  const { data: videosData, isLoading: videosLoading, isError: videosError } = trpc.search.searchVideos.useQuery({ query: searchQuery.trim(), limit: 20 }, { enabled: isAuthenticated && searchQuery.trim().length > 0 && !searchQuery.trim().startsWith("@") });
 
   const handleLookup = trpc.profileEdit.getByHandle.useQuery({ handle: searchQuery }, { enabled: isAuthenticated && searchQuery.trim().startsWith("@") && searchQuery.trim().length > 2, retry: false, staleTime: 30_000 });
   const handleMatch = handleLookup.data;
 
   // Search hashtags
-  const { data: hashtagsData, isLoading: hashtagsLoading } = trpc.search.searchHashtags.useQuery(
-    { query: searchQuery, limit: 20 },
-    { enabled: isAuthenticated && searchQuery.length > 0 }
-  );
+  const { data: hashtagsData, isLoading: hashtagsLoading, isError: hashtagsError } = trpc.search.searchHashtags.useQuery({ query: searchQuery.trim(), limit: 20 }, { enabled: isAuthenticated && searchQuery.trim().length > 0 && !searchQuery.trim().startsWith("@") });
+  const searchLoading = usersLoading || postsLoading || videosLoading || hashtagsLoading || handleLookup.isFetching;
+  const searchError = postsError || videosError || hashtagsError;
+  const searched = searchQuery.trim().length > 0;
 
   if (!isAuthenticated) {
     return (
@@ -88,6 +86,8 @@ export default function Explore() {
 
       {/* Exact public handle result */}
       {searchQuery.trim().startsWith("@") && <div className="mb-4 rounded-2xl border border-indigo-300/20 bg-indigo-500/10 p-4 text-white">{handleLookup.isFetching ? <p className="text-sm text-slate-300">Finding that creator handle…</p> : handleMatch ? <button onClick={() => setLocation(`/@/${handleMatch.handle}`)} className="flex w-full items-center gap-3 text-left"><div className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-indigo-500 font-bold">{handleMatch.profileImage ? <img src={handleMatch.profileImage} alt="" className="h-full w-full object-cover" /> : (handleMatch.name?.[0] ?? "?").toUpperCase()}</div><div><p className="font-semibold">{handleMatch.name || `@${handleMatch.handle}`}</p><p className="text-sm text-indigo-200">@{handleMatch.handle} · Open public profile</p></div></button> : <p className="text-sm text-slate-400">No public profile matches {searchQuery.trim()} yet.</p>}</div>}
+
+      {searched && !searchQuery.trim().startsWith("@") && <section className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-white"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Advanced search</p><p className="mt-1 text-sm text-slate-300">Results for “{searchQuery.trim()}”</p></div><select value={searchType} onChange={(event) => setSearchType(event.target.value as typeof searchType)} className="rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"><option value="all">All results</option><option value="users">People</option><option value="posts">Posts</option><option value="videos">Videos</option><option value="hashtags">Hashtags</option></select></div>{searchLoading ? <div className="mt-5 h-24 animate-pulse rounded-xl bg-white/5" aria-label="Loading search results" /> : searchError ? <p className="mt-5 text-sm text-rose-300">Search is temporarily unavailable. Please try again.</p> : <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className={`${searchType !== "all" && searchType !== "users" ? "hidden" : ""} rounded-xl border border-white/10 bg-black/10 p-4`}><p className="font-semibold">People</p><p className="mt-1 text-sm text-slate-400">{usersData?.length ?? 0} matches</p>{usersData?.slice(0, 3).map((item: any) => <button key={item.id} onClick={() => item.handle && setLocation(`/@/${item.handle}`)} className="mt-3 block text-left text-sm text-cyan-200 hover:text-white">{item.name || `User ${item.id}`}{item.handle ? ` · @${item.handle}` : ""}</button>)}</div><div className={`${searchType !== "all" && searchType !== "posts" ? "hidden" : ""} rounded-xl border border-white/10 bg-black/10 p-4`}><p className="font-semibold">Posts</p><p className="mt-1 text-sm text-slate-400">{postsData?.length ?? 0} matches</p>{postsData?.slice(0, 3).map((item: any) => <button key={item.id} onClick={() => setLocation(`/feed?post=${item.id}`)} className="mt-3 block w-full rounded-lg border border-white/10 p-3 text-left text-sm text-slate-200 hover:border-cyan-300/40"><span className="line-clamp-2">{item.content || item.text || "Post result"}</span><span className="mt-1 block text-xs text-slate-500">Open post</span></button>)}</div><div className={`${searchType !== "all" && searchType !== "videos" ? "hidden" : ""} rounded-xl border border-white/10 bg-black/10 p-4`}><p className="font-semibold">Videos</p><p className="mt-1 text-sm text-slate-400">{videosData?.length ?? 0} matches</p>{videosData?.slice(0, 3).map((item: any) => <button key={item.id} onClick={() => setLocation(`/videos?video=${item.id}`)} className="mt-3 block w-full rounded-lg border border-white/10 p-3 text-left text-sm text-slate-200 hover:border-cyan-300/40"><span className="line-clamp-2">{item.title || item.description || "Video result"}</span><span className="mt-1 block text-xs text-slate-500">Open video</span></button>)}</div><div className={`${searchType !== "all" && searchType !== "hashtags" ? "hidden" : ""} rounded-xl border border-white/10 bg-black/10 p-4`}><p className="font-semibold">Hashtags</p><p className="mt-1 text-sm text-slate-400">{hashtagsData?.length ?? 0} matches</p>{hashtagsData?.slice(0, 3).map((item: any) => <p key={item.id} className="mt-3 text-sm text-cyan-200">#{item.name}</p>)}</div></div>}</section>}
 
       {/* Tab Content */}
       <div className="explore-content">

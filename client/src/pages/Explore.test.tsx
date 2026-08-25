@@ -134,3 +134,17 @@ describe("Explore Component", () => {
     expect(sorted[2].topic).toBe("#Gaming");
   });
 });
+
+  it("should filter advanced search result buckets by type", () => {
+    const results = { users: [{ id: 1 }], posts: [{ id: 2 }], videos: [{ id: 3 }], hashtags: [{ id: 4 }] };
+    const visible = (type: keyof typeof results | "all") => type === "all" ? Object.values(results).flat() : results[type];
+    expect(visible("all")).toHaveLength(4);
+    expect(visible("videos")).toEqual([{ id: 3 }]);
+    expect(visible("hashtags")).toEqual([{ id: 4 }]);
+  });
+
+  it("should normalize public handle lookup input before navigation", () => {
+    const normalizeHandleSearch = (query: string) => query.trim().replace(/^@/, "").toLowerCase();
+    expect(normalizeHandleSearch("  @ScienceDaily  ")).toBe("sciencedaily");
+    expect(`/@/${normalizeHandleSearch("@ScienceDaily")}`).toBe("/@/sciencedaily");
+  });

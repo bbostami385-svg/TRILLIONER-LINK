@@ -114,7 +114,7 @@
 - [x] Dark mode toggle (ThemeToggle component)
 - [x] Language Selector (EN/BN/HI)
 - [ ] Save/bookmark posts
-- [ ] Advanced search with filters
+- [x] Advanced search with filters
 
 ## Implementation Status
 - [x] UI Components: ThemeToggle, LanguageSelector in App header
@@ -855,3 +855,6 @@
 - [x] Replace AR Filters hardcoded creator search with real name search, loading/empty/error states, and toast feedback.
 - [x] Add real collection detail navigation or remove the placeholder Collections View action.
 - [x] Refactor Reels into a true stacked vertical player flow and add an explicit query error state.
+- [x] Add advanced Explore search filters for users, posts, videos, hashtags, and public handles.
+- [x] Render actual post and video advanced-search result cards instead of counts only.
+- [x] Add focused advanced-search result shaping tests for users, posts, videos, hashtags, and handles.

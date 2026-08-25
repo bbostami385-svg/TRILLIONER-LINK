@@ -54,3 +54,21 @@ describe("verifyLiveness", () => {
     expect(db.tx.update).toHaveBeenCalledTimes(2);
   });
 });
+
+
+describe("submitLivenessVideo", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects malformed upload URLs before touching persistence", async () => {
+    const db = { select: vi.fn() };
+    vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
+    await expect(caller().submitLivenessVideo({ challengeType: "nod", videoUrl: "" })).rejects.toThrow();
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it("enforces the server-side attempt limit", async () => {
+    const db = { select: vi.fn(() => chain([{ livenessVerified: false, livenessAttempts: 5 }])) };
+    vi.mocked(dbModule.getRequiredDb).mockResolvedValue(db as never);
+    await expect(caller().submitLivenessVideo({ challengeType: "nod", videoUrl: "https://camera.test/step.webm" })).rejects.toThrow("Too many attempts");
+  });
+});

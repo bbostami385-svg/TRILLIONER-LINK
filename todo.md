@@ -456,7 +456,7 @@
 - [x] Test age restriction enforcement (13+ minimum)
 - [x] Test face verification requirement (18+)
 - [ ] Test camera permissions handling
-- [ ] Test file upload validation
+- [x] Test file upload validation
 
 ### Phase 8: Checkpoint & Delivery
 - [ ] Create checkpoint with all changes
@@ -967,3 +967,5 @@
 - [x] Add an authenticated persisted subscription list procedure for Creator Mode management and test subscriber isolation.
 
 - [x] Wire VerificationStatusTracker into the authenticated Profile page with loading and error-safe states.
+
+- [x] Add focused face-verification tests for adult gating, rejected submissions, and upload validation.

@@ -134,6 +134,13 @@
       "when": 1787565220466,
       "tag": "0018_illegal_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1787629327917,
+      "tag": "0019_lonely_oracle",
+      "breakpoints": true
     }
   ]
 }

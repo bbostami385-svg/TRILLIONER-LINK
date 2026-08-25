@@ -156,7 +156,7 @@
 - [x] Events API router
 - [x] Events frontend page
 - [x] Event calendar view
-- [ ] Event notifications
+- [x] Event notifications
 
 ### Phase 3: Reels/Shorts and Sounds
 - [x] Reels database table (short videos)
@@ -241,7 +241,7 @@
 - [x] History router: Fix duplicate check to scope per user (userId + videoId)
 - [ ] Pages router: Add real page-followers relationship table and implement follower management
 - [ ] Moderation router: Implement proper comment filtering and content scanning
-- [ ] Event notifications: Add notification system for event RSVPs
+- [x] Event notifications: Add notification system for event RSVPs
 - [ ] Story sharing: Implement share to stories feature
 
 ### Phase 4 Gaps (Error Handling & Cache)
@@ -863,3 +863,5 @@
 - [x] Add a bookmark destination flow with a default collection or collection picker for Feed posts.
 - [x] Prevent duplicate saved post entries and expose per-post saved state with unsave behavior.
 - [x] Add focused tests for Feed bookmark destination, duplicate prevention, and save/unsave state.
+- [x] Add creator notifications when users RSVP to their events, with safe self-notification and duplicate handling.
+- [x] Add focused event RSVP notification tests and apply the notification enum migration.

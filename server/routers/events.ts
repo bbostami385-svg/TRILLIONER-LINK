@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { events, eventRsvps, users } from "../../drizzle/schema";
+import { events, eventRsvps, users, notifications } from "../../drizzle/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getDb } from "../db";
+
+export const shouldNotifyEventCreator = (existingStatus: string | undefined, nextStatus: string, creatorId: number, attendeeId: number) => creatorId !== attendeeId && existingStatus !== nextStatus;
 
 export const eventsRouter = router({
   // Create an event
@@ -74,13 +76,10 @@ export const eventsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
+      const [event] = await db.select({ creatorId: events.creatorId, title: events.title }).from(events).where(eq(events.id, input.eventId)).limit(1);
+      if (!event) throw new Error("Event not found");
       // Check if already RSVP'd
-      const existing = await db
-        .select()
-        .from(eventRsvps)
-        .where(and(eq(eventRsvps.eventId, input.eventId), eq(eventRsvps.userId, ctx.user.id)))
-        .limit(1);
-
+      const existing = await db.select().from(eventRsvps).where(and(eq(eventRsvps.eventId, input.eventId), eq(eventRsvps.userId, ctx.user.id))).limit(1);
       if (existing.length > 0) {
         // Update existing RSVP
         await db
@@ -96,7 +95,9 @@ export const eventsRouter = router({
         });
       }
 
-      return { success: true };
+      const notifiedCreator = shouldNotifyEventCreator(existing[0]?.status, input.status, event.creatorId, ctx.user.id);
+      if (notifiedCreator) await db.insert(notifications).values({ userId: event.creatorId, fromUserId: ctx.user.id, type: "event_rsvp", message: `responded ${input.status.replace("_", " ")} to your event “${event.title}”.`, isRead: false });
+      return { success: true, notifiedCreator };
     }),
 
   // Get event attendees

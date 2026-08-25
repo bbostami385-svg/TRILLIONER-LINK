@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 type DocumentType = "passport" | "driver_license" | "national_id" | "other";
 type SubmissionStep = "form" | "uploading" | "success" | "failed";
 
-export function KYCForm() {
+export function KYCForm({ isResubmission = false, onComplete }: { isResubmission?: boolean; onComplete?: () => void }) {
   const [step, setStep] = useState<SubmissionStep>("form");
   const [documentType, setDocumentType] = useState<DocumentType>("passport");
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -18,6 +19,8 @@ export function KYCForm() {
   const [loading, setLoading] = useState(false);
 
   const submitKYCMutation = trpc.kyc.submitKYCDocument.useMutation();
+  const retryKYCMutation = trpc.kyc.retryKYCSubmission.useMutation();
+  const activeMutation = isResubmission ? retryKYCMutation : submitKYCMutation;
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -47,7 +50,7 @@ export function KYCForm() {
     setError(null);
 
     try {
-      const result = await submitKYCMutation.mutateAsync({
+      await activeMutation.mutateAsync({
         documentType,
         frontImageUrl: frontImage,
         backImageUrl: backImage || undefined,
@@ -95,8 +98,8 @@ export function KYCForm() {
               ✓ You'll receive a notification when approved
             </p>
           </div>
-          <Button onClick={() => window.location.href = "/"} className="w-full">
-            Go to Home
+          <Button onClick={() => onComplete ? onComplete() : window.location.href = "/"} className="w-full">
+            {onComplete ? "Back to Profile" : "Go to Home"}
           </Button>
         </CardContent>
       </Card>

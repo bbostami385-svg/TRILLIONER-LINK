@@ -992,3 +992,13 @@
 - [x] Audit every environment variable reference and classify it as required, optional, or unused for Firebase Google Login.
 - [x] Trace and, where safe, replace Manus OAuth entry points with Firebase Google Login authentication.
 - [x] Produce an exact minimal Firebase-only Vercel deployment matrix and validate it against the production build.
+
+- [ ] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
+- [ ] Add rejected-KYC resubmission access from the user profile.
+- [ ] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
+- [ ] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
+
+- [x] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
+- [x] Add rejected-KYC resubmission access from the user profile.
+- [x] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
+- [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.

@@ -10,6 +10,7 @@ export interface VerificationMetricCounts {
 export interface VerificationMetricsReport {
   liveness: VerificationMetricCounts;
   kyc: VerificationMetricCounts;
+  range?: { from: string | null; to: string | null };
 }
 
 export interface VerificationReportRow {
@@ -34,8 +35,9 @@ function escapeCsvCell(value: string | number): string {
 
 export function verificationMetricsCsv(metrics: VerificationMetricsReport): string {
   const headers = ["category", "total", "pending", "approved", "rejected"];
+  const range = metrics.range ? `range_from,${metrics.range.from ?? ""}\nrange_to,${metrics.range.to ?? ""}\n` : "";
   const rows = toVerificationReportRows(metrics).map((row) => headers.map((header) => escapeCsvCell(row[header as keyof VerificationReportRow] as string | number)).join(","));
-  return [headers.join(","), ...rows].join("\n");
+  return `${range}${[headers.join(","), ...rows].join("\n")}`;
 }
 
 function downloadBlob(content: BlobPart, filename: string, type: string) {
@@ -60,6 +62,7 @@ export function downloadVerificationMetricsPdf(metrics: VerificationMetricsRepor
   document.text("Verification metrics report", 20, 32);
   document.setFontSize(10);
   document.text(`Generated ${new Date().toLocaleString()}`, 20, 40);
+  if (metrics.range?.from || metrics.range?.to) document.text(`Range: ${metrics.range.from ?? "start"} to ${metrics.range.to ?? "now"}`, 20, 47);
   const columns = ["Category", "Total", "Pending", "Approved", "Rejected"];
   const x = [20, 95, 120, 148, 178];
   columns.forEach((column, index) => document.text(column, x[index], 56));

@@ -1,8 +1,10 @@
 import React from "react";
+import { useState } from "react";
 import { AlertCircle, CheckCircle2, Clock3, FileText, ShieldAlert } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { KYCForm } from "./KYCForm";
 
 const statusCopy = {
   pending: { label: "Under review", className: "text-amber-700", icon: Clock3 },
@@ -11,6 +13,8 @@ const statusCopy = {
 } as const;
 
 export function KycStatusHistory() {
+  const [showResubmit, setShowResubmit] = useState(false);
+  const utils = trpc.useUtils();
   const status = trpc.kyc.getKYCStatus.useQuery(undefined, { retry: false });
   const history = trpc.kyc.getKYCHistory.useQuery(undefined, { retry: false });
   const isLoading = status.isLoading || history.isLoading;
@@ -33,8 +37,10 @@ export function KycStatusHistory() {
                 {status.data?.documentType && <span className="rounded-full bg-white px-3 py-1 text-xs font-medium capitalize text-amber-800">{status.data.documentType.replace("_", " ")}</span>}
               </div>
               {status.data?.status === "rejected" && status.data.lastDocument?.rejectionReason && <p className="mt-3 text-sm text-rose-800">Reason: {status.data.lastDocument.rejectionReason}</p>}
+              {status.data?.status === "rejected" && <button type="button" onClick={() => setShowResubmit((open) => !open)} className="mt-4 rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-800">{showResubmit ? "Hide resubmission form" : "Resubmit KYC documents"}</button>}
               {status.data?.verifiedAt && <p className="mt-2 text-xs text-amber-800">Approved on {new Date(status.data.verifiedAt).toLocaleDateString()}</p>}
             </div>
+            {showResubmit && status.data?.status === "rejected" && <KYCForm isResubmission onComplete={() => { setShowResubmit(false); void utils.kyc.getKYCStatus.invalidate(); void utils.kyc.getKYCHistory.invalidate(); }} />}
             <div>
               <div className="mb-2 flex items-center justify-between"><p className="text-sm font-semibold text-slate-900">Submission history</p><span className="text-xs text-slate-500">{history.data?.length ?? 0} submission{history.data?.length === 1 ? "" : "s"}</span></div>
               {history.data?.length ? <div className="space-y-2">{history.data.map((item) => { const copy = statusCopy[item.status as keyof typeof statusCopy]; const Icon = copy?.icon ?? FileText; return <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-3"><div className="flex min-w-0 items-start gap-2"><Icon className={`mt-0.5 h-4 w-4 shrink-0 ${copy?.className ?? "text-slate-500"}`} /><div className="min-w-0"><p className="font-medium capitalize text-slate-800">{item.documentType.replace("_", " ")}</p><p className="text-xs text-slate-500">Submitted {new Date(item.createdAt).toLocaleString()}</p>{item.rejectionReason && <p className="mt-1 text-xs text-rose-700">{item.rejectionReason}</p>}</div></div><span className={`shrink-0 text-xs font-semibold ${copy?.className ?? "text-slate-600"}`}>{copy?.label ?? item.status}</span></div>; })}</div> : <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">No KYC submissions yet.</p>}

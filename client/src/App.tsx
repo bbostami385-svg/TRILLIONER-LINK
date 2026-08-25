@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
@@ -10,49 +10,49 @@ import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import { UsersManagement } from "./pages/UsersManagement";
 import Feed from "./pages/Feed";
-import Explore from "./pages/Explore";
-import Messages from "./pages/Messages";
-import Videos from "./pages/Videos";
-import Stories from "./pages/Stories";
-import Profile from "./pages/Profile";
-import Notifications from "./pages/Notifications";
-import Marketplace from "./pages/Marketplace";
-import CreatorDashboard from "./pages/CreatorDashboard";
-import Settings from "./pages/Settings";
-import Payment from "./pages/Payment";
-import LiveStreaming from "./pages/LiveStreaming";
-import ProfileEdit from "./pages/ProfileEdit";
-import { Groups } from "./pages/Groups";
-import { Events } from "./pages/Events";
-import { ReelsPage } from "./pages/Reels";
-import { Collections } from "./pages/Collections";
-import CollectionDetail from "./pages/CollectionDetail";
-import { Challenges } from "./pages/Challenges";
-import { Verification } from "./pages/Verification";
-import { Polls } from "./pages/Polls";
-import { ARFiltersPage } from "./pages/ARFilters";
-import { SoundLibrary } from "./pages/SoundLibrary";
-import { PagesPage } from "./pages/Pages";
-import { AdsDashboard } from "./pages/AdsDashboard";
-import VerificationFlowPage from "./pages/VerificationFlowPage";
+const Explore = lazy(() => import("./pages/Explore"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Videos = lazy(() => import("./pages/Videos"));
+const Stories = lazy(() => import("./pages/Stories"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Payment = lazy(() => import("./pages/Payment"));
+const LiveStreaming = lazy(() => import("./pages/LiveStreaming"));
+const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
+const Groups = lazy(() => import("./pages/Groups").then((module) => ({ default: module.Groups })));
+const Events = lazy(() => import("./pages/Events").then((module) => ({ default: module.Events })));
+const ReelsPage = lazy(() => import("./pages/Reels").then((module) => ({ default: module.ReelsPage })));
+const Collections = lazy(() => import("./pages/Collections").then((module) => ({ default: module.Collections })));
+const CollectionDetail = lazy(() => import("./pages/CollectionDetail"));
+const Challenges = lazy(() => import("./pages/Challenges").then((module) => ({ default: module.Challenges })));
+const Verification = lazy(() => import("./pages/Verification").then((module) => ({ default: module.Verification })));
+const Polls = lazy(() => import("./pages/Polls").then((module) => ({ default: module.Polls })));
+const ARFiltersPage = lazy(() => import("./pages/ARFilters").then((module) => ({ default: module.ARFiltersPage })));
+const SoundLibrary = lazy(() => import("./pages/SoundLibrary").then((module) => ({ default: module.SoundLibrary })));
+const PagesPage = lazy(() => import("./pages/Pages").then((module) => ({ default: module.PagesPage })));
+const AdsDashboard = lazy(() => import("./pages/AdsDashboard").then((module) => ({ default: module.AdsDashboard })));
+const VerificationFlowPage = lazy(() => import("./pages/VerificationFlowPage"));
 import WelcomeScreen from "./pages/WelcomeScreen";
 import ModeSelection from "./pages/ModeSelection";
-import AdminVerification from "./pages/AdminVerification";
-import AdminModerationAppeals from "./pages/AdminModerationAppeals";
-import AdminModerationReports from "./pages/AdminModerationReports";
-import AdminMediaDashboard from "./pages/AdminMediaDashboard";
+const AdminVerification = lazy(() => import("./pages/AdminVerification"));
+const AdminModerationAppeals = lazy(() => import("./pages/AdminModerationAppeals"));
+const AdminModerationReports = lazy(() => import("./pages/AdminModerationReports"));
+const AdminMediaDashboard = lazy(() => import("./pages/AdminMediaDashboard"));
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { NotificationBell } from "./components/NotificationBell";
-import HandleProfile from "./pages/HandleProfile";
-import Invitations from "./pages/Invitations";
-import ProfileRewards from "./pages/ProfileRewards";
-import OfflineVideos from "./pages/OfflineVideos";
-import WatchLater from "./pages/WatchLater";
-import WatchHistory from "./pages/WatchHistory";
-import CreatorPlaylists from "./pages/CreatorPlaylists";
-import SubscriptionCollections from "./pages/SubscriptionCollections";
-import PublicPlaylist from "./pages/PublicPlaylist";
+const HandleProfile = lazy(() => import("./pages/HandleProfile"));
+const Invitations = lazy(() => import("./pages/Invitations"));
+const ProfileRewards = lazy(() => import("./pages/ProfileRewards"));
+const OfflineVideos = lazy(() => import("./pages/OfflineVideos"));
+const WatchLater = lazy(() => import("./pages/WatchLater"));
+const WatchHistory = lazy(() => import("./pages/WatchHistory"));
+const CreatorPlaylists = lazy(() => import("./pages/CreatorPlaylists"));
+const SubscriptionCollections = lazy(() => import("./pages/SubscriptionCollections"));
+const PublicPlaylist = lazy(() => import("./pages/PublicPlaylist"));
 import { VerificationGate } from "./components/VerificationGate";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -156,7 +156,7 @@ function App() {
           </div>
           <VerificationGate>
             <ModeSelectionGate>
-              <Router />
+              <Suspense fallback={<div className="min-h-screen grid place-items-center p-6 text-muted-foreground">Loading TRILLIONER LINK…</div>}><Router /></Suspense>
             </ModeSelectionGate>
           </VerificationGate>
           <InstallAppPrompt />

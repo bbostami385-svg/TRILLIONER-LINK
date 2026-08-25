@@ -168,6 +168,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -175,6 +176,10 @@ export default defineConfig({
           charts: ["recharts"],
           icons: ["lucide-react"],
           documentExport: ["jspdf"],
+          firebase: ["firebase/app", "firebase/auth"],
+          hls: ["hls.js"],
+          socket: ["socket.io-client"],
+          dataClient: ["@tanstack/react-query", "@trpc/client", "superjson"],
         },
       },
     },

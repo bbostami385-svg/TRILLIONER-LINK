@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, inArray, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, like, lt, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
@@ -205,11 +205,25 @@ export const humanVerificationRouter = router({
     };
   }),
 
-  getVerificationMetrics: adminProcedure.query(async () => {
+  getVerificationMetrics: adminProcedure
+    .input(z.object({
+      from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }).superRefine((input, ctx) => {
+      if (input.from && input.to && input.from > input.to) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["to"], message: "The end date must be on or after the start date." });
+    }).default({}))
+    .query(async ({ input }) => {
     const db = await getRequiredDb();
+    const from = input.from ? new Date(`${input.from}T00:00:00.000Z`) : undefined;
+    const toExclusive = input.to ? new Date(`${input.to}T00:00:00.000Z`) : undefined;
+    if (toExclusive) toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+    const livenessFilters = [from ? gte(faceLivenessRecords.createdAt, from) : undefined, toExclusive ? lt(faceLivenessRecords.createdAt, toExclusive) : undefined].filter(Boolean);
+    const kycFilters = [from ? gte(kycDocuments.createdAt, from) : undefined, toExclusive ? lt(kycDocuments.createdAt, toExclusive) : undefined].filter(Boolean);
+    const livenessQuery = db.select({ status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords);
+    const kycQuery = db.select({ status: kycDocuments.status, total: count() }).from(kycDocuments);
     const [livenessRows, kycRows] = await Promise.all([
-      db.select({ status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords).groupBy(faceLivenessRecords.status),
-      db.select({ status: kycDocuments.status, total: count() }).from(kycDocuments).groupBy(kycDocuments.status),
+      livenessFilters.length ? livenessQuery.where(and(...livenessFilters)).groupBy(faceLivenessRecords.status) : livenessQuery.groupBy(faceLivenessRecords.status),
+      kycFilters.length ? kycQuery.where(and(...kycFilters)).groupBy(kycDocuments.status) : kycQuery.groupBy(kycDocuments.status),
     ]);
     const summarize = (rows: Array<{ status: string; total: number }>) => ({
       total: rows.reduce((sum, row) => sum + Number(row.total), 0),
@@ -217,7 +231,7 @@ export const humanVerificationRouter = router({
       approved: Number(rows.find((row) => row.status === "approved")?.total ?? 0),
       rejected: Number(rows.find((row) => row.status === "rejected")?.total ?? 0),
     });
-    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), generatedAt: new Date() };
+    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), generatedAt: new Date(), range: { from: input.from ?? null, to: input.to ?? null } };
   }),
 
   getPendingLiveness: adminProcedure

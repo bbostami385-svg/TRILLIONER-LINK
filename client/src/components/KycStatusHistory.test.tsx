@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const statusQuery = { isLoading: false, error: null, data: { status: "rejected", isVerified: false, documentType: "national_id", verifiedAt: null, lastDocument: { rejectionReason: "The document image is blurry." } } };
 const historyQuery = { isLoading: false, error: null, data: [{ id: 1, documentType: "national_id", status: "rejected", createdAt: new Date("2026-08-01T12:00:00Z"), rejectionReason: "The document image is blurry." }] };
-vi.mock("@/lib/trpc", () => ({ trpc: { kyc: { getKYCStatus: { useQuery: () => statusQuery }, getKYCHistory: { useQuery: () => historyQuery } } } }));
+vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: () => ({ kyc: { getKYCStatus: { invalidate: vi.fn() }, getKYCHistory: { invalidate: vi.fn() } } }), kyc: { getKYCStatus: { useQuery: () => statusQuery }, getKYCHistory: { useQuery: () => historyQuery }, retryKYCSubmission: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } } } }));
 
 import { KycStatusHistory } from "./KycStatusHistory";
 

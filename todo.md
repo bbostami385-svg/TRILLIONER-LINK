@@ -476,7 +476,7 @@
 - [x] Create livenessVerificationRouter
 - [x] Implement startLivenessChallenge mutation (generate random movements)
 - [x] Implement submitLivenessVideo mutation (process video)
-- [ ] Implement verifyLiveness mutation (check head movements)
+- [x] Implement verifyLiveness mutation (check head movements)
 - [x] Implement getLivenessStatus query
 - [x] Implement getLivenessHistory query
 - [ ] Add liveness detection algorithm (head pose detection)
@@ -897,3 +897,5 @@
 - [x] Fix remaining un-awaited rejects.toThrow assertions in the test suite.
 - [x] Add checkout regression coverage for server-side listing price and stock validation.
 - [x] Add edit mode to the seller Marketplace form and connect updateProduct end to end.
+- [x] Add server-side liveness challenge completion validation for ordered challenge steps.
+- [x] Add focused tests for expired, incomplete, and valid liveness challenge submissions.

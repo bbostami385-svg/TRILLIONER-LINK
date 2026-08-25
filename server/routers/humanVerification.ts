@@ -57,6 +57,45 @@ export const humanVerificationRouter = router({
     };
   }),
 
+  verifyLiveness: protectedProcedure
+    .input(z.object({
+      challengeId: z.number().int().positive(),
+      steps: z.array(z.object({ challengeType: challengeSchema, videoUrl: z.string().min(1).max(15_000_000), metadata: metadataSchema })).min(1).max(4),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getRequiredDb();
+      const [user] = await db.select({ livenessVerified: users.livenessVerified, livenessAttempts: users.livenessAttempts }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      if (user.livenessVerified) return { success: true, status: "approved" as const, challengeId: input.challengeId, message: "Account is already human verified." };
+      if (user.livenessAttempts >= 5) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please try again later." });
+      const [challenge] = await db.select().from(livenessChallenge).where(and(
+        eq(livenessChallenge.id, input.challengeId),
+        eq(livenessChallenge.userId, ctx.user.id),
+      )).limit(1);
+      if (!challenge) throw new TRPCError({ code: "NOT_FOUND", message: "Liveness challenge not found." });
+      if (challenge.status !== "active") throw new TRPCError({ code: "BAD_REQUEST", message: "This liveness challenge is no longer active." });
+      if (challenge.expiresAt <= new Date()) {
+        await db.update(livenessChallenge).set({ status: "expired" }).where(eq(livenessChallenge.id, challenge.id));
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This liveness challenge has expired. Start a new challenge." });
+      }
+      const expected = challenge.challenges as Array<z.infer<typeof challengeSchema>>;
+      const matches = input.steps.length === expected.length && input.steps.every((step, index) => step.challengeType === expected[index]);
+      if (!matches) throw new TRPCError({ code: "BAD_REQUEST", message: "Complete each movement in the requested order." });
+      const records = await Promise.all(input.steps.map(async (step) => ({
+        userId: ctx.user.id,
+        videoUrl: await persistVerificationMedia(step.videoUrl, `verification/liveness/${ctx.user.id}`, ["video/webm", "video/mp4"], 12 * 1024 * 1024),
+        challengeType: step.challengeType,
+        status: "pending" as const,
+        metadata: step.metadata,
+      })));
+      await db.transaction(async (tx) => {
+        await tx.insert(faceLivenessRecords).values(records);
+        await tx.update(livenessChallenge).set({ status: "completed" }).where(eq(livenessChallenge.id, challenge.id));
+        await tx.update(users).set({ livenessAttempts: user.livenessAttempts + 1 }).where(eq(users.id, ctx.user.id));
+      });
+      return { success: false, status: "pending" as const, challengeId: challenge.id, message: "All liveness steps were submitted for secure human review." };
+    }),
+
   submitLivenessVideo: protectedProcedure
     .input(z.object({
       videoUrl: z.string().min(1).max(15_000_000),

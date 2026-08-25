@@ -16,6 +16,7 @@ const challengeCopy: Record<string, { title: string; detail: string }> = {
 export function LivenessVerification() {
   const [step, setStep] = useState<VerificationStep>("instructions");
   const [challenges, setChallenges] = useState<string[]>([]);
+  const [challengeId, setChallengeId] = useState<number | null>(null);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
   const [recordedVideo, setRecordedVideo] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function LivenessVerification() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const startChallengeMutation = trpc.humanVerification.startLivenessChallenge.useMutation();
-  const submitVideoMutation = trpc.humanVerification.submitLivenessVideo.useMutation();
+  const verifyLivenessMutation = trpc.humanVerification.verifyLiveness.useMutation();
 
   const stopCamera = (afterStop?: (blob: Blob) => void) => {
     const recorder = mediaRecorderRef.current;
@@ -66,7 +67,7 @@ export function LivenessVerification() {
     setLoading(true); setError(null);
     try {
       const result = await startChallengeMutation.mutateAsync();
-      setChallenges(result.challenges); setCurrentChallengeIndex(0); setStep("recording");
+      setChallengeId(result.challengeId); setChallenges(result.challenges); setCurrentChallengeIndex(0); setStep("recording");
       await startCamera();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to start liveness challenge"); }
     finally { setLoading(false); }
@@ -83,11 +84,13 @@ export function LivenessVerification() {
         reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(blob);
       });
-      const result = await submitVideoMutation.mutateAsync({ videoUrl, challengeType: challenges[currentChallengeIndex] as "nod" | "turn_left" | "turn_right" | "blink", metadata: { totalChallenges: challenges.length, completedChallenges: challenges.length, timestamp: new Date().toISOString() } });
-      const resultMessage = "message" in result ? result.message : undefined;
-      if (result.status === "pending") { setStep("pending"); setError(resultMessage ?? null); }
-      else if (result.status === "approved") setStep("success");
-      else { setStep("failed"); setError(resultMessage || "Liveness verification failed."); }
+      if (!challengeId) throw new Error("Liveness challenge is missing. Please start again.");
+      const result = await verifyLivenessMutation.mutateAsync({
+        challengeId,
+        steps: challenges.map((challengeType) => ({ challengeType: challengeType as "nod" | "turn_left" | "turn_right" | "blink", videoUrl, metadata: { totalChallenges: challenges.length, recordedAt: new Date().toISOString() } })),
+      });
+      setStep("pending");
+      setError(result.message);
     } catch (err) { setStep("failed"); setError(err instanceof Error ? err.message : "Failed to submit video"); }
     finally { setLoading(false); }
   };
@@ -100,7 +103,7 @@ export function LivenessVerification() {
       stopCamera((blob) => void submitVideo(blob));
     }
   };
-  const handleRetry = () => { stopCamera(); setStep("instructions"); setChallenges([]); setCurrentChallengeIndex(0); setRecordedVideo(null); setError(null); };
+  const handleRetry = () => { stopCamera(); setStep("instructions"); setChallengeId(null); setChallenges([]); setCurrentChallengeIndex(0); setRecordedVideo(null); setError(null); };
   useEffect(() => {
     if (step !== "recording" || !cameraReady || !videoRef.current) return;
     let cancelled = false;
@@ -124,7 +127,7 @@ export function LivenessVerification() {
   useEffect(() => () => stopCamera(), []);
 
   if (step === "success") return <Card className="mx-auto w-full max-w-md"><CardHeader className="text-center"><CheckCircle2 className="mx-auto mb-3 h-14 w-14 text-emerald-600" /><CardTitle>Human verification submitted</CardTitle><CardDescription>Your account passed the liveness check.</CardDescription></CardHeader><CardContent className="space-y-4"><Alert className="border-emerald-200 bg-emerald-50"><CheckCircle2 className="h-4 w-4 text-emerald-600" /><AlertDescription className="text-emerald-900">Your recording was reviewed successfully. Identity/KYC is separate and is only needed for monetization or payouts.</AlertDescription></Alert><Button onClick={() => window.location.href = "/"} className="w-full">Continue to TRILLIONER LINK</Button></CardContent></Card>;
-  if (step === "pending") return <Card className="mx-auto w-full max-w-md"><CardHeader className="text-center"><ClockIcon /><CardTitle>Recording is under review</CardTitle><CardDescription>A trust reviewer will confirm the result securely.</CardDescription></CardHeader><CardContent className="space-y-4"><Alert><Info className="h-4 w-4" /><AlertDescription>{error || "You can leave this page. Your status will update after review."}</AlertDescription></Alert><Button onClick={() => window.location.href = "/"} className="w-full">Return home</Button></CardContent></Card>;
+  if (step === "pending") return <Card className="mx-auto w-full max-w-md"><CardHeader className="text-center"><ClockIcon /><CardTitle>Recording is under review</CardTitle><CardDescription>Your ordered movement recording was submitted for secure human review.</CardDescription></CardHeader><CardContent className="space-y-4"><Alert><Info className="h-4 w-4" /><AlertDescription>{error || "You can leave this page. Your status will update after review."}</AlertDescription></Alert><Button onClick={() => window.location.href = "/"} className="w-full">Return home</Button></CardContent></Card>;
   if (step === "processing") return <Card className="mx-auto w-full max-w-md"><CardHeader className="text-center"><CardTitle>Securing your recording</CardTitle><CardDescription>Uploading encrypted verification media and creating a review request.</CardDescription></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-10 w-10 animate-spin text-indigo-600" aria-label="Processing" /></CardContent></Card>;
   if (step === "failed") return <Card className="mx-auto w-full max-w-md"><CardHeader className="text-center"><AlertCircle className="mx-auto mb-3 h-14 w-14 text-rose-600" /><CardTitle>Verification needs another attempt</CardTitle><CardDescription>{error || "We could not complete this attempt."}</CardDescription></CardHeader><CardContent><Button onClick={handleRetry} className="w-full"><RotateCw className="mr-2 h-4 w-4" />Try again</Button></CardContent></Card>;
   if (step === "recording") { const challenge = challenges[currentChallengeIndex]; const copy = challengeCopy[challenge] ?? { title: challenge, detail: "Follow the instruction shown below." }; return <Card className="mx-auto w-full max-w-2xl"><CardHeader><CardTitle>Live camera check</CardTitle><CardDescription>Step {currentChallengeIndex + 1} of {challenges.length}. Take your time; only the requested movement is needed.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="relative overflow-hidden rounded-2xl bg-slate-950"><video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" /><div className="pointer-events-none absolute inset-[12%] rounded-[45%] border-2 border-dashed border-white/70" /><div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white">{cameraReady ? "Camera ready" : "Opening camera…"}</div></div><div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4"><p className="text-center text-lg font-semibold text-indigo-950">{copy.title}</p><p className="mt-1 text-center text-sm text-indigo-900/80">{copy.detail}</p></div><div className="space-y-2"><div className="flex justify-between text-sm text-slate-600"><span>Challenge progress</span><span>{currentChallengeIndex + 1}/{challenges.length}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${((currentChallengeIndex + 1) / challenges.length) * 100}%` }} /></div></div><div className="flex gap-2"><Button onClick={handleNextChallenge} disabled={loading || !cameraReady} className="flex-1">{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : currentChallengeIndex === challenges.length - 1 ? "Finish check" : "I’m ready — next"}</Button><Button onClick={handleRetry} variant="outline">Cancel</Button></div><p className="text-center text-xs text-slate-500" aria-live="polite">{liveFeedback} Use even lighting, keep your face uncovered, and hold your phone steady.</p></CardContent></Card>; }

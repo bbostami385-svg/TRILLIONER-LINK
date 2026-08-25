@@ -310,8 +310,8 @@
 ### Phase 8: Checkpoint & Delivery
 - [ ] Create checkpoint with all changes
 - [ ] Push to GitHub
-- [ ] Document API changes
-- [ ] Prepare user guide
+- [x] Document API changes
+- [x] Prepare user guide
 
 
 ## Follower Level System (Levels 1-20) - NEW
@@ -375,8 +375,8 @@
 ### Phase 11: Checkpoint & Deployment
 - [ ] Create checkpoint with all changes
 - [ ] Push to GitHub
-- [ ] Document API changes
-- [ ] Prepare user guide
+- [x] Document API changes
+- [x] Prepare user guide
 
 
 ## Age & Face Verification System - NEW
@@ -458,8 +458,8 @@
 ### Phase 8: Checkpoint & Delivery
 - [ ] Create checkpoint with all changes
 - [ ] Push to GitHub
-- [ ] Document API changes
-- [ ] Prepare user guide
+- [x] Document API changes
+- [x] Prepare user guide
 
 
 ## Human Verification (Face Liveness Detection) - NEW
@@ -902,3 +902,7 @@
 - [x] Synchronize all verified TRILLIONER LINK changes only to bbostami385-svg/TRILLIONER-LINK and do not create or use another repository.
 - [x] Add transparent client-side face movement feedback that guides capture without approving verification locally.
 - [x] Add safe Vite manual code-splitting for large third-party bundles without changing runtime behavior.
+- [x] Add Dual Mode API documentation for selection, switching, follow/subscribe procedures, and mode statistics.
+- [x] Add Levels API documentation for level queries, leaderboard endpoints, and level-update behavior.
+- [x] Expand the user guide with Dual Mode onboarding, settings, and profile usage.
+- [x] Expand the user guide with follower levels, progress, leaderboard, and level-up celebration guidance.

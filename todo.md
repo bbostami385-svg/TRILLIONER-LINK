@@ -848,3 +848,4 @@
 - [x] Wire long-form and Shorts playback to authenticated Watch History recording.
 - [x] Add regression coverage for playback-triggered history recording and revalidate Watch History end to end.
 - [x] Polish Collections frontend with real loading, empty, error, mutation feedback, and cache refresh states.
+- [x] Polish Events frontend with loading skeletons, empty guidance, mutation feedback, and query invalidation.

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
@@ -20,8 +21,9 @@ export function Events() {
     limit: 20,
   });
 
-  const createEventMutation = trpc.events.createEvent.useMutation();
-  const rsvpEventMutation = trpc.events.rsvpEvent.useMutation();
+  const utils = trpc.useUtils();
+  const createEventMutation = trpc.events.createEvent.useMutation({ onSuccess: async () => { await utils.events.getUpcomingEvents.invalidate(); toast.success("Event created."); }, onError: () => toast.error("Could not create the event. Please try again.") });
+  const rsvpEventMutation = trpc.events.rsvpEvent.useMutation({ onSuccess: () => toast.success("Your RSVP was saved."), onError: () => toast.error("Could not save your RSVP. Please try again.") });
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +144,7 @@ export function Events() {
         <div>
           <h2 className="text-2xl font-bold text-white mb-4">Upcoming Events</h2>
           {loadingEvents ? (
-            <p className="text-purple-200">Loading events...</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <Card key={item} className="h-44 animate-pulse border-purple-500/30 bg-slate-800" />)}</div>
           ) : upcomingEvents && upcomingEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingEvents.map((event) => (
@@ -179,7 +181,7 @@ export function Events() {
               ))}
             </div>
           ) : (
-            <p className="text-purple-200">No upcoming events</p>
+            <Card className="border-white/10 bg-white/5 p-8 text-center"><p className="text-purple-200">No upcoming events yet.</p><p className="mt-2 text-sm text-slate-400">Create one for your community or check back soon for new gatherings.</p></Card>
           )}
         </div>
       </div>

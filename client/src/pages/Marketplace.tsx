@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { ShoppingCart, Heart, Star } from "lucide-react";
+import { ShoppingCart, Heart } from "lucide-react";
 import "./Marketplace.css";
 
 interface Product {
   id: number;
   name: string;
   price: number;
-  rating: number;
-  reviews: number;
   image: string;
   seller: string;
   inStock: boolean;
@@ -28,8 +26,6 @@ export default function Marketplace() {
       id: 1,
       name: "Premium Headphones",
       price: 4999,
-      rating: 4.5,
-      reviews: 234,
       image: "🎧",
       seller: "TechStore",
       inStock: true,
@@ -38,8 +34,6 @@ export default function Marketplace() {
       id: 2,
       name: "Wireless Mouse",
       price: 1299,
-      rating: 4.2,
-      reviews: 156,
       image: "🖱️",
       seller: "GadgetHub",
       inStock: true,
@@ -48,8 +42,6 @@ export default function Marketplace() {
       id: 3,
       name: "USB-C Cable",
       price: 399,
-      rating: 4.7,
-      reviews: 512,
       image: "🔌",
       seller: "CableWorld",
       inStock: true,
@@ -58,8 +50,6 @@ export default function Marketplace() {
       id: 4,
       name: "Phone Stand",
       price: 599,
-      rating: 4.3,
-      reviews: 89,
       image: "📱",
       seller: "AccessoriesPlus",
       inStock: false,
@@ -68,8 +58,6 @@ export default function Marketplace() {
       id: 5,
       name: "Laptop Bag",
       price: 2499,
-      rating: 4.6,
-      reviews: 203,
       image: "🎒",
       seller: "BagStore",
       inStock: true,
@@ -78,8 +66,6 @@ export default function Marketplace() {
       id: 6,
       name: "Screen Protector",
       price: 299,
-      rating: 4.4,
-      reviews: 678,
       image: "📺",
       seller: "ProtectionCo",
       inStock: true,
@@ -174,11 +160,7 @@ export default function Marketplace() {
               <h3>{product.name}</h3>
               <p className="seller-name">{product.seller}</p>
 
-              <div className="rating">
-                <Star size={14} fill="#ffd93d" color="#ffd93d" />
-                <span>{product.rating}</span>
-                <span className="reviews">({product.reviews})</span>
-              </div>
+              <p className="text-xs text-slate-500">No ratings yet</p>
 
               <div className="price-section">
                 <p className="price">₹{product.price.toLocaleString()}</p>

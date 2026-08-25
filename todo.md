@@ -874,3 +874,5 @@
 - [x] Add dualModeRouter error-case tests for self actions, duplicates, and missing targets.
 - [x] Add a successful subscribeToCreator test for creation, subscriber-count update, and creator notification.
 - [x] Add missing-creator error coverage for subscribeToCreator and complete dualModeRouter contract coverage.
+- [x] Remove fabricated marketplace ratings and review counts; show only verified data or a neutral no-ratings state.
+- [ ] Replace the placeholder Marketplace checkout with a real transaction-ready flow tied to authenticated payment confirmation.

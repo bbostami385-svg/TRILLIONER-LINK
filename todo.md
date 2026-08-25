@@ -946,3 +946,5 @@
 
 - [x] Wire Messages.tsx to persisted tRPC conversations and authenticated WebSocket events without relying on hardcoded chat data.
 - [x] Add a server-authorized WebSocket handshake and conversation membership checks before accepting live message events.
+
+- [x] Make the WebSocket client same-origin and cookie-aware by default while preserving an explicit VITE_API_URL override.

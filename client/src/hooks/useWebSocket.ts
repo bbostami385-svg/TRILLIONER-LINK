@@ -7,7 +7,8 @@ interface UseWebSocketOptions {
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const { url = process.env.VITE_API_URL || "http://localhost:3000", autoConnect = true } = options;
+  const defaultUrl = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+  const { url = process.env.VITE_API_URL || defaultUrl, autoConnect = true } = options;
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
@@ -23,6 +24,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: maxReconnectAttempts,
+        withCredentials: true,
         transports: ["websocket", "polling"],
       });
 

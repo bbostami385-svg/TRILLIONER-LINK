@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
+import { extractKycOcrSignals } from "../kycOcr";
 import { kycDocuments, kycVerificationRecords, users } from "../../drizzle/schema";
 
 export const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
@@ -49,6 +50,7 @@ export const kycRouter = router({
         input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
         persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
       ]);
+      const ocr = await extractKycOcrSignals(frontImageUrl, input.documentType);
       const result = await db.insert(kycDocuments).values({
         userId: ctx.user.id,
         documentType: input.documentType,
@@ -56,7 +58,7 @@ export const kycRouter = router({
         backImageUrl,
         selfieImageUrl,
         status: "pending",
-        metadata: input.metadata,
+        metadata: { ...(input.metadata ?? {}), ocr },
       });
       const documentId = Number(result[0].insertId);
 
@@ -181,6 +183,7 @@ export const kycRouter = router({
         input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
         persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
       ]);
+      const ocr = await extractKycOcrSignals(frontImageUrl, input.documentType);
       const result = await db.insert(kycDocuments).values({
         userId: ctx.user.id,
         documentType: input.documentType,
@@ -188,7 +191,7 @@ export const kycRouter = router({
         backImageUrl,
         selfieImageUrl,
         status: "pending",
-        metadata: input.metadata,
+        metadata: { ...(input.metadata ?? {}), ocr },
       });
       const documentId = Number(result[0].insertId);
       await db.insert(kycVerificationRecords).values({ userId: ctx.user.id, documentId, status: "pending" });

@@ -3,6 +3,7 @@ import { commentsRouter } from './comments';
 import * as db from '../db';
 
 vi.mock('../db');
+vi.mock('../contentModeration', () => ({ assertPublishable: vi.fn(async () => ({ decision: 'allow', category: 'clean', confidence: 1, reason: 'test' })) }));
 
 describe('Comments Router', () => {
   beforeEach(() => {

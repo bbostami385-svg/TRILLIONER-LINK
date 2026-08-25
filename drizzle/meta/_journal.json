@@ -169,6 +169,13 @@
       "when": 1787631909530,
       "tag": "0023_opposite_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1787637122878,
+      "tag": "0024_special_lady_ursula",
+      "breakpoints": true
     }
   ]
 }

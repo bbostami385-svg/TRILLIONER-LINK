@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { posts, socialLinkClicks, subscriptions, videos } from "../../drizzle/schema";
+import { creatorAnalyticsSnapshots, posts, socialLinkClicks, subscriptions, videos } from "../../drizzle/schema";
 
 const dateInput = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must use YYYY-MM-DD format.");
 const categoryInput = z.string().trim().min(1).max(80);
@@ -41,6 +41,14 @@ export const creatorAnalyticsRouter = router({
     const categories = Array.from(new Set(rows.map((row) => row.category).filter((value): value is string => Boolean(value)))).sort((a, b) => a.localeCompare(b));
     const hashtags = Array.from(new Set(rows.flatMap((row) => row.hashtags ?? []))).sort((a, b) => a.localeCompare(b));
     return { categories, hashtags };
+  }),
+
+  getSnapshots: protectedProcedure.input(analyticsRangeSchema).query(async ({ ctx, input }) => {
+    const db = await getRequiredDb();
+    const { start, end } = rangeDates(input);
+    return db.select().from(creatorAnalyticsSnapshots)
+      .where(and(eq(creatorAnalyticsSnapshots.creatorId, ctx.user.id), gte(creatorAnalyticsSnapshots.snapshotDate, start), lte(creatorAnalyticsSnapshots.snapshotDate, end)))
+      .orderBy(desc(creatorAnalyticsSnapshots.snapshotDate));
   }),
 
   getOverview: protectedProcedure.input(analyticsRangeSchema).query(async ({ ctx, input }) => {

@@ -1038,3 +1038,24 @@ export const socialLinkClicks = mysqlTable("socialLinkClicks", {
 }));
 export type SocialLinkClick = typeof socialLinkClicks.$inferSelect;
 export type InsertSocialLinkClick = typeof socialLinkClicks.$inferInsert;
+
+/** Daily creator analytics snapshots for durable historical comparisons. */
+export const creatorAnalyticsSnapshots = mysqlTable("creatorAnalyticsSnapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  creatorId: int("creatorId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  snapshotDate: date("snapshotDate").notNull(),
+  subscribers: int("subscribers").notNull().default(0),
+  views: int("views").notNull().default(0),
+  likes: int("likes").notNull().default(0),
+  comments: int("comments").notNull().default(0),
+  shares: int("shares").notNull().default(0),
+  videos: int("videos").notNull().default(0),
+  posts: int("posts").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  creatorDateUnique: uniqueIndex("creator_analytics_creator_date_unique").on(table.creatorId, table.snapshotDate),
+  creatorDateIdx: index("creator_analytics_creator_date_idx").on(table.creatorId, table.snapshotDate),
+}));
+export type CreatorAnalyticsSnapshot = typeof creatorAnalyticsSnapshots.$inferSelect;
+export type InsertCreatorAnalyticsSnapshot = typeof creatorAnalyticsSnapshots.$inferInsert;

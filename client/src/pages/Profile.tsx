@@ -5,6 +5,7 @@ import { LevelProgressBar } from '@/components/LevelProgressBar';
 import { ModeIndicator } from '@/components/ModeIndicator';
 import { DualModeButton } from '@/components/DualModeButton';
 import { ModeStatistics } from '@/components/ModeStatistics';
+import { VerificationStatusTracker } from '@/components/VerificationStatusTracker';
 import { trpc } from '@/lib/trpc';
 import './Profile.css';
 
@@ -104,6 +105,7 @@ export default function Profile() {
             </div>
             {userStats && <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3"><span>Joined {userStats.joinedAt ? new Date(userStats.joinedAt).toLocaleDateString() : "—"}</span><span>{userStats.videosCount.toLocaleString()} video uploads</span><span>{userStats.lifetimeViews.toLocaleString()} lifetime views</span></div>}
             {kycStatus && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-slate-300"><span className="font-semibold text-amber-200">Identity verification:</span> {kycStatus.status === "approved" ? "Approved" : kycStatus.status === "pending" ? "Under review" : kycStatus.status === "rejected" ? "Needs resubmission" : "Not submitted"}. KYC is only used for monetization and payouts.</div>}
+            <div className="mt-4"><VerificationStatusTracker /></div>
             
             <div className="profile-actions">
               {currentMode && (

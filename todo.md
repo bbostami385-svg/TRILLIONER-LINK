@@ -965,3 +965,5 @@
 - [x] Expand composed-router integration coverage to assert every production namespace is reachable through the canonical app router.
 
 - [x] Add an authenticated persisted subscription list procedure for Creator Mode management and test subscriber isolation.
+
+- [x] Wire VerificationStatusTracker into the authenticated Profile page with loading and error-safe states.

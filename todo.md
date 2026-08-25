@@ -128,7 +128,7 @@
   - [x] Implement real recommendation algorithm
   - [ ] Complete SSLCommerz payment flow
   - [ ] Apply i18n translations across all pages
-  - [ ] Implement real HLS video player
+  - [x] Implement real HLS video player
   - [x] Add real chat persistence
   - [ ] Implement subscription management
 

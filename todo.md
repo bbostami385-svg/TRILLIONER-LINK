@@ -197,10 +197,10 @@
 ### Phase 7: AR Filters, Duets, Share
 - [x] AR Filters database table
 - [x] Duets/Collaborations table
-- [ ] Share to Stories feature
+- [x] Share to Stories feature
 - [x] AR Filters API router
 - [x] Duets API router
-- [ ] Story sharing API
+- [x] Story sharing API
 
 ### Phase 8: Ads and Moderation
 - [x] Sponsored Posts/Ads database table
@@ -865,3 +865,6 @@
 - [x] Add focused tests for Feed bookmark destination, duplicate prevention, and save/unsave state.
 - [x] Add creator notifications when users RSVP to their events, with safe self-notification and duplicate handling.
 - [x] Add focused event RSVP notification tests and apply the notification enum migration.
+- [x] Add a dedicated share-to-story backend procedure with source metadata and supported-media validation.
+- [x] Expand Share to Stories to Shorts and keep success/error/loading feedback consistent across media surfaces.
+- [x] Add focused story-sharing tests for authentication, media validation, and created-story metadata.

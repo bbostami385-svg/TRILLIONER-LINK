@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { storiesRouter } from './stories';
+import { storiesRouter, isValidStoryShareSource } from './stories';
 import * as db from '../db';
 
 vi.mock('../db');
@@ -61,5 +61,17 @@ describe('Stories Router', () => {
       expect(result).toEqual({ success: true });
       expect(db.incrementStoryViews).toHaveBeenCalledWith(1);
     });
+  });
+});
+
+describe("Story sharing source validation", () => {
+  it("accepts long-form videos and Shorts as shareable sources", () => {
+    expect(isValidStoryShareSource("video", "video")).toBe(true);
+    expect(isValidStoryShareSource("video", "reel")).toBe(true);
+  });
+
+  it("rejects unsupported image sharing through the source-aware flow", () => {
+    expect(isValidStoryShareSource("image", "video")).toBe(false);
+    expect(isValidStoryShareSource("image", "reel")).toBe(false);
   });
 });

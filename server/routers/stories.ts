@@ -1,11 +1,16 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { stories } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { getDb } from "../db";
 import {
   createStory,
   getStoriesByUserId,
   getFollowingStories,
   incrementStoryViews,
 } from "../db";
+
+export const isValidStoryShareSource = (mediaType: "image" | "video", sourceType: "video" | "reel") => mediaType === "video" && (sourceType === "video" || sourceType === "reel");
 
 export const storiesRouter = router({
   // Get stories by user
@@ -42,6 +47,18 @@ export const storiesRouter = router({
       }
 
       return story;
+    }),
+
+  shareToStory: protectedProcedure
+    .input(z.object({ mediaUrl: z.string().url(), mediaType: z.literal("video"), caption: z.string().max(500).optional(), sourceType: z.enum(["video", "reel"]), sourceId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!isValidStoryShareSource(input.mediaType, input.sourceType)) throw new Error("Only supported video media can be shared to Stories");
+      const story = await createStory(ctx.user.id, input.mediaUrl, input.mediaType, input.caption);
+      if (!story) throw new Error("Failed to share this media to your Story");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.update(stories).set({ sharedSourceType: input.sourceType, sharedSourceId: input.sourceId }).where(eq(stories.id, story.id));
+      return { ...story, sharedSourceType: input.sourceType, sharedSourceId: input.sourceId };
     }),
 
   // View story (increment views)

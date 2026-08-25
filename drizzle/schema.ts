@@ -230,6 +230,8 @@ export const stories = mysqlTable("stories", {
   mediaUrl: text("mediaUrl").notNull(),
   mediaType: mysqlEnum("mediaType", ["image", "video"]).notNull(),
   caption: text("caption"),
+  sharedSourceType: mysqlEnum("sharedSourceType", ["video", "reel"]),
+  sharedSourceId: int("sharedSourceId"),
   views: int("views").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

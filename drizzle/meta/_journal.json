@@ -141,6 +141,13 @@
       "when": 1787629327917,
       "tag": "0019_lonely_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1787629603836,
+      "tag": "0020_chief_toad",
+      "breakpoints": true
     }
   ]
 }

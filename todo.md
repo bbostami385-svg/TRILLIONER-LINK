@@ -239,7 +239,7 @@
 
 ### Phase 3 Gaps (Backend Fixes)
 - [x] History router: Fix duplicate check to scope per user (userId + videoId)
-- [ ] Pages router: Add real page-followers relationship table and implement follower management
+- [x] Pages router: Add real page-followers relationship table and implement follower management
 - [ ] Moderation router: Implement proper comment filtering and content scanning
 - [x] Event notifications: Add notification system for event RSVPs
 - [x] Story sharing: Implement share to stories feature
@@ -882,3 +882,9 @@
 - [x] Add focused Marketplace cart tests for add, duplicate, remove, and total behavior.
 - [x] Connect Marketplace cart checkout UI to transaction intent creation and a real payment initiation form with required customer details.
 - [x] Add Marketplace transaction history UI with initiated/paid/failed states.
+- [x] Add a durable pageFollowers relationship table with a unique user/page pair.
+- [x] Replace counter-only page follow/unfollow with authorization-safe relationship procedures and status/list queries.
+- [x] Add focused page follower tests and apply the additive schema migration.
+- [x] Keep page follower counters consistent with pageFollowers during page creation.
+- [x] Add page-creation regression coverage for initial follower state.
+- [x] Audit page UI/query surfaces to use relationship-backed follower state consistently.

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { pages, users } from "../../drizzle/schema";
-import { eq, like } from "drizzle-orm";
+import { pages, pageFollowers, users } from "../../drizzle/schema";
+import { and, desc, eq, like } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const pagesRouter = router({
@@ -25,6 +25,7 @@ export const pagesRouter = router({
       });
 
       const pageId = Number(result[0].insertId);
+      await db.insert(pageFollowers).values({ pageId, userId: ctx.user.id });
       const page = await db.select().from(pages).where(eq(pages.id, pageId)).limit(1);
       return page[0] || null;
     }),
@@ -48,34 +49,69 @@ export const pagesRouter = router({
       return db.select().from(pages).limit(input.limit);
     }),
 
-  // Follow page
+  // Follow page with a durable, duplicate-safe user/page relationship.
   followPage: protectedProcedure
     .input(z.object({ pageId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      
-      const page = await db.select().from(pages).where(eq(pages.id, input.pageId)).limit(1);
-      if (page[0]) {
-        await db.update(pages).set({ followers: page[0].followers + 1 }).where(eq(pages.id, input.pageId));
-      }
-
-      return { success: true };
+      const page = (await db.select().from(pages).where(eq(pages.id, input.pageId)).limit(1))[0];
+      if (!page) throw new Error("Page not found");
+      const existing = await db.select({ id: pageFollowers.id }).from(pageFollowers).where(and(
+        eq(pageFollowers.pageId, input.pageId),
+        eq(pageFollowers.userId, ctx.user.id),
+      )).limit(1);
+      if (existing[0]) return { success: false, alreadyFollowing: true };
+      await db.insert(pageFollowers).values({ pageId: input.pageId, userId: ctx.user.id });
+      await db.update(pages).set({ followers: page.followers + 1 }).where(eq(pages.id, input.pageId));
+      return { success: true, alreadyFollowing: false };
     }),
 
-  // Unfollow page
+  // Unfollow page only when the authenticated user owns the relationship.
   unfollowPage: protectedProcedure
     .input(z.object({ pageId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      
-      const page = await db.select().from(pages).where(eq(pages.id, input.pageId)).limit(1);
-      if (page[0] && page[0].followers > 0) {
-        await db.update(pages).set({ followers: page[0].followers - 1 }).where(eq(pages.id, input.pageId));
+      const existing = await db.select({ id: pageFollowers.id }).from(pageFollowers).where(and(
+        eq(pageFollowers.pageId, input.pageId),
+        eq(pageFollowers.userId, ctx.user.id),
+      )).limit(1);
+      if (!existing[0]) return { success: false, wasFollowing: false };
+      await db.delete(pageFollowers).where(and(
+        eq(pageFollowers.pageId, input.pageId),
+        eq(pageFollowers.userId, ctx.user.id),
+      ));
+      const page = (await db.select().from(pages).where(eq(pages.id, input.pageId)).limit(1))[0];
+      if (page && page.followers > 0) {
+        await db.update(pages).set({ followers: page.followers - 1 }).where(eq(pages.id, input.pageId));
       }
+      return { success: true, wasFollowing: true };
+    }),
 
-      return { success: true };
+  isFollowingPage: protectedProcedure
+    .input(z.object({ pageId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const rows = await db.select({ id: pageFollowers.id }).from(pageFollowers).where(and(
+        eq(pageFollowers.pageId, input.pageId),
+        eq(pageFollowers.userId, ctx.user.id),
+      )).limit(1);
+      return { isFollowing: Boolean(rows[0]) };
+    }),
+
+  getPageFollowers: publicProcedure
+    .input(z.object({ pageId: z.number(), limit: z.number().int().min(1).max(100).default(50) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      return db.select({ id: users.id, name: users.name, profileImage: users.profileImage, followedAt: pageFollowers.createdAt })
+        .from(pageFollowers)
+        .innerJoin(users, eq(pageFollowers.userId, users.id))
+        .where(eq(pageFollowers.pageId, input.pageId))
+        .orderBy(desc(pageFollowers.createdAt))
+        .limit(input.limit);
     }),
 
   // Search pages

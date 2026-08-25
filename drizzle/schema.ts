@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex, index, date, decimal, json, foreignKey } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, uniqueIndex, index, date, decimal, json, foreignKey, unique } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -483,6 +483,18 @@ export const pages = mysqlTable("pages", {
 
 export type Page = typeof pages.$inferSelect;
 export type InsertPage = typeof pages.$inferInsert;
+
+export const pageFollowers = mysqlTable("pageFollowers", {
+  id: int("id").autoincrement().primaryKey(),
+  pageId: int("pageId").notNull().references(() => pages.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userPageUnique: unique("pageFollowers_userPage_unique").on(table.pageId, table.userId),
+}));
+
+export type PageFollower = typeof pageFollowers.$inferSelect;
+export type InsertPageFollower = typeof pageFollowers.$inferInsert;
 
 /**
  * Events table

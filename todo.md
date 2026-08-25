@@ -961,3 +961,5 @@
 - [x] Replace empty payment-history response with user-scoped persisted transaction history.
 - [x] Implement ownership-safe subscription cancellation against the persisted subscriptions table.
 - [x] Add focused payment tests for history isolation and cancellation ownership.
+
+- [x] Expand composed-router integration coverage to assert every production namespace is reachable through the canonical app router.

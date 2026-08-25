@@ -971,3 +971,6 @@
 - [x] Add focused face-verification tests for adult gating, rejected submissions, and upload validation.
 
 - [x] Add a dedicated Verification category and icon treatment to the notification feed.
+
+- [x] Add production-readiness documentation with environment, OAuth, release, and external-provider prerequisites.
+- [x] Validate the production build after the verification and OAuth integration updates.

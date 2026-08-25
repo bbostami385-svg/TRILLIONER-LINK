@@ -847,3 +847,4 @@
 - [x] Add focused Watch History tests, validation, build, visual verification, checkpoint, and GitHub synchronization.
 - [x] Wire long-form and Shorts playback to authenticated Watch History recording.
 - [x] Add regression coverage for playback-triggered history recording and revalidate Watch History end to end.
+- [x] Polish Collections frontend with real loading, empty, error, mutation feedback, and cache refresh states.

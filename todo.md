@@ -984,3 +984,7 @@
 - [x] Diagnose the Vercel Invalid URL runtime error and verify all production URL environment contracts.
 - [x] Add defensive handling for malformed or missing public API/auth URLs if required.
 - [x] Update the Vercel environment-variable deployment guidance with required, optional, and non-required Firebase values.
+
+- [x] Improve face-verification loading animations and actionable error messages.
+- [x] Add user-facing KYC status and submission history to the profile experience.
+- [x] Add CSV and PDF export actions for the admin verification metrics dashboard.

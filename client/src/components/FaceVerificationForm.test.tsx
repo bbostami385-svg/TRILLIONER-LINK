@@ -27,7 +27,7 @@ describe("FaceVerificationForm", () => {
   it("shows a permission-specific error when camera access is denied", async () => {
     const { getByRole, findByText } = render(<FaceVerificationForm />);
     fireEvent.click(getByRole("button", { name: /start camera/i }));
-    expect(await findByText(/unable to access camera/i)).toBeTruthy();
+    expect(await findByText(/camera permission was denied/i)).toBeTruthy();
   });
 
   it("accepts an uploaded image and exposes submit and retake actions", async () => {

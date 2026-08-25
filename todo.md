@@ -518,7 +518,7 @@
 - [x] Implement approveKYC admin procedure
 - [x] Implement rejectKYC admin procedure
 - [x] Add document validation logic
-- [ ] Add OCR integration for ID extraction
+- [x] Add OCR integration for ID extraction
 
 ### Phase 3: Frontend Components
 - [x] Create KYCForm component

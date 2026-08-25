@@ -19,8 +19,7 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
+        # pnpm/action-setup reads the exact version from packageManager.
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

@@ -924,3 +924,5 @@
 - [x] Add moderation-rule tests covering blocked, review, and allowed comment outcomes.
 
 - [x] Add a critical cross-router integration test for account onboarding, human verification status, and monetization gating.
+
+- [x] Add focused recommendation procedure tests for persisted ranking, category filtering, and hashtag aggregation.

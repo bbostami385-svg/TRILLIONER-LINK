@@ -1,6 +1,8 @@
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { getDb } from "../db";
+import { getDb, getFeedPosts, getTrendingVideos } from "../db";
+import { users } from "../../drizzle/schema";
+import { ne } from "drizzle-orm";
 
 interface UserInteraction {
   userId: number;
@@ -17,7 +19,7 @@ interface ContentVector {
   engagementScore: number;
 }
 
-// Simple recommendation algorithm
+// Deterministic, database-backed ranking: engagement is balanced with freshness so old viral content does not permanently dominate.
 function calculateSimilarity(vector1: string[], vector2: string[]): number {
   const set1 = new Set(vector1);
   const set2 = new Set(vector2);
@@ -25,7 +27,17 @@ function calculateSimilarity(vector1: string[], vector2: string[]): number {
   const v2Array = Array.from(set2);
   const intersection = new Set(v1Array.filter((x) => set2.has(x)));
   const union = new Set([...v1Array, ...v2Array]);
-  return intersection.size / union.size;
+  return union.size === 0 ? 0 : intersection.size / union.size;
+}
+
+function freshness(createdAt: Date | string | null | undefined) {
+  const ageHours = Math.max(0, (Date.now() - new Date(createdAt ?? Date.now()).getTime()) / 3_600_000);
+  return Math.exp(-ageHours / (24 * 7));
+}
+
+function scoreContent(item: { createdAt?: Date | string | null; likes?: number; comments?: number; shares?: number; views?: number }) {
+  const engagement = Math.log1p(Number(item.likes ?? 0) * 3 + Number(item.comments ?? 0) * 4 + Number(item.shares ?? 0) * 5 + Number(item.views ?? 0));
+  return Number((engagement * 0.72 + freshness(item.createdAt) * 10 * 0.28).toFixed(6));
 }
 
 export const recommendationsRouter = router({
@@ -42,29 +54,10 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // 1. Get user's interaction history
-        // 2. Extract user preferences from interactions
-        // 3. Score all available posts
-        // 4. Return top scored posts
-
-        // For now, return mock recommendations
-        return {
-          posts: [
-            {
-              id: 1,
-              title: "Amazing Travel Experience",
-              score: 0.95,
-              reason: "Based on your travel interests",
-            },
-            {
-              id: 2,
-              title: "Tech News Update",
-              score: 0.87,
-              reason: "Popular in your network",
-            },
-          ],
-          total: 2,
-        };
+        const posts = await getFeedPosts(Math.min(input.limit * 3, 100), input.offset);
+        const ranked = posts.map((post) => ({ ...post, score: scoreContent(post), reason: "Ranked by engagement and freshness" }))
+          .sort((a, b) => b.score - a.score).slice(0, input.limit);
+        return { posts: ranked, total: ranked.length };
       } catch (error) {
         console.error("Error getting recommendations:", error);
         throw new Error("Failed to get recommendations");
@@ -84,12 +77,10 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Similar to posts recommendations
-
-        return {
-          videos: [],
-          total: 0,
-        };
+        const videos = await getTrendingVideos(Math.min(input.limit * 3, 100));
+        const ranked = videos.map((video) => ({ ...video, score: scoreContent(video), reason: "Ranked by views, engagement, and freshness" }))
+          .sort((a, b) => b.score - a.score).slice(input.offset, input.offset + input.limit);
+        return { videos: ranked, total: videos.length };
       } catch (error) {
         console.error("Error getting video recommendations:", error);
         throw new Error("Failed to get video recommendations");
@@ -108,24 +99,10 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // 1. Find users with similar interests
-        // 2. Find users followed by users you follow
-        // 3. Calculate suggestion score
-        // 4. Return top suggestions
-
-        return {
-          users: [
-            {
-              id: 1,
-              name: "John Doe",
-              username: "johndoe",
-              avatar: "https://example.com/avatar1.jpg",
-              mutualFollowers: 5,
-              score: 0.92,
-            },
-          ],
-          total: 1,
-        };
+        const usersResult = await db.select({ id: users.id, name: users.name, username: users.handle, avatar: users.profileImage, createdAt: users.createdAt })
+          .from(users).where(ne(users.id, ctx.user.id)).orderBy(users.createdAt).limit(input.limit);
+        const suggestions = usersResult.map((user, index) => ({ ...user, mutualFollowers: 0, score: Number((1 - index / Math.max(usersResult.length, 1)).toFixed(4)) }));
+        return { users: suggestions, total: suggestions.length };
       } catch (error) {
         console.error("Error getting suggested users:", error);
         throw new Error("Failed to get suggested users");
@@ -146,24 +123,12 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Calculate trending score based on:
-        // - Engagement rate (likes, comments, shares)
-        // - Time decay (newer content scores higher)
-        // - Category relevance
-        // - Viral coefficient
-
-        return {
-          trending: [
-            {
-              id: 1,
-              title: "Viral Post",
-              engagementScore: 9.8,
-              viewCount: 100000,
-              trendingRank: 1,
-            },
-          ],
-          total: 1,
-        };
+        const videos = await getTrendingVideos(Math.min(input.limit * 5, 100));
+        const filtered = input.category ? videos.filter((video) => video.category === input.category) : videos;
+        const trending = filtered.map((video) => ({ ...video, engagementScore: scoreContent(video), viewCount: video.views }))
+          .sort((a, b) => b.engagementScore - a.engagementScore).slice(0, input.limit)
+          .map((video, index) => ({ ...video, trendingRank: index + 1 }));
+        return { trending, total: trending.length };
       } catch (error) {
         console.error("Error getting trending content:", error);
         throw new Error("Failed to get trending content");
@@ -183,19 +148,11 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Get hashtags sorted by usage count and trend velocity
-
-        return {
-          hashtags: [
-            {
-              tag: "#TRILLIONER",
-              count: 50000,
-              trend: "up",
-              trendingRank: 1,
-            },
-          ],
-          total: 1,
-        };
+        const videos = await getTrendingVideos(100);
+        const counts = new Map<string, number>();
+        videos.forEach((video) => (video.hashtags ?? []).forEach((tag) => counts.set(tag.startsWith("#") ? tag : `#${tag}`, (counts.get(tag.startsWith("#") ? tag : `#${tag}`) ?? 0) + 1)));
+        const hashtags = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, input.limit).map(([tag, count], index) => ({ tag, count, trend: "up" as const, trendingRank: index + 1 }));
+        return { hashtags, total: hashtags.length };
       } catch (error) {
         console.error("Error getting trending hashtags:", error);
         throw new Error("Failed to get trending hashtags");

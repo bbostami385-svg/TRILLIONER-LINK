@@ -125,7 +125,7 @@
   - [ ] Wire Messages.tsx to useWebSocket
   - [ ] Implement real DB-backed live stream handlers
   - [ ] Implement real DB-backed moderation workflows
-  - [ ] Implement real recommendation algorithm
+  - [x] Implement real recommendation algorithm
   - [ ] Complete SSLCommerz payment flow
   - [ ] Apply i18n translations across all pages
   - [ ] Implement real HLS video player

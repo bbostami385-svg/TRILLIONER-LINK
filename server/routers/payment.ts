@@ -3,7 +3,7 @@ import { z } from "zod";
 import axios from "axios";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
-import { marketplaceProducts, marketplaceTransactions } from "../../drizzle/schema";
+import { marketplaceProducts, marketplaceTransactions, subscriptions } from "../../drizzle/schema";
 
 const SSLCOMMERZ_API_URL = process.env.SSLCOMMERZ_API_URL || "https://sandbox.sslcommerz.com/gwprocess/v4/api.php";
 const SSLCOMMERZ_STORE_ID = process.env.SSLCOMMERZ_STORE_ID || "";
@@ -208,18 +208,22 @@ export const paymentRouter = router({
     }),
 
   // Get payment history
-  getPaymentHistory: protectedProcedure.query(async ({ ctx }: any) => {
-    try {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      // This would query your payments table
-      // For now, returning empty array
-      return [];
-    } catch (error) {
-      console.error("Error fetching payment history:", error);
-      throw new Error("Failed to fetch payment history");
-    }
+  getPaymentHistory: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    return db.select({
+      id: marketplaceTransactions.id,
+      orderId: marketplaceTransactions.orderId,
+      productName: marketplaceTransactions.productName,
+      amountMinor: marketplaceTransactions.amountMinor,
+      currency: marketplaceTransactions.currency,
+      status: marketplaceTransactions.status,
+      createdAt: marketplaceTransactions.createdAt,
+      providerTransactionId: marketplaceTransactions.providerTransactionId,
+    }).from(marketplaceTransactions)
+      .where(eq(marketplaceTransactions.userId, ctx.user.id))
+      .orderBy(desc(marketplaceTransactions.createdAt))
+      .limit(100);
   }),
 
   // Create subscription
@@ -277,17 +281,16 @@ export const paymentRouter = router({
 
   // Cancel subscription
   cancelSubscription: protectedProcedure
-    .input(z.object({ subscriptionId: z.string() }))
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        // Implement subscription cancellation logic
-        return {
-          success: true,
-          message: "Subscription cancelled successfully",
-        };
-      } catch (error) {
-        console.error("Subscription cancellation error:", error);
-        throw new Error("Failed to cancel subscription");
-      }
+    .input(z.object({ subscriptionId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const owned = await db.select({ id: subscriptions.id })
+        .from(subscriptions)
+        .where(and(eq(subscriptions.id, input.subscriptionId), eq(subscriptions.subscriberId, ctx.user.id)))
+        .limit(1);
+      if (!owned[0]) throw new Error("Subscription not found");
+      await db.delete(subscriptions).where(and(eq(subscriptions.id, input.subscriptionId), eq(subscriptions.subscriberId, ctx.user.id)));
+      return { success: true, subscriptionId: input.subscriptionId, message: "Subscription cancelled successfully" };
     }),
 });

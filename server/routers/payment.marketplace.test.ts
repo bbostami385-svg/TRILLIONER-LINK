@@ -73,3 +73,34 @@ describe("Marketplace transaction procedures", () => {
     expect(db.update).not.toHaveBeenCalled();
   });
 });
+
+
+describe("Payment history and subscriptions", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns persisted payment history scoped to the authenticated user", async () => {
+    const history = [{ id: 3, orderId: "ORD-42-003", amountMinor: 2500, status: "paid" }];
+    const db = { select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(history) })) })) })) })) };
+    vi.mocked(dbModule.getDb).mockResolvedValue(db as never);
+    await expect(caller().getPaymentHistory()).resolves.toEqual(history);
+    expect(db.select).toHaveBeenCalled();
+  });
+
+  it("cancels only a subscription owned by the authenticated user", async () => {
+    const deleteWhere = vi.fn().mockResolvedValue({});
+    const db = {
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ id: 12 }]) })) })) })),
+      delete: vi.fn(() => ({ where: deleteWhere })),
+    };
+    vi.mocked(dbModule.getDb).mockResolvedValue(db as never);
+    await expect(caller().cancelSubscription({ subscriptionId: 12 })).resolves.toMatchObject({ success: true, subscriptionId: 12 });
+    expect(deleteWhere).toHaveBeenCalled();
+  });
+
+  it("rejects cancellation when the subscription is not owned by the caller", async () => {
+    const db = { select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([]) })) })) })), delete: vi.fn() };
+    vi.mocked(dbModule.getDb).mockResolvedValue(db as never);
+    await expect(caller().cancelSubscription({ subscriptionId: 99 })).rejects.toThrow("Subscription not found");
+    expect(db.delete).not.toHaveBeenCalled();
+  });
+});

@@ -957,3 +957,7 @@
 
 - [x] Add a reusable HLS playback component using hls.js when supported and native video fallback when available.
 - [x] Add focused HLS playback tests for unsupported sources and cleanup behavior.
+
+- [x] Replace empty payment-history response with user-scoped persisted transaction history.
+- [x] Implement ownership-safe subscription cancellation against the persisted subscriptions table.
+- [x] Add focused payment tests for history isolation and cancellation ownership.

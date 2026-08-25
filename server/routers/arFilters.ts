@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { arFilters } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const arFiltersRouter = router({
@@ -51,6 +51,17 @@ export const arFiltersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       return db.select().from(arFilters).where(eq(arFilters.isPublic, true)).orderBy(desc(arFilters.uses)).limit(input.limit);
+    }),
+
+  searchARFilters: publicProcedure
+    .input(z.object({ query: z.string().trim().min(1).max(100), limit: z.number().int().min(1).max(50).default(20) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      return db.select().from(arFilters)
+        .where(and(eq(arFilters.isPublic, true), like(arFilters.name, `%${input.query}%`)))
+        .orderBy(desc(arFilters.uses))
+        .limit(input.limit);
     }),
 
   // Get creator's filters

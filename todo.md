@@ -234,7 +234,7 @@
 ### Phase 2 Gaps (Frontend Pages)
 - [ ] Reels page: Implement real vertical video feed with loading/empty/error states
 - [x] Polls page: Fetch and display polls, options, results, and voting UI with proper error handling
-- [ ] AR Filters page: Replace hardcoded search with real searchable/listable filters flow
+- [x] AR Filters page: Replace hardcoded search with real searchable/listable filters flow
 - [x] Watch history view: Create page to display user's watch history
 
 ### Phase 3 Gaps (Backend Fixes)
@@ -852,3 +852,4 @@
 - [x] Polish Reels with create feedback, cache invalidation, and an informative empty state.
 - [x] Harden poll voting against invalid options and expired polls.
 - [x] Add focused Polls router tests for recent listing, invalid options, and expired voting.
+- [x] Replace AR Filters hardcoded creator search with real name search, loading/empty/error states, and toast feedback.

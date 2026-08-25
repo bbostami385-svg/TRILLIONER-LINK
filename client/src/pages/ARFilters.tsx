@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export function ARFiltersPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,26 +12,16 @@ export function ARFiltersPage() {
     limit: 20,
   });
 
-  const { data: searchResults, isLoading: loadingSearch } = trpc.arFilters.getCreatorFilters.useQuery(
-    { creatorId: 1 },
-    { enabled: searchQuery.length > 0 }
+  const { data: searchResults, isLoading: loadingSearch, isError: searchError } = trpc.arFilters.searchARFilters.useQuery(
+    { query: searchQuery.trim(), limit: 20 },
+    { enabled: searchQuery.trim().length > 0 }
   );
 
-  const useFilterMutation = trpc.arFilters.incrementUses.useMutation();
+  const useFilterMutation = trpc.arFilters.incrementUses.useMutation({ onSuccess: () => toast.success("Filter added to your library."), onError: (error) => toast.error(error.message) });
 
   const handleUseFilter = async (filterId: number) => {
     try {
-      await useFilterMutation.mutateAsync(
-        { filterId },
-        {
-          onSuccess: () => {
-            alert("Filter added to your library!");
-          },
-          onError: (error) => {
-            alert(`Error: ${error.message}`);
-          },
-        }
-      );
+      await useFilterMutation.mutateAsync({ filterId });
     } catch (error) {
       console.error("Failed to use filter:", error);
     }
@@ -65,7 +56,9 @@ export function ARFiltersPage() {
             Trending Filters
           </h2>
           {isLoading ? (
-            <p className="text-purple-200">Loading filters...</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <Card key={item} className="h-64 animate-pulse border-purple-500/30 bg-slate-800" />)}</div>
+          ) : searchError ? (
+            <Card className="border-rose-300/30 bg-rose-500/10 p-6 text-rose-100">Filter search is temporarily unavailable. Please try again shortly.</Card>
           ) : displayFilters && displayFilters.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {displayFilters.map((filter: any) => (
@@ -102,7 +95,7 @@ export function ARFiltersPage() {
               ))}
             </div>
           ) : (
-            <p className="text-purple-200">No filters found</p>
+            <Card className="border-white/10 bg-white/5 p-8 text-center"><p className="text-purple-200">{searchQuery ? `No public filters match “${searchQuery}”.` : "No public filters are available yet."}</p><p className="mt-2 text-sm text-slate-400">Try another filter name or check back after creators publish new effects.</p></Card>
           )}
         </div>
 

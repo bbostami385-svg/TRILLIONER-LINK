@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { watchHistory, videos } from "../../drizzle/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { reels, videos, watchHistory } from "../../drizzle/schema";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const historyRouter = router({
   // Add to watch history
   addToHistory: protectedProcedure
-    .input(z.object({ videoId: z.number() }))
+    .input(z.object({ videoId: z.number().int().positive().optional(), reelId: z.number().int().positive().optional() }).refine((input) => Boolean(input.videoId ?? input.reelId), { message: "Provide a videoId or reelId" }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -16,13 +16,14 @@ export const historyRouter = router({
       const existing = await db
         .select()
         .from(watchHistory)
-        .where(and(eq(watchHistory.userId, ctx.user.id), eq(watchHistory.videoId, input.videoId)))
+        .where(and(eq(watchHistory.userId, ctx.user.id), input.videoId ? eq(watchHistory.videoId, input.videoId) : eq(watchHistory.reelId, input.reelId!)))
         .limit(1);
 
       if (existing.length === 0) {
         await db.insert(watchHistory).values({
           userId: ctx.user.id,
-          videoId: input.videoId,
+          videoId: input.videoId ?? null,
+          reelId: input.reelId ?? null,
         });
       }
 
@@ -36,13 +37,18 @@ export const historyRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      return db
-        .select({ history: watchHistory, video: videos })
+      const rows = await db
+        .select({ history: watchHistory, video: videos, reel: reels })
         .from(watchHistory)
-        .innerJoin(videos, eq(watchHistory.videoId, videos.id))
+        .leftJoin(videos, eq(watchHistory.videoId, videos.id))
+        .leftJoin(reels, eq(watchHistory.reelId, reels.id))
         .where(eq(watchHistory.userId, ctx.user.id))
         .orderBy(desc(watchHistory.watchedAt))
         .limit(input.limit);
+      return rows.flatMap(({ history, video, reel }) => {
+        const media = video ?? (reel ? { id: reel.id, userId: reel.userId, title: reel.title ?? reel.caption ?? "TRILLIONER LINK Short", description: reel.description ?? reel.caption, videoUrl: reel.videoUrl, thumbnailUrl: reel.thumbnail, duration: reel.duration, views: reel.views, category: reel.category, createdAt: reel.createdAt } : null);
+        return media ? [{ history, video: media }] : [];
+      });
     }),
 
   // Clear watch history

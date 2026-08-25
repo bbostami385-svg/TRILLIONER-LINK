@@ -184,8 +184,8 @@
 - [x] Watch History database table
 - [x] Collections API router
 - [x] History API router
-- [x] Collections frontend page
-- [ ] Watch history view
+- [ ] Collections frontend page
+- [x] Watch history view
 
 ### Phase 6: Verification and Mentions
 - [x] User Verification Badges system
@@ -235,10 +235,10 @@
 - [ ] Reels page: Implement real vertical video feed with loading/empty/error states
 - [ ] Polls page: Fetch and display polls, options, results, and voting UI with proper error handling
 - [ ] AR Filters page: Replace hardcoded search with real searchable/listable filters flow
-- [ ] Watch history view: Create page to display user's watch history
+- [x] Watch history view: Create page to display user's watch history
 
 ### Phase 3 Gaps (Backend Fixes)
-- [ ] History router: Fix duplicate check to scope per user (userId + videoId)
+- [x] History router: Fix duplicate check to scope per user (userId + videoId)
 - [ ] Pages router: Add real page-followers relationship table and implement follower management
 - [ ] Moderation router: Implement proper comment filtering and content scanning
 - [ ] Event notifications: Add notification system for event RSVPs
@@ -845,3 +845,5 @@
 
 - [x] Add a real Watch History view backed by the existing history procedures.
 - [x] Add focused Watch History tests, validation, build, visual verification, checkpoint, and GitHub synchronization.
+- [x] Wire long-form and Shorts playback to authenticated Watch History recording.
+- [x] Add regression coverage for playback-triggered history recording and revalidate Watch History end to end.

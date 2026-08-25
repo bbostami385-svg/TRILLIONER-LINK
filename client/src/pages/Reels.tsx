@@ -13,7 +13,9 @@ import { isWatchLaterSaved, toggleWatchLater } from "@/lib/watchLater";
 import { toast } from "sonner";
 
 export function ReelsPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const addToHistory = trpc.history.addToHistory.useMutation();
+  const historyRecorded = useRef<Set<number>>(new Set());
   const [, setLocation] = useLocation();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [pullStart, setPullStart] = useState<number | null>(null);
@@ -67,6 +69,7 @@ export function ReelsPage() {
   useEffect(() => { if (trendingReels) setWatchLaterSaved(Object.fromEntries(trendingReels.map((reel) => [reel.id, isWatchLaterSaved(reel.id, "short")]))); }, [trendingReels]);
   const handleDoubleTapReel = (reelId: number) => { setHeartBurstId(reelId); window.setTimeout(() => setHeartBurstId((current) => current === reelId ? null : current), 850); void handleLikeReel(reelId); };
   const chooseReelReaction = (reelId: number, reaction: string) => { setSelectedReactions((current) => ({ ...current, [reelId]: reaction })); void handleLikeReel(reelId); };
+  const recordReelPlayback = (reelId: number) => { if (!isAuthenticated || historyRecorded.current.has(reelId)) return; historyRecorded.current.add(reelId); void addToHistory.mutateAsync({ reelId }).catch(() => { historyRecorded.current.delete(reelId); }); };
   const saveReelToWatchLater = (reel: NonNullable<typeof trendingReels>[number]) => { const result = toggleWatchLater({ id: reel.id, title: reel.caption || "TRILLIONER LINK Short", description: reel.caption, videoUrl: reel.videoUrl, thumbnailUrl: reel.thumbnail, creatorName: `Creator #${reel.userId}`, mediaType: "short" }); setWatchLaterSaved((current) => ({ ...current, [reel.id]: result.saved })); toast.success(result.saved ? "Short added to Watch Later." : "Short removed from Watch Later."); };
 
   return (
@@ -156,13 +159,7 @@ export function ReelsPage() {
                   className="relative p-4 bg-slate-800 border-purple-500 hover:border-pink-500 transition-colors overflow-hidden" onDoubleClick={() => handleDoubleTapReel(reel.id)}
                 >
                   {heartBurstId === reel.id && <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center" aria-hidden="true"><Heart className="h-24 w-24 animate-ping text-rose-400 drop-shadow-[0_0_20px_rgba(251,113,133,0.8)]" /></div>}
-                  {reel.thumbnail && (
-                    <img
-                      src={reel.thumbnail}
-                      alt={reel.caption || "Reel"}
-                      className="w-full h-48 object-cover rounded mb-3"
-                    />
-                  )}
+                  <video src={reel.videoUrl} poster={reel.thumbnail || undefined} controls playsInline onPlay={() => recordReelPlayback(reel.id)} className="w-full h-48 rounded mb-3 bg-black object-cover" aria-label={reel.caption || "Short video"} />
                   <p className="text-purple-200 text-sm mb-3 line-clamp-2">{reel.caption}</p>
                   <div className="flex justify-between items-center text-xs text-purple-300 mb-3">
                     <span>👁️ {reel.views} views</span>

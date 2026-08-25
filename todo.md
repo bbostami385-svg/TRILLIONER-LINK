@@ -486,7 +486,7 @@
 - [x] Create LivenessChallenge component
 - [x] Add video recording with constraints
 - [x] Display random movement instructions (nod, turn left, turn right, blink)
-- [ ] Add real-time feedback during recording
+- [x] Add real-time feedback during recording
 - [x] Add retry logic for failed attempts
 - [x] Add progress indicator
 

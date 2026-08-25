@@ -926,3 +926,5 @@
 - [x] Add a critical cross-router integration test for account onboarding, human verification status, and monetization gating.
 
 - [x] Add focused recommendation procedure tests for persisted ranking, category filtering, and hashtag aggregation.
+
+- [x] Replace empty following and collaborative recommendation responses with persisted video queries and test their fallback behavior.

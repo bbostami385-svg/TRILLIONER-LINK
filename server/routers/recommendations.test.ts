@@ -48,3 +48,29 @@ describe("recommendation procedures", () => {
     expect(result.hashtags[1]).toMatchObject({ tag: "#learn", count: 1, trendingRank: 2 });
   });
 });
+
+  it("returns persisted videos from followed accounts", async () => {
+    const followedVideos = [{ id: 9, userId: 3, title: "Science update", isPublic: true }];
+    vi.mocked(db.getDb).mockResolvedValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          innerJoin: vi.fn(() => ({
+            where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(followedVideos) })) })),
+          })),
+        })),
+      })),
+    } as never);
+    const result = await recommendationsRouter.createCaller({ user: { id: 7 } } as any).getFollowingRecommendations({ limit: 10 });
+    expect(result).toEqual({ content: followedVideos, total: 1 });
+  });
+
+  it("falls back to trending videos when collaborative history is unavailable", async () => {
+    const trending = [{ id: 11, title: "Popular video" }];
+    vi.mocked(db.getTrendingVideos).mockResolvedValue(trending as never);
+    vi.mocked(db.getDb).mockResolvedValue({
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })) })),
+    } as never);
+    const result = await recommendationsRouter.createCaller({ user: { id: 7 } } as any).getCollaborativeRecommendations({ limit: 5 });
+    expect(result).toEqual({ content: trending, total: 5 });
+    expect(db.getTrendingVideos).toHaveBeenCalledWith(5);
+  });

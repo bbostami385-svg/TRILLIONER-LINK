@@ -1,8 +1,8 @@
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb, getFeedPosts, getTrendingVideos } from "../db";
-import { users } from "../../drizzle/schema";
-import { ne } from "drizzle-orm";
+import { follows, likes, users, videos } from "../../drizzle/schema";
+import { and, desc, eq, inArray, isNotNull, ne, notInArray } from "drizzle-orm";
 
 interface UserInteraction {
   userId: number;
@@ -198,13 +198,23 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Get content from users the current user follows
-        // Sort by engagement and recency
-
-        return {
-          content: [],
-          total: 0,
-        };
+        const content = await db.select({
+          id: videos.id,
+          userId: videos.userId,
+          title: videos.title,
+          description: videos.description,
+          videoUrl: videos.videoUrl,
+          thumbnailUrl: videos.thumbnailUrl,
+          category: videos.category,
+          views: videos.views,
+          likes: videos.likes,
+          comments: videos.comments,
+          createdAt: videos.createdAt,
+        }).from(videos)
+          .innerJoin(follows, eq(follows.followingId, videos.userId))
+          .where(and(eq(follows.followerId, ctx.user.id), eq(videos.isPublic, true)))
+          .orderBy(desc(videos.createdAt)).limit(input.limit);
+        return { content, total: content.length };
       } catch (error) {
         console.error("Error getting following recommendations:", error);
         throw new Error("Failed to get following recommendations");
@@ -223,13 +233,20 @@ export const recommendationsRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Find users with similar preferences
-        // Recommend content they liked that current user hasn't seen
-
-        return {
-          content: [],
-          total: 0,
-        };
+        const likedRows = await db.select({ videoId: likes.videoId }).from(likes)
+          .where(and(eq(likes.userId, ctx.user.id), isNotNull(likes.videoId)));
+        const likedVideoIds = likedRows.flatMap((row) => row.videoId == null ? [] : [row.videoId]);
+        if (!likedVideoIds.length) return { content: await getTrendingVideos(input.limit), total: input.limit };
+        const peerRows = await db.select({ userId: likes.userId }).from(likes)
+          .where(and(inArray(likes.videoId, likedVideoIds), ne(likes.userId, ctx.user.id))).limit(100);
+        const peerIds = Array.from(new Set(peerRows.map((row) => row.userId)));
+        if (!peerIds.length) return { content: await getTrendingVideos(input.limit), total: input.limit };
+        const candidates = await db.select({ videoId: likes.videoId }).from(likes)
+          .where(and(inArray(likes.userId, peerIds), isNotNull(likes.videoId), notInArray(likes.videoId, likedVideoIds))).limit(input.limit * 5);
+        const candidateIds = Array.from(new Set(candidates.flatMap((row) => row.videoId == null ? [] : [row.videoId])));
+        if (!candidateIds.length) return { content: await getTrendingVideos(input.limit), total: input.limit };
+        const content = await db.select().from(videos).where(and(inArray(videos.id, candidateIds), eq(videos.isPublic, true))).orderBy(desc(videos.views)).limit(input.limit);
+        return { content, total: content.length };
       } catch (error) {
         console.error("Error getting collaborative recommendations:", error);
         throw new Error("Failed to get collaborative recommendations");

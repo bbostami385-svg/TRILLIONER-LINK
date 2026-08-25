@@ -1,4 +1,4 @@
-import { Bell, CheckCheck, MessageCircle, Sparkles, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, MessageCircle, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ const categories = [
   { value: "subscriptions", label: "Subscriptions" },
   { value: "appeals", label: "Appeals" },
   { value: "social", label: "Social" },
+  { value: "verification", label: "Verification" },
 ] as const;
 type Category = (typeof categories)[number]["value"];
 
-function iconFor(type: string) { if (type === "subscribe") return <UserPlus className="h-5 w-5 text-indigo-300" />; if (type === "appeal_result") return <Sparkles className="h-5 w-5 text-amber-300" />; if (type === "comment") return <MessageCircle className="h-5 w-5 text-cyan-300" />; return <Bell className="h-5 w-5 text-slate-300" />; }
+function iconFor(type: string) { if (type === "subscribe") return <UserPlus className="h-5 w-5 text-indigo-300" />; if (type === "verification_reminder") return <ShieldCheck className="h-5 w-5 text-emerald-300" />; if (type === "appeal_result") return <Sparkles className="h-5 w-5 text-amber-300" />; if (type === "comment") return <MessageCircle className="h-5 w-5 text-cyan-300" />; return <Bell className="h-5 w-5 text-slate-300" />; }
 function timeAgo(value: Date | string) { const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000); if (minutes < 1) return "now"; if (minutes < 60) return `${minutes}m ago`; if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`; return `${Math.floor(minutes / 1440)}d ago`; }
 
 export default function Notifications() {

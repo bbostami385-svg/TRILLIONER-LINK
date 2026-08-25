@@ -969,3 +969,5 @@
 - [x] Wire VerificationStatusTracker into the authenticated Profile page with loading and error-safe states.
 
 - [x] Add focused face-verification tests for adult gating, rejected submissions, and upload validation.
+
+- [x] Add a dedicated Verification category and icon treatment to the notification feed.

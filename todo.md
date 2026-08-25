@@ -123,7 +123,7 @@
 - [ ] Backend Integrations (ready for production deployment):
   - [x] Register Socket.io server in app startup
   - [x] Wire Messages.tsx to useWebSocket
-  - [ ] Implement real DB-backed live stream handlers
+  - [x] Implement real DB-backed live stream handlers
   - [x] Implement real DB-backed moderation workflows
   - [x] Implement real recommendation algorithm
   - [ ] Complete SSLCommerz payment flow
@@ -948,3 +948,7 @@
 - [x] Add a server-authorized WebSocket handshake and conversation membership checks before accepting live message events.
 
 - [x] Make the WebSocket client same-origin and cookie-aware by default while preserving an explicit VITE_API_URL override.
+
+- [x] Add durable live-stream and stream-chat tables with safe lifecycle status fields.
+- [x] Replace live-stream mock handlers with persisted start, end, list, details, viewer, chat, and recording workflows.
+- [x] Add focused live-stream router tests for lifecycle ownership and chat persistence.

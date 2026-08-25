@@ -1133,3 +1133,44 @@ export const recommendationInteractions = mysqlTable("recommendationInteractions
 });
 export type RecommendationInteraction = typeof recommendationInteractions.$inferSelect;
 export type InsertRecommendationInteraction = typeof recommendationInteractions.$inferInsert;
+
+
+/** Durable live-stream lifecycle records. */
+export const liveStreams = mysqlTable("liveStreams", {
+  id: int("id").autoincrement().primaryKey(),
+  streamId: varchar("streamId", { length: 120 }).notNull().unique(),
+  creatorId: int("creatorId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  thumbnail: text("thumbnail"),
+  isPublic: boolean("isPublic").default(true).notNull(),
+  status: mysqlEnum("status", ["ready", "live", "ended"]).default("live").notNull(),
+  streamKey: varchar("streamKey", { length: 160 }).notNull().unique(),
+  rtmpUrl: text("rtmpUrl").notNull(),
+  hlsUrl: text("hlsUrl").notNull(),
+  viewerCount: int("viewerCount").default(0).notNull(),
+  recordingId: varchar("recordingId", { length: 160 }),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  endedAt: timestamp("endedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  creatorStatusIdx: index("live_stream_creator_status_idx").on(table.creatorId, table.status),
+  publicStatusIdx: index("live_stream_public_status_idx").on(table.isPublic, table.status),
+}));
+export type LiveStream = typeof liveStreams.$inferSelect;
+export type InsertLiveStream = typeof liveStreams.$inferInsert;
+
+/** Persisted chat messages for a live stream. */
+export const streamChatMessages = mysqlTable("streamChatMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  streamId: varchar("streamId", { length: 120 }).notNull(),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
+  username: varchar("username", { length: 160 }),
+  message: varchar("message", { length: 500 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  streamDateIdx: index("stream_chat_stream_date_idx").on(table.streamId, table.createdAt),
+}));
+export type StreamChatMessage = typeof streamChatMessages.$inferSelect;
+export type InsertStreamChatMessage = typeof streamChatMessages.$inferInsert;

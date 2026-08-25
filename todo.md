@@ -907,3 +907,4 @@
 - [x] Expand the user guide with Dual Mode onboarding, settings, and profile usage.
 - [x] Expand the user guide with follower levels, progress, leaderboard, and level-up celebration guidance.
 - [x] Add GitHub Actions CI validation for install, typecheck, tests, and production build in TRILLIONER-LINK.
+- [x] Connect the durable analytics snapshot query to CreatorDashboard with a historical coverage indicator.

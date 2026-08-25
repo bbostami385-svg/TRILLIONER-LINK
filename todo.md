@@ -1005,3 +1005,5 @@
 
 - [x] Add focused Login tests for Google loading, auth failure feedback, and successful /profile redirect.
 - [x] Add true behavior-level integration coverage for router contracts beyond namespace reachability.
+
+- [x] Save a complete Bengali Firebase + Google Login Vercel environment-variable guide for later setup.

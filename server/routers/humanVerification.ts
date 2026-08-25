@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { assessLivenessRisk } from "../livenessSignals";
-import { faceLivenessRecords, livenessChallenge, notifications, users, verificationAuditLogs } from "../../drizzle/schema";
+import { faceLivenessRecords, kycDocuments, livenessChallenge, notifications, users, verificationAuditLogs } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -203,6 +203,21 @@ export const humanVerificationRouter = router({
       verifiedAt: user.livenessVerificationAt,
       message: user.livenessVerified ? "Account is human verified." : "Human verification required.",
     };
+  }),
+
+  getVerificationMetrics: adminProcedure.query(async () => {
+    const db = await getRequiredDb();
+    const [livenessRows, kycRows] = await Promise.all([
+      db.select({ status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords).groupBy(faceLivenessRecords.status),
+      db.select({ status: kycDocuments.status, total: count() }).from(kycDocuments).groupBy(kycDocuments.status),
+    ]);
+    const summarize = (rows: Array<{ status: string; total: number }>) => ({
+      total: rows.reduce((sum, row) => sum + Number(row.total), 0),
+      pending: Number(rows.find((row) => row.status === "pending")?.total ?? 0),
+      approved: Number(rows.find((row) => row.status === "approved")?.total ?? 0),
+      rejected: Number(rows.find((row) => row.status === "rejected")?.total ?? 0),
+    });
+    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), generatedAt: new Date() };
   }),
 
   getPendingLiveness: adminProcedure

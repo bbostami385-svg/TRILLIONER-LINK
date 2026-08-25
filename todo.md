@@ -311,8 +311,8 @@
 - [x] Test first-time setup flow
 
 ### Phase 8: Checkpoint & Delivery
-- [ ] Create checkpoint with all changes
-- [ ] Push to GitHub
+- [x] Create checkpoint with all changes
+- [x] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -376,8 +376,8 @@
 - [x] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
-- [ ] Create checkpoint with all changes
-- [ ] Push to GitHub
+- [x] Create checkpoint with all changes
+- [x] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -976,3 +976,7 @@
 - [x] Validate the production build after the verification and OAuth integration updates.
 
 - [x] Add optimistic like/unlike updates to the feed with rollback and server reconciliation.
+
+- [x] Add a true admin verification metrics dashboard backed by aggregated liveness and KYC review-state queries.
+- [x] Expand FaceVerificationForm tests across upload, camera capture, submit payload, loading, success, error, and retake flows.
+- [x] Add broader verification-router integration coverage for age status, human liveness status, admin metrics, and KYC status.

@@ -14,6 +14,7 @@ interface FaceVerificationFormProps {
 export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFormProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -28,10 +29,8 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setCameraActive(true);
-      }
+      setCameraStream(stream);
+      setCameraActive(true);
     } catch (err: any) {
       setError("Unable to access camera. Please check permissions.");
       onError?.(err.message);
@@ -55,11 +54,11 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
 
   // Stop camera
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach((track) => track.stop());
-      setCameraActive(false);
-    }
+    const stream = cameraStream ?? (videoRef.current?.srcObject as MediaStream | null);
+    stream?.getTracks().forEach((track) => track.stop());
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraStream(null);
+    setCameraActive(false);
   };
 
   // Handle file upload
@@ -102,12 +101,14 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
     }
   };
 
-  // Cleanup camera on unmount
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
+    if (cameraActive && cameraStream && videoRef.current) videoRef.current.srcObject = cameraStream;
+  }, [cameraActive, cameraStream]);
+
+  // Cleanup camera on unmount
+  useEffect(() => () => {
+    cameraStream?.getTracks().forEach((track) => track.stop());
+  }, [cameraStream]);
 
   return (
     <Card className="w-full max-w-md mx-auto">

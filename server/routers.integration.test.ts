@@ -76,3 +76,60 @@ describe("human verification integration contract", () => {
     });
   });
 });
+
+
+describe("verification metrics integration contract", () => {
+  it("summarizes persisted liveness and KYC review states for admins", async () => {
+    const databaseStub = {
+      select: vi.fn()
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            groupBy: vi.fn().mockResolvedValue([{ status: "pending", total: 3 }, { status: "approved", total: 5 }, { status: "rejected", total: 2 }]),
+          })),
+        }))
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            groupBy: vi.fn().mockResolvedValue([{ status: "pending", total: 4 }, { status: "approved", total: 6 }]),
+          })),
+        })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    const caller = appRouter.createCaller({ user: { id: 7, role: "admin" } } as any);
+
+    await expect(caller.humanVerification.getVerificationMetrics()).resolves.toMatchObject({
+      liveness: { total: 10, pending: 3, approved: 5, rejected: 2 },
+      kyc: { total: 10, pending: 4, approved: 6, rejected: 0 },
+    });
+  });
+});
+
+
+describe("age and KYC verification integration contract", () => {
+  it("returns the authenticated age status and account activation state", async () => {
+    const databaseStub = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{
+            id: 42, age: 26, dateOfBirth: new Date("2000-01-01"), ageVerified: true,
+            ageVerificationAt: new Date(), faceVerificationRequired: false, faceVerified: false,
+            faceVerificationStatus: "not_required", livenessVerified: true,
+          }]) })),
+        })),
+      })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    const caller = appRouter.createCaller({ user: { id: 42 } } as any);
+    await expect(caller.ageVerification.getAgeVerificationStatus()).resolves.toMatchObject({ age: 26, ageVerified: true, accountActive: true, livenessVerified: true });
+  });
+
+  it("returns KYC status with the latest user-scoped document", async () => {
+    const databaseStub = {
+      select: vi.fn()
+        .mockImplementationOnce(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ kycVerified: true, kycStatus: "approved", kycDocumentType: "passport", kycVerificationAt: new Date() }]) })) })) }))
+        .mockImplementationOnce(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ id: 9, status: "approved", userId: 42 }]) })) })) })) })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    const caller = appRouter.createCaller({ user: { id: 42 } } as any);
+    await expect(caller.kyc.getKYCStatus()).resolves.toMatchObject({ isVerified: true, status: "approved", documentType: "passport", lastDocument: { id: 9, userId: 42 } });
+  });
+});

@@ -59,7 +59,7 @@ describe('Videos Router', () => {
       
       const caller = videosRouter.createCaller({} as any);
       
-      expect(caller.getVideo({ videoId: 999 })).rejects.toThrow('Video not found');
+      await expect(caller.getVideo({ videoId: 999 })).rejects.toThrow('Video not found');
     });
   });
 });

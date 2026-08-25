@@ -12,14 +12,24 @@ interface Product {
   name: string;
   price: number;
   image: string;
+  imageUrl: string | null;
   seller: string;
   inStock: boolean;
+  stock: number;
+  currency: string;
+  category: string;
 }
 
 export default function Marketplace() {
   const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const transactionsQuery = trpc.payment.getMarketplaceTransactions.useQuery(undefined, { enabled: isAuthenticated });
+  const productsQuery = trpc.marketplace.listProducts.useQuery({ category: selectedCategory, limit: 48 }, { enabled: isAuthenticated });
+  const allListingsQuery = trpc.marketplace.listProducts.useQuery({ category: "all", limit: 100 }, { enabled: isAuthenticated });
+  const myProductsQuery = trpc.marketplace.listMyProducts.useQuery({ limit: 100 }, { enabled: isAuthenticated });
+  const createProduct = trpc.marketplace.createProduct.useMutation();
+  const archiveProduct = trpc.marketplace.archiveProduct.useMutation();
   const createTransaction = trpc.payment.createMarketplaceTransaction.useMutation();
   const initiatePayment = trpc.payment.initiatePayment.useMutation();
   const [customerName, setCustomerName] = useState(user?.name ?? "");
@@ -29,65 +39,25 @@ export default function Marketplace() {
   const [cart, setCart] = useState<CartItem<Product>[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sellerForm, setSellerForm] = useState({ name: "", category: "", description: "", price: "", stock: "", imageUrl: "" });
 
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Premium Headphones",
-      price: 4999,
-      image: "🎧",
-      seller: "TechStore",
-      inStock: true,
-    },
-    {
-      id: 2,
-      name: "Wireless Mouse",
-      price: 1299,
-      image: "🖱️",
-      seller: "GadgetHub",
-      inStock: true,
-    },
-    {
-      id: 3,
-      name: "USB-C Cable",
-      price: 399,
-      image: "🔌",
-      seller: "CableWorld",
-      inStock: true,
-    },
-    {
-      id: 4,
-      name: "Phone Stand",
-      price: 599,
-      image: "📱",
-      seller: "AccessoriesPlus",
-      inStock: false,
-    },
-    {
-      id: 5,
-      name: "Laptop Bag",
-      price: 2499,
-      image: "🎒",
-      seller: "BagStore",
-      inStock: true,
-    },
-    {
-      id: 6,
-      name: "Screen Protector",
-      price: 299,
-      image: "📺",
-      seller: "ProtectionCo",
-      inStock: true,
-    },
-  ];
+  const products: Product[] = (productsQuery.data ?? []).map((product) => ({
+    id: product.id,
+    name: product.name,
+    price: product.priceMinor / 100,
+    image: "🛍️",
+    imageUrl: product.imageUrl,
+    seller: product.sellerName ?? "TRILLIONER LINK seller",
+    inStock: product.stock > 0,
+    stock: product.stock,
+    currency: product.currency,
+    category: product.category,
+  }));
 
+  const categoryValues = Array.from(new Set((allListingsQuery.data ?? []).map((product) => product.category))).sort();
   const categories = [
     { id: "all", name: "All Products", icon: "🛍️" },
-    { id: "electronics", name: "Electronics", icon: "⚡" },
-    { id: "accessories", name: "Accessories", icon: "🎒" },
-    { id: "fashion", name: "Fashion", icon: "👕" },
-    { id: "home", name: "Home", icon: "🏠" },
+    ...categoryValues.map((category) => ({ id: category, name: category, icon: "•" })),
   ];
 
   if (!isAuthenticated) {
@@ -122,6 +92,29 @@ export default function Marketplace() {
 
   const totalPrice = getCartTotal(cart);
   const cartCount = getCartCount(cart);
+  const formatProductPrice = (product: Product) => new Intl.NumberFormat("en-BD", {
+    style: "currency",
+    currency: product.currency || "BDT",
+    maximumFractionDigits: 2,
+  }).format(product.price);
+
+  const handleCreateProduct = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const price = Number(sellerForm.price);
+    const stock = Number(sellerForm.stock);
+    if (!sellerForm.name.trim() || !sellerForm.category.trim() || !Number.isFinite(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) return;
+    await createProduct.mutateAsync({
+      name: sellerForm.name.trim(),
+      category: sellerForm.category.trim(),
+      description: sellerForm.description.trim() || undefined,
+      priceMinor: Math.round(price * 100),
+      stock,
+      currency: "BDT",
+      imageUrl: sellerForm.imageUrl.trim() || undefined,
+    });
+    setSellerForm({ name: "", category: "", description: "", price: "", stock: "", imageUrl: "" });
+    await Promise.all([myProductsQuery.refetch(), allListingsQuery.refetch(), productsQuery.refetch()]);
+  };
 
   const handleCheckout = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -130,7 +123,13 @@ export default function Marketplace() {
     const orderId = `TL-${user?.id ?? "user"}-${Date.now()}`;
     const productName = cart.map((item) => `${item.product.name} x${item.quantity}`).join(", ");
     try {
-      await createTransaction.mutateAsync({ orderId, productName, amountMinor: totalPrice * 100, currency: "BDT" });
+      await createTransaction.mutateAsync({
+        orderId,
+        productName,
+        amountMinor: Math.round(totalPrice * 100),
+        currency: "BDT",
+        items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+      });
       const payment = await initiatePayment.mutateAsync({
         amount: totalPrice,
         productName,
@@ -180,10 +179,16 @@ export default function Marketplace() {
       </div>
 
       {/* Products Grid */}
-      <div className="products-grid">
-        {products.map((product) => (
+      <div className="products-grid" aria-live="polite">
+        {productsQuery.isLoading ? (
+          Array.from({ length: 6 }).map((_, index) => <div key={index} className="product-card animate-pulse"><div className="product-image bg-slate-200" /><div className="product-info space-y-3"><div className="h-5 rounded bg-slate-200" /><div className="h-4 w-2/3 rounded bg-slate-200" /><div className="h-9 rounded bg-slate-200" /></div></div>)
+        ) : productsQuery.isError ? (
+          <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-red-700">Marketplace listings are temporarily unavailable. Please try again.</div>
+        ) : products.length === 0 ? (
+          <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">No active listings in this category yet.</div>
+        ) : products.map((product) => (
           <div key={product.id} className="product-card">
-            <div className="product-image">{product.image}</div>
+            <div className="product-image">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} loading="lazy" className="h-full w-full object-cover" /> : product.image}</div>
 
             <button
               className={`favorite-btn ${
@@ -204,7 +209,7 @@ export default function Marketplace() {
               <p className="text-xs text-slate-500">No ratings yet</p>
 
               <div className="price-section">
-                <p className="price">₹{product.price.toLocaleString()}</p>
+                <p className="price">{formatProductPrice(product)}</p>
                 <span className={`stock ${product.inStock ? "in-stock" : "out"}`}>
                   {product.inStock ? "In Stock" : "Out of Stock"}
                 </span>
@@ -221,6 +226,20 @@ export default function Marketplace() {
           </div>
         ))}
       </div>
+
+      <section className="mx-auto mt-8 max-w-5xl rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm" aria-labelledby="seller-listings-heading">
+        <div className="mb-4"><h2 id="seller-listings-heading" className="text-lg font-semibold">Sell on TRILLIONER LINK</h2><p className="text-sm text-slate-500">Create a listing with a real price, inventory, and optional product image.</p></div>
+        <form onSubmit={handleCreateProduct} className="grid gap-3 md:grid-cols-2">
+          <input required value={sellerForm.name} onChange={(event) => setSellerForm({ ...sellerForm, name: event.target.value })} placeholder="Product name" className="rounded border px-3 py-2" />
+          <input required value={sellerForm.category} onChange={(event) => setSellerForm({ ...sellerForm, category: event.target.value })} placeholder="Category" className="rounded border px-3 py-2" />
+          <input required type="number" min="0.01" step="0.01" value={sellerForm.price} onChange={(event) => setSellerForm({ ...sellerForm, price: event.target.value })} placeholder="Price in BDT" className="rounded border px-3 py-2" />
+          <input required type="number" min="0" step="1" value={sellerForm.stock} onChange={(event) => setSellerForm({ ...sellerForm, stock: event.target.value })} placeholder="Stock quantity" className="rounded border px-3 py-2" />
+          <input type="url" value={sellerForm.imageUrl} onChange={(event) => setSellerForm({ ...sellerForm, imageUrl: event.target.value })} placeholder="Product image URL (optional)" className="rounded border px-3 py-2 md:col-span-2" />
+          <textarea value={sellerForm.description} onChange={(event) => setSellerForm({ ...sellerForm, description: event.target.value })} placeholder="Description (optional)" className="rounded border px-3 py-2 md:col-span-2" rows={2} />
+          <button type="submit" disabled={createProduct.isPending} className="rounded bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-60 md:col-span-2">{createProduct.isPending ? "Publishing…" : "Publish listing"}</button>
+        </form>
+        {myProductsQuery.data?.length ? <div className="mt-5 space-y-2">{myProductsQuery.data.map((product) => <div key={product.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span><strong>{product.name}</strong> · {product.stock} in stock · {product.status}</span>{product.status === "active" && <button type="button" className="text-red-600" disabled={archiveProduct.isPending} onClick={async () => { await archiveProduct.mutateAsync({ id: product.id }); await Promise.all([myProductsQuery.refetch(), allListingsQuery.refetch(), productsQuery.refetch()]); }}>Archive</button>}</div>)}</div> : <p className="mt-4 text-sm text-slate-500">You have not published a listing yet.</p>}
+      </section>
 
       <section className="mx-auto mt-8 max-w-5xl rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm" aria-labelledby="marketplace-transactions-heading">
         <div className="flex items-center justify-between gap-3">

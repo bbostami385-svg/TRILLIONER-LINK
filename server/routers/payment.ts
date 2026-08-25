@@ -1,9 +1,9 @@
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import axios from "axios";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
-import { marketplaceTransactions } from "../../drizzle/schema";
+import { marketplaceProducts, marketplaceTransactions } from "../../drizzle/schema";
 
 const SSLCOMMERZ_API_URL = process.env.SSLCOMMERZ_API_URL || "https://sandbox.sslcommerz.com/gwprocess/v4/api.php";
 const SSLCOMMERZ_STORE_ID = process.env.SSLCOMMERZ_STORE_ID || "";
@@ -80,14 +80,32 @@ export const paymentRouter = router({
       productName: z.string().trim().min(1).max(255),
       amountMinor: z.number().int().positive(),
       currency: z.string().length(3).default("BDT"),
+      items: z.array(z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(100) })).min(1).max(50).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      let productName = input.productName;
+      if (input.items) {
+        const productIds = input.items.map((item) => item.productId);
+        const products = await db.select().from(marketplaceProducts).where(and(
+          inArray(marketplaceProducts.id, productIds),
+          eq(marketplaceProducts.status, "active"),
+        ));
+        if (products.length !== productIds.length) throw new Error("One or more marketplace listings are no longer available");
+        const byId = new Map(products.map((product) => [product.id, product]));
+        const expectedAmountMinor = input.items.reduce((total, item) => {
+          const product = byId.get(item.productId);
+          if (!product || product.stock < item.quantity) throw new Error("One or more marketplace listings do not have enough stock");
+          return total + product.priceMinor * item.quantity;
+        }, 0);
+        if (expectedAmountMinor !== input.amountMinor) throw new Error("Marketplace amount mismatch");
+        productName = input.items.map((item) => `${byId.get(item.productId)!.name} x${item.quantity}`).join(", ");
+      }
       await db.insert(marketplaceTransactions).values({
         userId: ctx.user.id,
         orderId: input.orderId,
-        productName: input.productName,
+        productName,
         amountMinor: input.amountMinor,
         currency: input.currency.toUpperCase(),
         status: "initiated",

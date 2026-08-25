@@ -87,6 +87,25 @@ export const marketplaceTransactions = mysqlTable("marketplaceTransactions", {
 export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
 export type InsertMarketplaceTransaction = typeof marketplaceTransactions.$inferInsert;
 
+/** Public marketplace product/listing catalog. Product media is referenced by URL; bytes stay in object storage. */
+export const marketplaceProducts = mysqlTable("marketplaceProducts", {
+  id: int("id").autoincrement().primaryKey(),
+  sellerId: int("sellerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 80 }).notNull(),
+  priceMinor: int("priceMinor").notNull(),
+  currency: varchar("currency", { length: 3 }).default("BDT").notNull(),
+  imageUrl: text("imageUrl"),
+  stock: int("stock").default(0).notNull(),
+  status: mysqlEnum("status", ["draft", "active", "archived"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MarketplaceProduct = typeof marketplaceProducts.$inferSelect;
+export type InsertMarketplaceProduct = typeof marketplaceProducts.$inferInsert;
+
 /**
  * User Mode Preferences table
  * Stores user preferences and statistics for each mode

@@ -54,7 +54,7 @@ describe('Comments Router', () => {
         user: { id: 1 },
       } as any);
       
-      expect(
+      await expect(
         caller.createComment({ content: 'Comment' })
       ).rejects.toThrow('Either postId or videoId is required');
     });

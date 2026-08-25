@@ -15,6 +15,7 @@ import { commentsRouter } from "./routers/comments";
 import { searchRouter } from "./routers/search";
 import { notificationsRouter } from "./routers/notifications";
 import { paymentRouter } from "./routers/payment";
+import { marketplaceRouter } from "./routers/marketplace";
 import { liveStreamRouter } from "./routers/liveStream";
 import { moderationRouter } from "./routers/moderation";
 import { recommendationsRouter } from "./routers/recommendations";
@@ -84,6 +85,7 @@ export const appRouter = router({
   search: searchRouter,
   notifications: notificationsRouter,
   payment: paymentRouter,
+  marketplace: marketplaceRouter,
   liveStream: liveStreamRouter,
   moderation: moderationRouter,
   recommendations: recommendationsRouter,

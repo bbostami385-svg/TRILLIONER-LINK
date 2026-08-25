@@ -72,7 +72,7 @@
 - [x] Live Stream endpoints
 - [x] Moderation endpoints
 - [x] Recommendation endpoints
-- [ ] Marketplace endpoints
+- [x] Marketplace endpoints
 - [x] Analytics endpoints
 
 ## Frontend-Backend Integration - Complete
@@ -888,3 +888,10 @@
 - [x] Keep page follower counters consistent with pageFollowers during page creation.
 - [x] Add page-creation regression coverage for initial follower state.
 - [x] Audit page UI/query surfaces to use relationship-backed follower state consistently.
+- [x] Add marketplaceProducts schema and apply its additive migration.
+- [x] Add public marketplace listing discovery and seller-owned listing management procedures.
+- [x] Replace Marketplace hardcoded products with real listing data and preserve checkout behavior.
+- [x] Add focused marketplace listing tests and validate the complete suite.
+- [x] Add seller-facing Marketplace management UI using createProduct, updateProduct, and archiveProduct.
+- [x] Derive Marketplace category options from the live listing contract instead of a fixed page-only list.
+- [x] Fix remaining un-awaited rejects.toThrow assertions in the test suite.

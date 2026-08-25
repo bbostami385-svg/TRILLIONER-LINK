@@ -55,7 +55,7 @@
 - [x] Conversation model
 - [x] Like model (extended for videos, comments)
 - [x] Follow model
-- [ ] Marketplace transaction model
+- [x] Marketplace transaction model
 - [ ] Analytics model
 
 ## Backend API - Complete
@@ -875,5 +875,10 @@
 - [x] Add a successful subscribeToCreator test for creation, subscriber-count update, and creator notification.
 - [x] Add missing-creator error coverage for subscribeToCreator and complete dualModeRouter contract coverage.
 - [x] Remove fabricated marketplace ratings and review counts; show only verified data or a neutral no-ratings state.
-- [ ] Replace the placeholder Marketplace checkout with a real transaction-ready flow tied to authenticated payment confirmation.
+- [x] Replace the placeholder Marketplace checkout with a real transaction-ready flow tied to authenticated payment confirmation.
 - [x] Fix Welcome mode-selector contrast so headings and descriptions remain readable on dark cards in the active theme.
+- [x] Prevent duplicate Marketplace cart entries and support quantity-aware cart totals.
+- [x] Make cart close/remove controls functional and keep checkout clearly marked as pending payment integration.
+- [x] Add focused Marketplace cart tests for add, duplicate, remove, and total behavior.
+- [x] Connect Marketplace cart checkout UI to transaction intent creation and a real payment initiation form with required customer details.
+- [x] Add Marketplace transaction history UI with initiated/paid/failed states.

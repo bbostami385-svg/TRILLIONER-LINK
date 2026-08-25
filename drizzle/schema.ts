@@ -70,6 +70,23 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/** Marketplace payment records. Product catalog data remains separate; this table stores order/payment metadata only. */
+export const marketplaceTransactions = mysqlTable("marketplaceTransactions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  orderId: varchar("orderId", { length: 80 }).notNull().unique(),
+  productName: text("productName").notNull(),
+  amountMinor: int("amountMinor").notNull(),
+  currency: varchar("currency", { length: 3 }).default("BDT").notNull(),
+  status: mysqlEnum("status", ["initiated", "paid", "failed", "cancelled"]).default("initiated").notNull(),
+  providerTransactionId: varchar("providerTransactionId", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
+export type InsertMarketplaceTransaction = typeof marketplaceTransactions.$inferInsert;
+
 /**
  * User Mode Preferences table
  * Stores user preferences and statistics for each mode

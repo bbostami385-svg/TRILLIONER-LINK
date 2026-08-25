@@ -913,3 +913,4 @@
 - [x] Add a root-router integration smoke test covering the composed Marketplace, creator analytics, human verification, and social namespaces.
 - [x] Align moderation.scanContent with the shared AI moderation decision and preserve a safe structured response.
 - [x] Add an admin moderation reports page backed by durable moderationReports with status filters and resolution controls.
+- [x] Add direct navigation from the admin appeals console to the moderation reports queue.

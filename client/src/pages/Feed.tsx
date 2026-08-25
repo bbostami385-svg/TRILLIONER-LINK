@@ -34,14 +34,33 @@ export default function Feed() {
   });
 
   // Like post mutation
+  const feedInput = { limit: 20, offset: 0 };
   const likePostMutation = trpc.feed.likePost.useMutation({
-    onSuccess: () => {
-      utils.feed.getFeed.invalidate();
+    onMutate: async ({ postId }) => {
+      await utils.feed.getFeed.cancel(feedInput);
+      const previous = utils.feed.getFeed.getData(feedInput);
+      utils.feed.getFeed.setData(feedInput, (current) => current ? { ...current, posts: current.posts.map((post) => post.id === postId ? { ...post, likes: post.likes + 1 } : post) } : current);
+      return { previous };
     },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.feed.getFeed.setData(feedInput, context.previous);
+    },
+    onSettled: () => { utils.feed.getFeed.invalidate(feedInput); },
   });
 
   // Unlike post mutation
-  const unlikePostMutation = trpc.feed.unlikePost.useMutation({ onSuccess: () => { utils.feed.getFeed.invalidate(); } });
+  const unlikePostMutation = trpc.feed.unlikePost.useMutation({
+    onMutate: async ({ postId }) => {
+      await utils.feed.getFeed.cancel(feedInput);
+      const previous = utils.feed.getFeed.getData(feedInput);
+      utils.feed.getFeed.setData(feedInput, (current) => current ? { ...current, posts: current.posts.map((post) => post.id === postId ? { ...post, likes: Math.max(0, post.likes - 1) } : post) } : current);
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.feed.getFeed.setData(feedInput, context.previous);
+    },
+    onSettled: () => { utils.feed.getFeed.invalidate(feedInput); },
+  });
   const savePostMutation = trpc.collections.saveItem.useMutation();
   const removeSavedItemMutation = trpc.collections.removeItem.useMutation();
 

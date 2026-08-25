@@ -974,3 +974,5 @@
 
 - [x] Add production-readiness documentation with environment, OAuth, release, and external-provider prerequisites.
 - [x] Validate the production build after the verification and OAuth integration updates.
+
+- [x] Add optimistic like/unlike updates to the feed with rollback and server reconciliation.

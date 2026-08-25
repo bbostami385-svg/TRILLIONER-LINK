@@ -452,7 +452,7 @@
 - [x] Write unit tests for age calculation
 - [x] Write unit tests for age validation
 - [x] Write tests for face verification flow
-- [ ] Write integration tests for verification router
+- [x] Write integration tests for verification router
 - [x] Test age restriction enforcement (13+ minimum)
 - [x] Test face verification requirement (18+)
 - [x] Test camera permissions handling

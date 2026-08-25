@@ -47,3 +47,32 @@ describe("root router composition", () => {
     expect(Object.keys(record)).toEqual(expect.arrayContaining(expectedNamespaces));
     expect(Object.keys(record)).toHaveLength(expectedNamespaces.length);
   });
+
+
+describe("human verification integration contract", () => {
+  it("returns the authenticated liveness status and latest review state", async () => {
+    const databaseStub = {
+      select: vi.fn()
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ livenessVerified: false, livenessVerificationAt: null, livenessAttempts: 2 }]) })),
+          })),
+        }))
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({
+              orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ status: "rejected", confidence: null }]) })),
+            })),
+          })),
+        })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    const caller = appRouter.createCaller({ user: { id: 42 } } as any);
+
+    await expect(caller.humanVerification.getLivenessStatus()).resolves.toMatchObject({
+      isVerified: false,
+      attempts: 2,
+      lastAttemptStatus: "rejected",
+    });
+  });
+});

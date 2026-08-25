@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
@@ -14,15 +15,17 @@ export function Polls() {
     options: ["", ""],
   });
 
-  const createPollMutation = trpc.polls.createPoll.useMutation();
-  const votePollMutation = trpc.polls.votePoll.useMutation();
+  const utils = trpc.useUtils();
+  const { data: recentPolls, isLoading: pollsLoading, isError: pollsError } = trpc.polls.getRecentPolls.useQuery({ limit: 20 });
+  const createPollMutation = trpc.polls.createPoll.useMutation({ onSuccess: async () => { await utils.polls.getRecentPolls.invalidate(); toast.success("Poll created."); }, onError: (error) => toast.error(error.message) });
+  const votePollMutation = trpc.polls.votePoll.useMutation({ onSuccess: async () => { await utils.polls.getRecentPolls.invalidate(); toast.success("Vote recorded."); }, onError: (error) => toast.error(error.message) });
 
   const handleCreatePoll = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const validOptions = formData.options.filter((opt) => opt.trim().length > 0);
       if (validOptions.length < 2) {
-        alert("Please provide at least 2 options");
+        toast.error("Please provide at least 2 options.");
         return;
       }
 
@@ -42,7 +45,7 @@ export function Polls() {
             setShowCreateForm(false);
           },
           onError: (error) => {
-            alert(`Error: ${error.message}`);
+            toast.error(error.message);
           },
         }
       );
@@ -57,10 +60,10 @@ export function Polls() {
         { optionId },
         {
           onSuccess: () => {
-            alert("Vote recorded!");
+            toast.success("Vote recorded.");
           },
           onError: (error) => {
-            alert(`Error: ${error.message}`);
+            toast.error(error.message);
           },
         }
       );
@@ -178,6 +181,11 @@ export function Polls() {
             </form>
           </Card>
         )}
+
+        <section className="mb-8 space-y-4">
+          <div><h2 className="text-2xl font-bold text-white">Recent polls</h2><p className="text-sm text-purple-200">Share your opinion and see live vote totals from the community.</p></div>
+          {pollsLoading ? <div className="grid gap-4 md:grid-cols-2">{[1, 2].map((item) => <Card key={item} className="h-48 animate-pulse border-purple-500/30 bg-slate-800" />)}</div> : pollsError ? <Card className="border-rose-300/30 bg-rose-500/10 p-6 text-rose-100">Polls are temporarily unavailable. Please try again shortly.</Card> : recentPolls?.length ? <div className="grid gap-4 md:grid-cols-2">{recentPolls.map((poll) => { const totalVotes = poll.options.reduce((sum, option) => sum + option.votes, 0); const expired = poll.expiresAt ? new Date(poll.expiresAt).getTime() <= Date.now() : false; return <Card key={poll.id} className="border-purple-500/60 bg-slate-800 p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{poll.question}</h3><p className="mt-1 text-xs text-purple-300">{totalVotes} vote{totalVotes === 1 ? "" : "s"}{expired ? " · Closed" : ""}</p></div>{expired && <span className="rounded-full bg-slate-700 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-300">Closed</span>}</div><div className="mt-4 space-y-2">{poll.options.map((option) => { const percentage = totalVotes ? Math.round((option.votes / totalVotes) * 100) : 0; return <button key={option.id} type="button" disabled={expired || votePollMutation.isPending} onClick={() => void handleVote(option.id)} className="relative w-full overflow-hidden rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-white hover:border-cyan-300/40 disabled:cursor-not-allowed disabled:opacity-60"><span className="absolute inset-y-0 left-0 bg-cyan-400/15" style={{ width: `${percentage}%` }} /><span className="relative flex justify-between gap-3"><span>{option.text}</span><span className="text-cyan-200">{percentage}%</span></span></button>; })}</div></Card>; })}</div> : <Card className="border-white/10 bg-white/5 p-8 text-center"><p className="text-purple-200">No polls have been created yet.</p><p className="mt-2 text-sm text-slate-400">Create a poll from a post to start a conversation.</p></Card>}
+        </section>
 
         {/* Info */}
         <Card className="p-6 bg-slate-800 border-purple-500">

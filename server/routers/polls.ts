@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { polls, pollOptions } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const pollsRouter = router({
@@ -41,6 +42,17 @@ export const pollsRouter = router({
       return poll[0] || null;
     }),
 
+  getRecentPolls: publicProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const recent = await db.select().from(polls).orderBy(desc(polls.createdAt)).limit(input.limit);
+      if (!recent.length) return [];
+      const options = await db.select().from(pollOptions).where(inArray(pollOptions.pollId, recent.map((poll) => poll.id)));
+      return recent.map((poll) => ({ ...poll, options: options.filter((option) => option.pollId === poll.id) }));
+    }),
+
   // Get poll details
   getPoll: publicProcedure
     .input(z.object({ pollId: z.number() }))
@@ -67,11 +79,14 @@ export const pollsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
-      const option = await db.select().from(pollOptions).where(eq(pollOptions.id, input.optionId)).limit(1);
-      if (option[0]) {
-        await db.update(pollOptions).set({ votes: option[0].votes + 1 }).where(eq(pollOptions.id, input.optionId));
-      }
-
+      const [option] = await db.select({ id: pollOptions.id, votes: pollOptions.votes, expiresAt: polls.expiresAt })
+        .from(pollOptions)
+        .innerJoin(polls, eq(pollOptions.pollId, polls.id))
+        .where(eq(pollOptions.id, input.optionId))
+        .limit(1);
+      if (!option) throw new TRPCError({ code: "NOT_FOUND", message: "Poll option not found." });
+      if (option.expiresAt && option.expiresAt.getTime() <= Date.now()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "This poll is closed." });
+      await db.update(pollOptions).set({ votes: option.votes + 1 }).where(and(eq(pollOptions.id, input.optionId), eq(pollOptions.votes, option.votes)));
       return { success: true };
     }),
 

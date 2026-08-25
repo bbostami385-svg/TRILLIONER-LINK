@@ -205,10 +205,12 @@
 
 ### Phase 8: Ads and Moderation
 - [x] Sponsored Posts/Ads database table
-- [ ] Comment moderation rules
+- [x] Comment moderation rules
 - [x] Ads API router
 - [ ] Moderation API router
-- [ ] Ads dashboard page
+- [x] Ads dashboard page
+- [x] Finish Ads dashboard UX with success/error toasts, query states, and mutation refresh.
+- [x] Add focused Ads dashboard UI tests for mutation refresh and error handling.
 - [x] Comment filtering
 
 ### Phase 9: Frontend Pages

@@ -1,12 +1,15 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
+import { shouldRefreshAdsAfterMutation } from "@/lib/adsDashboard";
 
 export function AdsDashboard() {
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     postId: 0,
@@ -14,12 +17,25 @@ export function AdsDashboard() {
     startDate: new Date().toISOString().split("T")[0],
   });
 
-  const { data: userAds, isLoading: loadingAds } = trpc.ads.getUserAds.useQuery(undefined, {
+  const { data: userAds, isLoading: loadingAds, error: adsError } = trpc.ads.getUserAds.useQuery(undefined, {
     enabled: !!user,
   });
 
-  const createAdMutation = trpc.ads.createSponsoredPost.useMutation();
-  const updateAdStatusMutation = trpc.ads.updateAdStatus.useMutation();
+  const createAdMutation = trpc.ads.createSponsoredPost.useMutation({
+    onSuccess: async () => {
+      toast.success("Ad campaign created.");
+      setShowCreateForm(false);
+      if (shouldRefreshAdsAfterMutation("create")) await utils.ads.getUserAds.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "Could not create the ad campaign."),
+  });
+  const updateAdStatusMutation = trpc.ads.updateAdStatus.useMutation({
+    onSuccess: async () => {
+      toast.success("Campaign status updated.");
+      if (shouldRefreshAdsAfterMutation("update")) await utils.ads.getUserAds.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "Could not update the campaign."),
+  });
 
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +50,16 @@ export function AdsDashboard() {
         budget: "",
         startDate: new Date().toISOString().split("T")[0],
       });
-      setShowCreateForm(false);
-    } catch (error) {
-      console.error("Failed to create ad:", error);
+    } catch {
+      // The mutation's onError handler presents the actionable message.
     }
   };
 
   const handleUpdateAdStatus = async (adId: number, status: "active" | "paused" | "ended") => {
     try {
       await updateAdStatusMutation.mutateAsync({ adId, status });
-    } catch (error) {
-      console.error("Failed to update ad status:", error);
+    } catch {
+      // The mutation's onError handler presents the actionable message.
     }
   };
 
@@ -128,7 +143,9 @@ export function AdsDashboard() {
           <div>
             <h2 className="text-2xl font-bold text-white mb-4">Your Ads</h2>
             {loadingAds ? (
-              <p className="text-purple-200">Loading ads...</p>
+              <Card className="p-6 bg-slate-800 border-purple-500 text-purple-200">Loading campaigns…</Card>
+            ) : adsError ? (
+              <Card className="p-6 bg-slate-800 border-red-400/40 text-red-200">Could not load campaigns. Please refresh and try again.</Card>
             ) : userAds && userAds.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {userAds.map((ad) => (

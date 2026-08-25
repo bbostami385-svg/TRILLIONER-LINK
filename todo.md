@@ -980,3 +980,7 @@
 - [x] Add a true admin verification metrics dashboard backed by aggregated liveness and KYC review-state queries.
 - [x] Expand FaceVerificationForm tests across upload, camera capture, submit payload, loading, success, error, and retake flows.
 - [x] Add broader verification-router integration coverage for age status, human liveness status, admin metrics, and KYC status.
+
+- [x] Diagnose the Vercel Invalid URL runtime error and verify all production URL environment contracts.
+- [x] Add defensive handling for malformed or missing public API/auth URLs if required.
+- [x] Update the Vercel environment-variable deployment guidance with required, optional, and non-required Firebase values.

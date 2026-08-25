@@ -6,9 +6,23 @@ interface UseWebSocketOptions {
   autoConnect?: boolean;
 }
 
+export function resolveSocketUrl(candidate: string | undefined, fallback: string): string {
+  if (!candidate) return fallback;
+  try {
+    const parsed = new URL(candidate, fallback);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return fallback;
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    console.warn("Invalid VITE_API_URL; using the current deployment origin.");
+    return fallback;
+  }
+}
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const defaultUrl = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
-  const { url = process.env.VITE_API_URL || defaultUrl, autoConnect = true } = options;
+  const configuredUrl = import.meta.env.VITE_API_URL as string | undefined;
+  const url = resolveSocketUrl(options.url ?? configuredUrl, defaultUrl);
+  const { autoConnect = true } = options;
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;

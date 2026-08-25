@@ -49,3 +49,23 @@ Then test the critical browser flow: signup, verification status redirect, liven
 ## Explicitly deferred until owner configuration
 
 Production deployment, environment promotion, CDN provisioning, SSLCommerz production completion, real streaming-provider activation, and Google/YouTube/Facebook/Instagram/TikTok OAuth enablement require credentials or provider-console actions that are not present in the repository. These items must remain open until the owner supplies and verifies the required configuration.
+
+## Vercel Firebase variable guidance
+
+The following Firebase browser variables are the complete set currently recognized by `client/src/lib/firebase.ts`:
+
+| Variable | Required by current Firebase browser auth code? | Value format |
+|---|---:|---|
+| `VITE_FIREBASE_API_KEY` | Yes | Firebase Console Web app `apiKey` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Yes | Hostname such as `your-project.firebaseapp.com`; the client now also safely strips an accidental `https://` prefix |
+| `VITE_FIREBASE_PROJECT_ID` | Yes | Firebase Console Web app `projectId` |
+| `VITE_FIREBASE_APP_ID` | Yes | Firebase Console Web app `appId` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Optional for the current auth-only helper | Firebase Console `storageBucket` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Optional for the current auth-only helper | Firebase Console `messagingSenderId` |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Optional and currently unused by the browser helper | Firebase Analytics measurement ID, if Analytics is later enabled |
+
+Therefore, the first six values you listed are sufficient for the current Firebase helper; `VITE_FIREBASE_MEASUREMENT_ID` is optional. Firebase variables do not replace the server session/database variables used by this repository. The current production app still relies on the server-side session and database contract, so configure `DATABASE_URL`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`, and the built-in Forge variables according to the main runtime table above. Configure `FRONTEND_URL` to the deployed HTTPS origin if the Socket.io server needs an explicit CORS origin.
+
+The screenshot’s `TypeError: Invalid URL` is not fixed by adding `VITE_FIREBASE_MEASUREMENT_ID`. It is commonly caused by a value such as `projects.vercel.app` being used where a complete URL is required, or by a Firebase `authDomain` value containing a malformed scheme. For `VITE_API_URL`, either leave it unset so the client uses the current Vercel origin, or set a complete URL such as `https://your-api-domain.example`; do not set only a hostname. The client now validates this value and falls back to the current deployment origin when it is malformed. The Firebase helper also validates and normalizes `VITE_FIREBASE_AUTH_DOMAIN` and returns a readable configuration error instead of allowing a malformed URL to crash the page.
+
+After changing any Vercel variable, apply it to **Production** and **Preview** as appropriate, save it, then create a new deployment or use **Redeploy** with the latest commit. A browser refresh alone does not rebuild Vite’s `VITE_*` values.

@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { getMotionFeedback, type FaceBounds } from "@/lib/livenessMotion";
 
 type VerificationStep = "instructions" | "recording" | "processing" | "pending" | "success" | "failed";
 const challengeCopy: Record<string, { title: string; detail: string }> = {
@@ -26,6 +27,7 @@ export function LivenessVerification() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const previousFaceRef = useRef<FaceBounds | null>(null);
   const startChallengeMutation = trpc.humanVerification.startLivenessChallenge.useMutation();
   const verifyLivenessMutation = trpc.humanVerification.verifyLiveness.useMutation();
 
@@ -117,12 +119,18 @@ export function LivenessVerification() {
       if (cancelled || !videoRef.current) return;
       try {
         const faces = await detector.detect(videoRef.current);
-        if (!cancelled) setLiveFeedback(faces.length ? "Face detected — keep your face inside the guide." : "Move closer and center your face in the guide.");
+        const face = faces[0] as { boundingBox?: FaceBounds } | undefined;
+        const currentFace = face?.boundingBox ?? null;
+        const challenge = challenges[currentChallengeIndex] as "nod" | "turn_left" | "turn_right" | "blink";
+        if (!cancelled) {
+          setLiveFeedback(getMotionFeedback(challenge, previousFaceRef.current, currentFace));
+          if (currentFace) previousFaceRef.current = currentFace;
+        }
       } catch { if (!cancelled) setLiveFeedback("Keep your face visible and follow the prompt."); }
     };
     void checkFrame();
     const timer = window.setInterval(() => void checkFrame(), 900);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    return () => { cancelled = true; window.clearInterval(timer); previousFaceRef.current = null; };
   }, [cameraReady, step]);
   useEffect(() => () => stopCamera(), []);
 

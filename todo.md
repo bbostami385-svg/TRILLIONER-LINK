@@ -909,3 +909,4 @@
 - [x] Add GitHub Actions CI validation for install, typecheck, tests, and production build in TRILLIONER-LINK.
 - [x] Connect the durable analytics snapshot query to CreatorDashboard with a historical coverage indicator.
 - [x] Add an append-only verification audit log for liveness lifecycle events and reviewer decisions.
+- [x] Add a root-router integration smoke test covering the composed Marketplace, creator analytics, human verification, and social namespaces.

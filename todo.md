@@ -954,3 +954,6 @@
 - [x] Add focused live-stream router tests for lifecycle ownership and chat persistence.
 
 - [x] Wire LiveStreaming page to persisted stream discovery, native playback source, viewer tracking, and persisted chat.
+
+- [x] Add a reusable HLS playback component using hls.js when supported and native video fallback when available.
+- [x] Add focused HLS playback tests for unsupported sources and cleanup behavior.

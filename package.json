@@ -63,6 +63,7 @@
     "firebase": "^12.1.0",
     "firebase-admin": "^13.5.0",
     "framer-motion": "^12.23.22",
+    "hls.js": "^1.7.1",
     "input-otp": "^1.4.2",
     "jose": "6.1.0",
     "jspdf": "^4.2.1",

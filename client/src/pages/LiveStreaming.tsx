@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Play, Radio, MessageCircle, Share2, Heart, Loader2 } from "lucide-react";
+import { HlsVideoPlayer } from "@/components/HlsVideoPlayer";
 import { trpc } from "@/lib/trpc";
 import "./LiveStreaming.css";
 
@@ -83,7 +84,7 @@ export default function LiveStreaming() {
       <div className="livestream-content">
         <div className="video-section">
           {selectedStream ? <div className="video-player">
-            {selectedStream.hlsUrl ? <video className="stream-video" src={selectedStream.hlsUrl} controls autoPlay playsInline poster={selectedStream.thumbnail ?? undefined}><track kind="captions" /></video> : <div className="player-placeholder"><Play size={64} /><p>Stream source is not available yet.</p></div>}
+            {selectedStream.hlsUrl ? <HlsVideoPlayer className="stream-video" src={selectedStream.hlsUrl} autoPlay poster={selectedStream.thumbnail ?? undefined} /> : <div className="player-placeholder"><Play size={64} /><p>Stream source is not available yet.</p></div>}
             <div className="stream-info"><span className="live-badge">● {selectedStream.status.toUpperCase()}</span><span className="viewers">{selectedStream.viewerCount} watching</span></div>
           </div> : <div className="no-stream-selected"><Radio size={64} /><p>{activeQuery.isLoading ? "Loading live streams..." : "Select a stream to watch"}</p></div>}
           {selectedStream && <div className="stream-details"><div className="stream-header"><div className="creator-info"><div className="chat-avatar">{selectedStream.creatorId}</div><div><h3>Creator #{selectedStream.creatorId}</h3><p>{selectedStream.viewerCount} viewers</p></div></div><Button className="follow-btn">Follow</Button></div><h2>{selectedStream.title}</h2><p>{selectedStream.description}</p><div className="stream-actions"><Button className="action-btn"><Heart size={20} /> Like</Button><Button className="action-btn"><Share2 size={20} /> Share</Button></div></div>}

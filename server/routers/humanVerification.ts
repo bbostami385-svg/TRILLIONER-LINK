@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
+import { assessLivenessRisk } from "../livenessSignals";
 import { faceLivenessRecords, livenessChallenge, users } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
@@ -86,7 +87,7 @@ export const humanVerificationRouter = router({
         videoUrl: await persistVerificationMedia(step.videoUrl, `verification/liveness/${ctx.user.id}`, ["video/webm", "video/mp4"], 12 * 1024 * 1024),
         challengeType: step.challengeType,
         status: "pending" as const,
-        metadata: step.metadata,
+        metadata: { ...(step.metadata ?? {}), riskSignals: assessLivenessRisk(step.metadata) },
       })));
       await db.transaction(async (tx) => {
         await tx.insert(faceLivenessRecords).values(records);
@@ -127,7 +128,7 @@ export const humanVerificationRouter = router({
         videoUrl,
         challengeType: input.challengeType,
         status: "pending",
-        metadata: input.metadata,
+        metadata: { ...(input.metadata ?? {}), riskSignals: assessLivenessRisk(input.metadata) },
       });
       await db.update(users).set({ livenessAttempts: user.livenessAttempts + 1 }).where(eq(users.id, ctx.user.id));
 

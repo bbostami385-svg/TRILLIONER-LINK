@@ -480,7 +480,7 @@
 - [x] Implement getLivenessStatus query
 - [x] Implement getLivenessHistory query
 - [x] Add liveness detection algorithm (head pose detection) — client-side movement signal only; approval remains server-reviewed.
-- [ ] Add bot detection logic
+- [x] Add advisory bot-risk detection logic — suspicious metadata is flagged for manual review and never auto-approves or auto-blocks.
 
 ### Phase 3: Frontend Components
 - [x] Create LivenessChallenge component

@@ -130,7 +130,7 @@
   - [ ] Apply i18n translations across all pages
   - [x] Implement real HLS video player
   - [x] Add real chat persistence
-  - [ ] Implement subscription management
+  - [x] Implement subscription management
 
 ## Deployment
 - [ ] Configure environment variables

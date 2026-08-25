@@ -134,7 +134,8 @@
 
 ## Deployment
 - [ ] Configure environment variables
-- [ ] Setup CI/CD pipeline
+- [x] Setup CI pipeline (GitHub Actions validation)
+- [ ] Setup deployment pipeline / environment promotion
 - [ ] Deploy to production
 - [ ] Setup monitoring and logging
 - [ ] Configure CDN for media files

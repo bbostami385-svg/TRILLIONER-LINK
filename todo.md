@@ -922,3 +922,5 @@
 
 - [x] Expand comment moderation rules with normalized text matching, safe media checks, and focused router coverage.
 - [x] Add moderation-rule tests covering blocked, review, and allowed comment outcomes.
+
+- [x] Add a critical cross-router integration test for account onboarding, human verification status, and monetization gating.

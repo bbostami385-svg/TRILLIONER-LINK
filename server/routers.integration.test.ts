@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
+import * as db from "./db";
+
+vi.mock("./db", async () => {
+  const actual = await vi.importActual<typeof import("./db")>("./db");
+  return { ...actual, getRequiredDb: vi.fn() };
+});
 
 describe("root router composition", () => {
   it("exposes the core social, creator, marketplace, and verification namespaces", () => {
@@ -14,5 +20,20 @@ describe("root router composition", () => {
       videos: expect.any(Object),
       comments: expect.any(Object),
     }));
+  });
+
+  it("keeps monetization gated until both human verification and KYC are approved", async () => {
+    const databaseStub = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ livenessVerified: false, kycVerified: false }]) })),
+        })),
+      })),
+    };
+    vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
+    const caller = appRouter.createCaller({ user: { id: 42 } } as any);
+
+    await expect(caller.humanVerification.isHumanVerified()).resolves.toMatchObject({ isVerified: false });
+    await expect(caller.kyc.canAccessMonetization()).resolves.toMatchObject({ canAccess: false, kycVerified: false, livenessVerified: false });
   });
 });

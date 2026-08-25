@@ -226,6 +226,20 @@ export const paymentRouter = router({
       .limit(100);
   }),
 
+  getMySubscriptions: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    return db.select({
+      id: subscriptions.id,
+      creatorId: subscriptions.creatorId,
+      subscriptionTier: subscriptions.subscriptionTier,
+      createdAt: subscriptions.createdAt,
+    }).from(subscriptions)
+      .where(eq(subscriptions.subscriberId, ctx.user.id))
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(100);
+  }),
+
   // Create subscription
   createSubscription: protectedProcedure
     .input(

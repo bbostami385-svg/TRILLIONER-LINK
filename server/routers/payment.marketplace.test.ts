@@ -104,3 +104,14 @@ describe("Payment history and subscriptions", () => {
     expect(db.delete).not.toHaveBeenCalled();
   });
 });
+
+
+describe("Creator subscription management", () => {
+  it("returns persisted subscriptions for the authenticated subscriber", async () => {
+    const subscriptions = [{ id: 21, creatorId: 88, subscriptionTier: "basic" }];
+    const db = { select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn(() => ({ limit: vi.fn().mockResolvedValue(subscriptions) })) })) })) })) };
+    vi.mocked(dbModule.getDb).mockResolvedValue(db as never);
+    await expect(caller().getMySubscriptions()).resolves.toEqual(subscriptions);
+    expect(db.select).toHaveBeenCalled();
+  });
+});

@@ -914,3 +914,5 @@
 - [x] Align moderation.scanContent with the shared AI moderation decision and preserve a safe structured response.
 - [x] Add an admin moderation reports page backed by durable moderationReports with status filters and resolution controls.
 - [x] Add direct navigation from the admin appeals console to the moderation reports queue.
+- [x] Harden ads metrics with validated budgets and active-only atomic impression/click increments.
+- [x] Add focused ads router tests and validate the complete project.

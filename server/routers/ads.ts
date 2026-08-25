@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { sponsoredPosts, posts, users } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "../db";
 
 export const adsRouter = router({
@@ -9,8 +9,8 @@ export const adsRouter = router({
   createSponsoredPost: protectedProcedure
     .input(
       z.object({
-        postId: z.number(),
-        budget: z.string(),
+        postId: z.number().int().positive(),
+        budget: z.string().regex(/^\d+(\.\d{1,2})?$/, "Budget must be a positive currency amount"),
         startDate: z.date(),
         endDate: z.date().optional(),
       })
@@ -44,7 +44,7 @@ export const adsRouter = router({
 
   // Get sponsored post
   getSponsoredPost: publicProcedure
-    .input(z.object({ adId: z.number() }))
+    .input(z.object({ adId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -63,7 +63,7 @@ export const adsRouter = router({
   updateAdStatus: protectedProcedure
     .input(
       z.object({
-        adId: z.number(),
+        adId: z.number().int().positive(),
         status: z.enum(["active", "paused", "ended"]),
       })
     )
@@ -82,17 +82,14 @@ export const adsRouter = router({
 
   // Track impression
   trackImpression: publicProcedure
-    .input(z.object({ adId: z.number() }))
+    .input(z.object({ adId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
-      const ad = await db.select().from(sponsoredPosts).where(eq(sponsoredPosts.id, input.adId)).limit(1);
-      if (ad[0]) {
-        await db
-          .update(sponsoredPosts)
-          .set({ impressions: ad[0].impressions + 1 })
-          .where(eq(sponsoredPosts.id, input.adId));
+      const ad = await db.select({ id: sponsoredPosts.id, status: sponsoredPosts.status }).from(sponsoredPosts).where(eq(sponsoredPosts.id, input.adId)).limit(1);
+      if (ad[0]?.status === "active") {
+        await db.update(sponsoredPosts).set({ impressions: sql`${sponsoredPosts.impressions} + 1` }).where(and(eq(sponsoredPosts.id, input.adId), eq(sponsoredPosts.status, "active")));
       }
 
       return { success: true };
@@ -100,17 +97,14 @@ export const adsRouter = router({
 
   // Track click
   trackClick: publicProcedure
-    .input(z.object({ adId: z.number() }))
+    .input(z.object({ adId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
-      const ad = await db.select().from(sponsoredPosts).where(eq(sponsoredPosts.id, input.adId)).limit(1);
-      if (ad[0]) {
-        await db
-          .update(sponsoredPosts)
-          .set({ clicks: ad[0].clicks + 1 })
-          .where(eq(sponsoredPosts.id, input.adId));
+      const ad = await db.select({ id: sponsoredPosts.id, status: sponsoredPosts.status }).from(sponsoredPosts).where(eq(sponsoredPosts.id, input.adId)).limit(1);
+      if (ad[0]?.status === "active") {
+        await db.update(sponsoredPosts).set({ clicks: sql`${sponsoredPosts.clicks} + 1` }).where(and(eq(sponsoredPosts.id, input.adId), eq(sponsoredPosts.status, "active")));
       }
 
       return { success: true };
@@ -118,7 +112,7 @@ export const adsRouter = router({
 
   // Delete ad
   deleteAd: protectedProcedure
-    .input(z.object({ adId: z.number() }))
+    .input(z.object({ adId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");

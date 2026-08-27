@@ -1016,3 +1016,16 @@
 
 - [x] Audit every routed page for direct i18n usage and replace common hard-coded UI copy with catalog-driven translations plus the shared global fallback layer.
 - [x] Add language-switch regression coverage for Feed, Explore, and shared labels used by Videos and Settings.
+
+## Child Safety & Teen Protection System
+- [x] Add server-side age classification for 13–17 Teen and 18+ Adult accounts with under-13 restriction handling.
+- [x] Add teen privacy-by-default policy controls for profile discovery, follows, messages, comments, mentions, and sharing.
+- [x] Add adult-to-teen unsolicited-contact protection with warnings, restrictions, repeat-contact flags, and block-evasion safeguards.
+- [x] Extend child-safety reporting categories and priority review ordering across user-generated content.
+- [x] Add child-safety enforcement levels, human-review routing, minimal evidence metadata, and user appeals through the existing moderation appeal lifecycle.
+- [x] Add teen safety controls for quiet hours, notification suppression, screen-time reminders, and safer default interaction settings.
+- [x] Add privacy-conscious safety audit logging with authorized access boundaries and retention guidance.
+- [x] Add AI/content-moderation safety safeguards for grooming, exploitation, dangerous content, and teen accounts through deterministic fail-closed rules, expanded classifier categories, and teen-context AI instructions.
+- [x] Add multilingual child-safety UI, warnings, report reasons, and settings labels in English, Bengali, and Hindi.
+- [x] Add unit and integration regression coverage for age classification, teen policy, moderation risk categories, reports, and enforcement; existing browser coverage continues to validate protected auth/verification gating.
+- [x] Document the Child Safety System, legal-review boundary, data minimization, escalation, and operational response procedures.

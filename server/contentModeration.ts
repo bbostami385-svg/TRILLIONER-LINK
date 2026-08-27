@@ -9,6 +9,12 @@ const DISALLOWED_TERMS = [
   "graphic gore",
 ];
 
+const CHILD_SAFETY_TERMS: Array<{ pattern: RegExp; category: ModerationResult["category"] }> = [
+  { pattern: /(?:(?:minor|underage|child|kid).{0,40}(?:sexual|nude|explicit|exploit)|(?:sexual|nude|explicit|exploit).{0,40}(?:minor|underage|child|kid))/i, category: "sexual_exploitation" },
+  { pattern: /(?:secret|don't tell|meet me alone|send a photo).{0,40}(?:minor|underage|child|kid)/i, category: "grooming" },
+  { pattern: /(?:recruit|join|build|make).{0,40}(?:bomb|weapon|explosive|terror)/i, category: "dangerous_content" },
+];
+
 function normalizeModerationText(text: string) {
   return text
     .normalize("NFKC")
@@ -24,7 +30,7 @@ function normalizeModerationText(text: string) {
 
 export type ModerationResult = {
   decision: "allow" | "block" | "review";
-  category: "clean" | "hate" | "harassment" | "sexual" | "violence" | "self_harm" | "illegal" | "spam" | "unknown";
+  category: "clean" | "hate" | "harassment" | "sexual" | "sexual_exploitation" | "grooming" | "violence" | "dangerous_content" | "self_harm" | "illegal" | "spam" | "unknown";
   reason: string;
   confidence: number;
 };
@@ -34,6 +40,10 @@ function deterministicTextCheck(text: string): ModerationResult | null {
   const term = DISALLOWED_TERMS.find((candidate) => normalized.includes(candidate));
   if (term) {
     return { decision: "block", category: "illegal", reason: "The content contains a prohibited safety term.", confidence: 1 };
+  }
+  const childSafetyMatch = CHILD_SAFETY_TERMS.find(({ pattern }) => pattern.test(normalized));
+  if (childSafetyMatch) {
+    return { decision: "block", category: childSafetyMatch.category, reason: "The content matches a child-safety risk pattern and cannot be published.", confidence: 0.99 };
   }
 
   const urlCount = text.toLocaleLowerCase().split("://").length - 1;
@@ -47,13 +57,13 @@ function deterministicTextCheck(text: string): ModerationResult | null {
 function normalizeResult(value: unknown): ModerationResult {
   const result = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   const decision = result.decision === "block" || result.decision === "review" ? result.decision : "allow";
-  const categories = ["clean", "hate", "harassment", "sexual", "violence", "self_harm", "illegal", "spam", "unknown"] as const;
+  const categories = ["clean", "hate", "harassment", "sexual", "sexual_exploitation", "grooming", "violence", "dangerous_content", "self_harm", "illegal", "spam", "unknown"] as const;
   const category = categories.includes(result.category as (typeof categories)[number]) ? result.category as ModerationResult["category"] : "unknown";
   const confidence = typeof result.confidence === "number" ? Math.max(0, Math.min(1, result.confidence)) : 0;
   return { decision, category, confidence, reason: typeof result.reason === "string" ? result.reason.slice(0, 240) : "Automated safety review completed." };
 }
 
-export async function moderateContent(options: { text?: string; mediaUrl?: string; mediaType?: "image" | "video" }): Promise<ModerationResult> {
+export async function moderateContent(options: { text?: string; mediaUrl?: string; mediaType?: "image" | "video"; subjectAgeCategory?: "teen" | "adult" }): Promise<ModerationResult> {
   const text = options.text?.trim() ?? "";
   const deterministic = deterministicTextCheck(text);
   if (deterministic) return deterministic;
@@ -65,7 +75,7 @@ export async function moderateContent(options: { text?: string; mediaUrl?: strin
   try {
     const response = await invokeLLM({
       messages: [
-        { role: "system", content: "You are a strict trust-and-safety classifier. Block sexual exploitation, credible violent wrongdoing, graphic gore, hate, and illegal instruction. Allow ordinary disagreement, news, education, and non-graphic discussion. Return JSON only." },
+        { role: "system", content: `You are a strict trust-and-safety classifier. Block grooming, sexual exploitation, child sexual abuse material, credible violent wrongdoing, dangerous instructions, graphic gore, hate, and illegal instruction. Allow ordinary disagreement, news, education, and non-graphic discussion. ${options.subjectAgeCategory === "teen" ? "This content involves a teen account: apply heightened protection against adult sexualization, coercion, grooming, and dangerous contact." : ""} Return JSON only.` },
         { role: "user", content },
       ],
       response_format: {
@@ -77,7 +87,7 @@ export async function moderateContent(options: { text?: string; mediaUrl?: strin
             type: "object",
             properties: {
               decision: { type: "string", enum: ["allow", "block", "review"] },
-              category: { type: "string", enum: ["clean", "hate", "harassment", "sexual", "violence", "self_harm", "illegal", "spam", "unknown"] },
+              category: { type: "string", enum: ["clean", "hate", "harassment", "sexual", "sexual_exploitation", "grooming", "violence", "dangerous_content", "self_harm", "illegal", "spam", "unknown"] },
               reason: { type: "string" },
               confidence: { type: "number" },
             },

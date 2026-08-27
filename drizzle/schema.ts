@@ -40,6 +40,11 @@ export const users = mysqlTable("users", {
   age: int("age"),
   ageVerified: boolean("ageVerified").default(false).notNull(),
   ageVerificationAt: timestamp("ageVerificationAt"),
+  /** Server-derived safety classification; null means legacy/unclassified until age is verified. */
+  ageCategory: mysqlEnum("ageCategory", ["teen", "adult"]),
+  safetyRestricted: boolean("safetyRestricted").default(false).notNull(),
+  safetyRestrictionReason: varchar("safetyRestrictionReason", { length: 500 }),
+  safetyRestrictionUntil: timestamp("safetyRestrictionUntil"),
   
   /** Face Verification Fields (18+ only) */
   faceVerificationRequired: boolean("faceVerificationRequired").default(false).notNull(),
@@ -1080,7 +1085,10 @@ export const moderationReports = mysqlTable("moderationReports", {
   reporterId: int("reporterId").notNull().references(() => users.id, { onDelete: "cascade" }),
   contentType: mysqlEnum("contentType", ["post", "video", "comment", "user"]).notNull(),
   contentId: int("contentId").notNull(),
-  reason: mysqlEnum("reason", ["spam", "inappropriate", "harassment", "violence", "hate_speech", "other"]).notNull(),
+  reason: mysqlEnum("reason", ["spam", "inappropriate", "harassment", "violence", "hate_speech", "child_safety", "grooming", "sexual_exploitation", "threat", "dangerous_content", "other_safety", "other"]).notNull(),
+  /** Optional safety taxonomy; kept separate from legacy reason for reporting compatibility. */
+  safetyCategory: mysqlEnum("safetyCategory", ["child_safety", "grooming", "sexual_exploitation", "harassment", "threat", "dangerous_content", "other_safety"]),
+  priority: mysqlEnum("priority", ["standard", "high", "urgent"]).default("standard").notNull(),
   description: varchar("description", { length: 2000 }),
   status: mysqlEnum("status", ["pending", "resolved", "rejected"]).notNull().default("pending"),
   reviewerId: int("reviewerId").references(() => users.id, { onDelete: "set null" }),
@@ -1174,3 +1182,78 @@ export const streamChatMessages = mysqlTable("streamChatMessages", {
 }));
 export type StreamChatMessage = typeof streamChatMessages.$inferSelect;
 export type InsertStreamChatMessage = typeof streamChatMessages.$inferInsert;
+
+/** Privacy-by-default controls automatically provisioned for verified teen accounts. */
+export const childSafetySettings = mysqlTable("childSafetySettings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileVisibility: mysqlEnum("profileVisibility", ["private", "followers", "public"]).default("followers").notNull(),
+  followPermission: mysqlEnum("followPermission", ["approved_only", "anyone"]).default("approved_only").notNull(),
+  messagePermission: mysqlEnum("messagePermission", ["no_one", "followers", "approved_requests"]).default("approved_requests").notNull(),
+  commentPermission: mysqlEnum("commentPermission", ["no_one", "followers", "approved_requests"]).default("followers").notNull(),
+  mentionPermission: mysqlEnum("mentionPermission", ["no_one", "followers", "approved_requests"]).default("followers").notNull(),
+  sharePermission: mysqlEnum("sharePermission", ["no_one", "followers", "public"]).default("followers").notNull(),
+  quietHoursEnabled: boolean("quietHoursEnabled").default(true).notNull(),
+  quietHoursStart: varchar("quietHoursStart", { length: 5 }).default("22:00").notNull(),
+  quietHoursEnd: varchar("quietHoursEnd", { length: 5 }).default("07:00").notNull(),
+  screenTimeLimitMinutes: int("screenTimeLimitMinutes"),
+  screenTimeReminderMinutes: int("screenTimeReminderMinutes").default(60).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userUnique: uniqueIndex("child_safety_settings_user_unique").on(table.userId),
+}));
+export type ChildSafetySettings = typeof childSafetySettings.$inferSelect;
+export type InsertChildSafetySettings = typeof childSafetySettings.$inferInsert;
+
+/** Minimal interaction signals used to throttle repeated unwanted adult-to-teen contact. */
+export const safetyInteractionEvents = mysqlTable("safetyInteractionEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  actorUserId: int("actorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetUserId: int("targetUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  eventType: mysqlEnum("eventType", ["message_attempt", "follow_attempt", "comment_attempt", "mention_attempt", "share_attempt", "block_evasion_flag"]).notNull(),
+  outcome: mysqlEnum("outcome", ["allowed", "warned", "restricted", "flagged"]).notNull(),
+  reason: varchar("reason", { length: 500 }),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  actorTargetDateIdx: index("safety_interaction_actor_target_date_idx").on(table.actorUserId, table.targetUserId, table.createdAt),
+  targetDateIdx: index("safety_interaction_target_date_idx").on(table.targetUserId, table.createdAt),
+}));
+export type SafetyInteractionEvent = typeof safetyInteractionEvents.$inferSelect;
+export type InsertSafetyInteractionEvent = typeof safetyInteractionEvents.$inferInsert;
+
+/** Human-reviewed enforcement actions with explicit, auditable levels. */
+export const safetyEnforcementActions = mysqlTable("safetyEnforcementActions", {
+  id: int("id").autoincrement().primaryKey(),
+  subjectUserId: int("subjectUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reportId: int("reportId").references(() => moderationReports.id, { onDelete: "set null" }),
+  level: mysqlEnum("level", ["warning", "content_removal", "feature_restriction", "temporary_suspension", "permanent_removal"]).notNull(),
+  reason: varchar("reason", { length: 2000 }).notNull(),
+  startsAt: timestamp("startsAt").defaultNow().notNull(),
+  endsAt: timestamp("endsAt"),
+  reviewerId: int("reviewerId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  subjectDateIdx: index("safety_enforcement_subject_date_idx").on(table.subjectUserId, table.createdAt),
+  reportIdx: index("safety_enforcement_report_idx").on(table.reportId),
+}));
+export type SafetyEnforcementAction = typeof safetyEnforcementActions.$inferSelect;
+export type InsertSafetyEnforcementAction = typeof safetyEnforcementActions.$inferInsert;
+
+/** Restricted safety audit trail; payloads should contain metadata, never raw document bytes. */
+export const safetyAuditLogs = mysqlTable("safetyAuditLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  actorUserId: int("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  subjectUserId: int("subjectUserId").references(() => users.id, { onDelete: "set null" }),
+  reportId: int("reportId").references(() => moderationReports.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 80 }).notNull(),
+  category: varchar("category", { length: 80 }).notNull(),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  categoryDateIdx: index("safety_audit_category_date_idx").on(table.category, table.createdAt),
+  subjectDateIdx: index("safety_audit_subject_date_idx").on(table.subjectUserId, table.createdAt),
+}));
+export type SafetyAuditLog = typeof safetyAuditLogs.$inferSelect;
+export type InsertSafetyAuditLog = typeof safetyAuditLogs.$inferInsert;

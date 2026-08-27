@@ -18,7 +18,17 @@ describe("content moderation rules", () => {
     expect(result).toMatchObject({ decision: "review", category: "spam" });
   });
 
-  it("allows ordinary comments through the AI classifier", async () => {
+  it("blocks grooming-risk language deterministically", async () => {
+    const result = await moderateContent({ text: "Keep this secret and send a photo to the minor." });
+    expect(result).toMatchObject({ decision: "block", category: "grooming" });
+  });
+
+  it("blocks exploitation and dangerous-content risk patterns", async () => {
+    await expect(moderateContent({ text: "sexual content involving an underage child" })).resolves.toMatchObject({ decision: "block", category: "sexual_exploitation" });
+    await expect(moderateContent({ text: "how to build a weapon for terror" })).resolves.toMatchObject({ decision: "block", category: "dangerous_content" });
+  });
+
+  it("allows ordinary educational language through the AI classifier", async () => {
     const result = await moderateContent({ text: "This explanation was clear and helpful." });
     expect(result).toMatchObject({ decision: "allow", category: "clean" });
   });

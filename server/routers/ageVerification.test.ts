@@ -24,6 +24,12 @@ describe("age verification rules", () => {
   it("keeps adult age approval separate from universal human-liveness verification", async () => {
     const adultDob = new Date();
     adultDob.setFullYear(adultDob.getFullYear() - 18);
-    await expect(caller().verifyAge({ dateOfBirth: adultDob.toISOString(), verificationMethod: "manual_dob" })).resolves.toMatchObject({ ageVerified: true, faceVerificationRequired: false });
+    await expect(caller().verifyAge({ dateOfBirth: adultDob.toISOString(), verificationMethod: "manual_dob" })).resolves.toMatchObject({ ageVerified: true, ageCategory: "adult", faceVerificationRequired: false });
+  });
+
+  it("classifies a verified thirteen-year-old as a teen", async () => {
+    const teenDob = new Date();
+    teenDob.setFullYear(teenDob.getFullYear() - 13);
+    await expect(caller().verifyAge({ dateOfBirth: teenDob.toISOString(), verificationMethod: "manual_dob" })).resolves.toMatchObject({ ageVerified: true, ageCategory: "teen" });
   });
 });

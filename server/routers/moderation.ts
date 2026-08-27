@@ -5,8 +5,10 @@ import { z } from "zod";
 import { getRequiredDb } from "../db";
 import { moderateContent } from "../contentModeration";
 import { blockedUsers, moderationReports, mutedUsers } from "../../drizzle/schema";
+import { recordSafetyAudit } from "../childSafety";
 
-const reportReason = z.enum(["spam", "inappropriate", "harassment", "violence", "hate_speech", "other"]);
+const reportReason = z.enum(["spam", "inappropriate", "harassment", "violence", "hate_speech", "child_safety", "grooming", "sexual_exploitation", "threat", "dangerous_content", "other_safety", "other"]);
+const safetyCategory = z.enum(["child_safety", "grooming", "sexual_exploitation", "harassment", "threat", "dangerous_content", "other_safety"]);
 const contentType = z.enum(["post", "video", "comment", "user"]);
 const positiveUserId = z.number().int().positive();
 
@@ -16,14 +18,18 @@ function requireAdmin(ctx: { user: { role: string } }) {
 
 export const moderationRouter = router({
   reportContent: protectedProcedure
-    .input(z.object({ contentType, contentId: positiveUserId, reason: reportReason, description: z.string().trim().max(2000).optional() }))
+    .input(z.object({ contentType, contentId: positiveUserId, reason: reportReason, safetyCategory: safetyCategory.optional(), description: z.string().trim().max(2000).optional() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getRequiredDb();
       const [existing] = await db.select({ id: moderationReports.id }).from(moderationReports)
         .where(and(eq(moderationReports.reporterId, ctx.user.id), eq(moderationReports.contentType, input.contentType), eq(moderationReports.contentId, input.contentId), eq(moderationReports.status, "pending"))).limit(1);
       if (existing) return { success: true, reportId: existing.id, duplicate: true, message: "Your report is already under review." };
-      const result = await db.insert(moderationReports).values({ reporterId: ctx.user.id, contentType: input.contentType, contentId: input.contentId, reason: input.reason, description: input.description || null });
-      return { success: true, reportId: Number(result[0].insertId), duplicate: false, message: "Content reported successfully." };
+      const derivedSafetyCategory = input.safetyCategory ?? (safetyCategory.options.includes(input.reason as typeof safetyCategory.options[number]) ? input.reason as typeof safetyCategory.options[number] : null);
+      const priority = derivedSafetyCategory === "grooming" || derivedSafetyCategory === "sexual_exploitation" || derivedSafetyCategory === "child_safety" || derivedSafetyCategory === "threat" ? "urgent" : derivedSafetyCategory ? "high" : "standard";
+      const result = await db.insert(moderationReports).values({ reporterId: ctx.user.id, contentType: input.contentType, contentId: input.contentId, reason: input.reason, safetyCategory: derivedSafetyCategory, priority, description: input.description || null });
+      const reportId = Number(result[0].insertId);
+      if (derivedSafetyCategory) await recordSafetyAudit({ actorUserId: ctx.user.id, reportId, action: "safety_report_submitted", category: derivedSafetyCategory, metadata: { priority, contentType: input.contentType, contentId: input.contentId } });
+      return { success: true, reportId, duplicate: false, priority, message: "Content reported successfully." };
     }),
 
   blockUser: protectedProcedure
@@ -81,12 +87,13 @@ export const moderationRouter = router({
     }),
 
   getModerationReports: protectedProcedure
-    .input(z.object({ status: z.enum(["pending", "resolved", "rejected"]).optional(), limit: z.number().int().min(1).max(50).default(20), offset: z.number().int().min(0).default(0) }))
+    .input(z.object({ status: z.enum(["pending", "resolved", "rejected"]).optional(), safetyCategory: safetyCategory.optional(), priority: z.enum(["standard", "high", "urgent"]).optional(), limit: z.number().int().min(1).max(50).default(20), offset: z.number().int().min(0).default(0) }))
     .query(async ({ input, ctx }) => {
       requireAdmin(ctx);
       const db = await getRequiredDb();
-      const where = input.status ? eq(moderationReports.status, input.status) : undefined;
-      const reports = await db.select().from(moderationReports).where(where).orderBy(desc(moderationReports.createdAt)).limit(input.limit).offset(input.offset);
+      const filters = [input.status ? eq(moderationReports.status, input.status) : undefined, input.safetyCategory ? eq(moderationReports.safetyCategory, input.safetyCategory) : undefined, input.priority ? eq(moderationReports.priority, input.priority) : undefined].filter(Boolean) as Array<ReturnType<typeof eq>>;
+      const where = filters.length ? and(...filters) : undefined;
+      const reports = await db.select().from(moderationReports).where(where).orderBy(sql`CASE ${moderationReports.priority} WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 ELSE 3 END`, desc(moderationReports.createdAt)).limit(input.limit).offset(input.offset);
       const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(moderationReports).where(where);
       return { reports, total: Number(total) };
     }),
@@ -100,6 +107,7 @@ export const moderationRouter = router({
       if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Moderation report not found." });
       if (report.status !== "pending") throw new TRPCError({ code: "CONFLICT", message: "This report has already been resolved." });
       await db.update(moderationReports).set({ status: input.action === "reject" ? "rejected" : "resolved", reviewerId: ctx.user.id, resolutionReason: input.reason || input.action, resolvedAt: new Date() }).where(eq(moderationReports.id, input.reportId));
+      await recordSafetyAudit({ actorUserId: ctx.user.id, reportId: input.reportId, action: "safety_report_reviewed", category: "moderation", metadata: { action: input.action } });
       return { success: true, message: "Report resolved successfully.", action: input.action, reviewedBy: ctx.user.id };
     }),
 

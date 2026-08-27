@@ -14,6 +14,7 @@ import { LivenessVerification } from "@/components/LivenessVerification";
 import { KYCForm } from "@/components/KYCForm";
 import { SocialLinking } from "@/components/SocialLinking";
 import { VerificationStatusTracker } from "@/components/VerificationStatusTracker";
+import { TeenSafetyPanel } from "@/components/TeenSafetyPanel";
 import { trpc } from "@/lib/trpc";
 import "./Settings.css";
 
@@ -166,6 +167,7 @@ export default function Settings() {
       {/* Account Tab */}
       {activeTab === "account" && (
         <>
+          <TeenSafetyPanel />
           <div className="settings-section"><div className="section-header"><MailPlus size={20} /><div><h2>Invite your circle</h2><p>Share a secure, expiring link with friends.</p></div></div><Button onClick={() => setLocation("/invitations")} className="w-full justify-between bg-indigo-500 text-white hover:bg-indigo-400">Open invitation center<ChevronRight size={18} /></Button><Button onClick={() => setLocation("/profile-rewards")} variant="outline" className="mt-3 w-full justify-between border-cyan-300/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20">Open profile cosmetics<ChevronRight size={18} /></Button><Button onClick={() => setLocation("/subscription-topics")} variant="outline" className="mt-3 w-full justify-between border-emerald-300/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20">Organize subscriptions<ChevronRight size={18} /></Button>{user?.accountMode === "creator" && <Button onClick={() => setLocation("/creator-playlists")} variant="outline" className="mt-3 w-full justify-between border-indigo-300/25 bg-indigo-500/10 text-indigo-100 hover:bg-indigo-500/20">Manage creator playlists<ChevronRight size={18} /></Button>}</div>
 
           {/* Notification Settings */}

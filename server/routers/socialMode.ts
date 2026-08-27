@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { users, follows } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { evaluateAndRecordContact } from "../childSafety";
 
 export const socialModeRouter = router({
   // Follow user
@@ -16,6 +17,9 @@ export const socialModeRouter = router({
           message: "Cannot follow yourself",
         });
       }
+
+      const contactDecision = await evaluateAndRecordContact({ actorUserId: ctx.user.id, targetUserId: input.userId, eventType: "follow_attempt" });
+      if (!contactDecision.allowed) throw new TRPCError({ code: "FORBIDDEN", message: contactDecision.reason });
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });

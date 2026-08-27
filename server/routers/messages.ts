@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { evaluateAndRecordContact } from "../childSafety";
 import {
   createMessage,
   getMessagesByConversation,
@@ -24,6 +26,9 @@ export const messagesRouter = router({
       if (input.otherUserId === ctx.user.id) {
         throw new Error("Cannot create conversation with yourself");
       }
+
+      const contactDecision = await evaluateAndRecordContact({ actorUserId: ctx.user.id, targetUserId: input.otherUserId, eventType: "message_attempt" });
+      if (!contactDecision.allowed) throw new TRPCError({ code: "FORBIDDEN", message: contactDecision.reason });
 
       const conversation = await getOrCreateConversation(
         ctx.user.id,
@@ -108,8 +113,12 @@ export const messagesRouter = router({
         ctx.user.id !== conv.participant1Id &&
         ctx.user.id !== conv.participant2Id
       ) {
-        throw new Error("Unauthorized: You are not part of this conversation");
+        throw new Error("Unauthorized: You are not part of the conversation");
       }
+
+      const recipientId = conv.participant1Id === ctx.user.id ? conv.participant2Id : conv.participant1Id;
+      const contactDecision = await evaluateAndRecordContact({ actorUserId: ctx.user.id, targetUserId: recipientId, eventType: "message_attempt" });
+      if (!contactDecision.allowed) throw new TRPCError({ code: "FORBIDDEN", message: contactDecision.reason });
 
       const message = await createMessage(
         input.conversationId,

@@ -56,7 +56,7 @@ describe("root router composition", () => {
   it("exposes every production feature namespace through the canonical app router", () => {
     const record = (appRouter as any)._def.record as Record<string, unknown>;
     const expectedNamespaces = [
-      "system", "auth", "feed", "messages", "users", "videos", "stories", "comments", "search", "notifications", "payment", "marketplace", "liveStream", "moderation", "recommendations", "profileEdit", "groups", "events", "reels", "polls", "reactions", "collections", "verification", "mentions", "duets", "challenges", "ads", "arFilters", "sounds", "history", "pages", "dualMode", "levels", "ageVerification", "humanVerification", "kyc", "socialLinking", "creatorAnalytics", "moderationAppeals", "invitations", "profileRewards", "creatorPlaylists", "subscriptionCollections", "adminMedia",
+      "system", "auth", "feed", "messages", "users", "videos", "stories", "comments", "search", "notifications", "payment", "marketplace", "liveStream", "moderation", "recommendations", "profileEdit", "groups", "events", "reels", "polls", "reactions", "collections", "verification", "mentions", "duets", "challenges", "ads", "arFilters", "sounds", "history", "pages", "dualMode", "levels", "ageVerification", "humanVerification", "kyc", "socialLinking", "creatorAnalytics", "moderationAppeals", "invitations", "profileRewards", "creatorPlaylists", "subscriptionCollections", "adminMedia", "childSafety",
     ];
     expect(Object.keys(record)).toEqual(expect.arrayContaining(expectedNamespaces));
     expect(Object.keys(record)).toHaveLength(expectedNamespaces.length);

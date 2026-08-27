@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { ageVerificationRecords, faceVerificationRecords, users } from "../../drizzle/schema";
+import { deriveAgeCategory, ensureTeenSafetySettings, recordSafetyAudit } from "../childSafety";
 
 export function calculateAge(dateOfBirth: Date): number {
   const today = new Date();
@@ -30,12 +31,14 @@ export const ageVerificationRouter = router({
   verifyAge: publicProcedure.input(ageInput).mutation(({ input }) => {
     const dateOfBirth = validateDateOfBirth(input.dateOfBirth);
     const age = calculateAge(dateOfBirth);
+    const ageCategory = age >= 13 ? deriveAgeCategory(age) : null;
     if (age < 13) throw new TRPCError({ code: "BAD_REQUEST", message: "You must be at least 13 years old to create an account." });
     // Universal human-liveness verification is handled by humanVerificationRouter.
     // Keep the legacy field false so adult users are not sent into identity-face verification.
     const faceVerificationRequired = false;
     return {
       age,
+      ageCategory,
       ageVerified: true,
       faceVerificationRequired,
       message: faceVerificationRequired ? "Age verified. Human face verification is required for adults." : "Age verified successfully.",
@@ -47,10 +50,10 @@ export const ageVerificationRouter = router({
     const dateOfBirth = validateDateOfBirth(input.dateOfBirth);
     const age = calculateAge(dateOfBirth);
     if (age < 13) throw new TRPCError({ code: "BAD_REQUEST", message: "You must be at least 13 years old to create an account." });
+        const ageCategory = deriveAgeCategory(age);
     // Universal human-liveness verification is handled by humanVerificationRouter.
     // Keep the legacy field false so adult users are not sent into identity-face verification.
     const faceVerificationRequired = false;
-
     const result = await db.insert(ageVerificationRecords).values({
       userId: ctx.user.id,
       dateOfBirth,
@@ -63,14 +66,21 @@ export const ageVerificationRouter = router({
       age,
       ageVerified: true,
       ageVerificationAt: new Date(),
+      ageCategory,
+      safetyRestricted: false,
+      safetyRestrictionReason: null,
+      safetyRestrictionUntil: null,
       faceVerificationRequired,
       faceVerificationStatus: faceVerificationRequired ? "pending" : "not_required",
     }).where(eq(users.id, ctx.user.id));
 
+    if (ageCategory === "teen") await ensureTeenSafetySettings(db, ctx.user.id);
+    await recordSafetyAudit({ actorUserId: ctx.user.id, subjectUserId: ctx.user.id, action: "age_classified", category: "age_assurance", metadata: { ageCategory, verificationMethod: input.verificationMethod } });
     return {
       success: true,
       recordId: Number(result[0].insertId),
       age,
+      ageCategory,
       ageVerified: true,
       faceVerificationRequired,
       message: "Age verified. Complete human-liveness verification to activate your account.",
@@ -84,6 +94,7 @@ export const ageVerificationRouter = router({
     return {
       userId: user.id,
       age: user.age,
+      ageCategory: user.ageCategory,
       dateOfBirth: user.dateOfBirth,
       ageVerified: user.ageVerified,
       ageVerificationAt: user.ageVerificationAt,

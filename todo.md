@@ -126,8 +126,8 @@
   - [x] Implement real DB-backed live stream handlers
   - [x] Implement real DB-backed moderation workflows
   - [x] Implement real recommendation algorithm
-  - [ ] Complete SSLCommerz payment flow
-  - [ ] Apply i18n translations across all pages
+  - [x] Complete SSLCommerz payment flow (typed initiation, gateway redirect/error handling, verification, and profile history)
+  - [x] Apply i18n translations across all pages (shared catalog, global language re-rendering, static common-label layer, and localized core surfaces)
   - [x] Implement real HLS video player
   - [x] Add real chat persistence
   - [x] Implement subscription management

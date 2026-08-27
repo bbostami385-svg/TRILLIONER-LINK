@@ -7,15 +7,19 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   signInWithGoogle: vi.fn(),
   mutateAsync: vi.fn(),
+  getFirebaseErrorMessage: vi.fn((error: unknown, fallback = "Authentication failed. Please try again.") =>
+    error instanceof Error ? error.message : fallback),
 }));
 
 vi.mock("wouter", () => ({ useLocation: () => ["/login", mocks.navigate] }));
 vi.mock("@/lib/firebase", () => ({
   firebaseConfigured: true,
+  firebaseConfigError: null,
   signInWithGoogle: mocks.signInWithGoogle,
   signInWithFirebaseEmail: vi.fn(),
   createFirebaseAccount: vi.fn(),
   requestFirebasePasswordReset: vi.fn(),
+  getFirebaseErrorMessage: mocks.getFirebaseErrorMessage,
 }));
 vi.mock("@/lib/trpc", () => ({
   trpc: { auth: { exchangeFirebaseToken: { useMutation: () => ({ mutateAsync: mocks.mutateAsync }) } } },

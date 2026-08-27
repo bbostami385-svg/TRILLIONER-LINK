@@ -2,24 +2,27 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { CreditCard, Zap, Crown, Gift } from "lucide-react";
+import { AlertCircle, CreditCard, Zap, Crown, Gift, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useTranslation } from "@/hooks/useTranslation";
 import "./Payment.css";
 
 export default function Payment() {
   const { isAuthenticated, user } = useAuth();
+  const { t, formatCurrency } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const initiatePayment = trpc.payment.initiatePayment.useMutation();
 
   if (!isAuthenticated) {
     return (
       <div className="payment-container">
         <div className="loading">
-          <p>Please log in to make payments</p>
+          <p>{t("payment.loginRequired")}</p>
           <Button onClick={() => setLocation("/signup")} className="mt-4">
-            Sign In
+            {t("common.login")}
           </Button>
         </div>
       </div>
@@ -29,49 +32,51 @@ export default function Payment() {
   const plans = [
     {
       id: "basic",
-      name: "Basic",
+      name: t("payment.basicPlan"),
       price: 99,
       icon: Zap,
       features: [
-        "5 GB Storage",
-        "Basic Analytics",
-        "Standard Support",
-        "No Ads on Profile",
+        t("payment.basicStorage"),
+        t("payment.basicAnalytics"),
+        t("payment.standardSupport"),
+        t("payment.noAdsProfile"),
       ],
       popular: false,
     },
     {
       id: "pro",
-      name: "Pro",
+      name: t("payment.proPlan"),
       price: 299,
       icon: Crown,
       features: [
         "50 GB Storage",
-        "Advanced Analytics",
-        "Priority Support",
-        "Custom Domain",
-        "Monetization Tools",
+        t("payment.advancedAnalytics"),
+        t("payment.prioritySupport"),
+        t("payment.customDomain"),
+        t("payment.monetizationTools"),
       ],
       popular: true,
     },
     {
       id: "premium",
-      name: "Premium",
+      name: t("payment.premiumPlan"),
       price: 599,
       icon: Gift,
       features: [
-        "Unlimited Storage",
-        "Real-time Analytics",
-        "24/7 Support",
-        "Custom Branding",
-        "API Access",
-        "Team Collaboration",
+        t("payment.unlimitedStorage"),
+        t("payment.realtimeAnalytics"),
+        t("payment.support247"),
+        t("payment.customBranding"),
+        t("payment.apiAccess"),
+        t("payment.teamCollaboration"),
       ],
       popular: false,
     },
   ];
 
   const handlePayment = async (planId: string, price: number) => {
+    setSelectedPlan(planId);
+    setPaymentError(null);
     setLoading(true);
     try {
       const data = await initiatePayment.mutateAsync({
@@ -85,11 +90,11 @@ export default function Payment() {
         currency: "BDT",
       });
       const gatewayUrl = data.redirectGatewayURL || data.GatewayPageURL;
-      if (!gatewayUrl) throw new Error("The payment gateway did not return a redirect URL.");
+      if (!gatewayUrl) throw new Error(t("payment.gatewayUnavailable"));
       window.location.assign(gatewayUrl);
     } catch (error) {
       console.error("Payment error:", error);
-      alert(error instanceof Error ? error.message : "Payment initiation failed");
+      setPaymentError(error instanceof Error ? error.message : t("payment.initiationFailed"));
     } finally {
       setLoading(false);
     }
@@ -99,8 +104,17 @@ export default function Payment() {
     <div className="payment-container">
       {/* Header */}
       <div className="payment-header">
-        <h1>Choose Your Plan</h1>
-        <p>Upgrade to unlock premium features</p>
+        <h1>{t("payment.choosePlan")}</h1>
+        <p>{t("payment.upgradeDescription")}</p>
+        {paymentError && (
+          <div role="alert" className="mx-auto mt-4 flex max-w-xl items-start gap-3 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-left text-red-100">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+            <div className="flex-1">
+              <p className="font-medium">{paymentError}</p>
+              <button type="button" onClick={() => setPaymentError(null)} className="mt-1 text-sm text-red-200 underline underline-offset-2">{t("common.close")}</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Plans Grid */}
@@ -115,7 +129,7 @@ export default function Payment() {
               }`}
               onClick={() => setSelectedPlan(plan.id)}
             >
-              {plan.popular && <div className="popular-badge">Most Popular</div>}
+              {plan.popular && <div className="popular-badge">{t("common.popular", "Most Popular")}</div>}
 
               <div className="plan-icon">
                 <Icon size={32} />
@@ -124,8 +138,8 @@ export default function Payment() {
               <h3>{plan.name}</h3>
               <div className="plan-price">
                 <span className="currency">৳</span>
-                <span className="amount">{plan.price}</span>
-                <span className="period">/month</span>
+                <span className="amount">{formatCurrency(plan.price, "BDT")}</span>
+                <span className="period">{t("payment.monthlyPrice")}</span>
               </div>
 
               <ul className="features-list">
@@ -142,7 +156,7 @@ export default function Payment() {
                 onClick={() => handlePayment(plan.id, plan.price)}
                 disabled={loading || initiatePayment.isPending}
               >
-                {loading && selectedPlan === plan.id ? "Processing..." : "Subscribe Now"}
+                {loading && selectedPlan === plan.id ? <><Loader2 className="h-4 w-4 animate-spin" />{t("payment.processing")}</> : t("payment.subscribeNow")}
               </Button>
             </div>
           );
@@ -151,46 +165,46 @@ export default function Payment() {
 
       {/* Payment Methods */}
       <div className="payment-methods">
-        <h2>Accepted Payment Methods</h2>
+        <h2>{t("payment.paymentMethods")}</h2>
         <div className="methods-grid">
           <div className="method-card">
             <CreditCard size={32} />
-            <p>Credit Card</p>
+            <p>{t("payment.creditCard")}</p>
           </div>
           <div className="method-card">
             <CreditCard size={32} />
-            <p>Debit Card</p>
+            <p>{t("payment.debitCard")}</p>
           </div>
           <div className="method-card">
             <CreditCard size={32} />
-            <p>Mobile Banking</p>
+            <p>{t("payment.mobileBanking")}</p>
           </div>
           <div className="method-card">
             <CreditCard size={32} />
-            <p>Internet Banking</p>
+            <p>{t("payment.internetBanking")}</p>
           </div>
         </div>
       </div>
 
       {/* FAQ */}
       <div className="faq-section">
-        <h2>Frequently Asked Questions</h2>
+        <h2>{t("payment.faq")}</h2>
         <div className="faq-list">
           <div className="faq-item">
-            <h4>Can I change my plan anytime?</h4>
-            <p>Yes, you can upgrade or downgrade your plan at any time. Changes will take effect immediately.</p>
+            <h4>{t("payment.faqChangePlan")}</h4>
+            <p>{t("payment.faqChangePlanAnswer")}</p>
           </div>
           <div className="faq-item">
-            <h4>Is there a free trial?</h4>
-            <p>Yes, we offer a 7-day free trial for all plans. No credit card required.</p>
+            <h4>{t("payment.faqTrial")}</h4>
+            <p>{t("payment.faqTrialAnswer")}</p>
           </div>
           <div className="faq-item">
-            <h4>What payment methods do you accept?</h4>
-            <p>We accept all major credit cards, debit cards, and mobile banking options through SSLCommerz.</p>
+            <h4>{t("payment.faqMethods")}</h4>
+            <p>{t("payment.faqMethodsAnswer")}</p>
           </div>
           <div className="faq-item">
-            <h4>Can I get a refund?</h4>
-            <p>Yes, we offer a 30-day money-back guarantee if you're not satisfied with our service.</p>
+            <h4>{t("payment.faqRefund")}</h4>
+            <p>{t("payment.faqRefundAnswer")}</p>
           </div>
         </div>
       </div>

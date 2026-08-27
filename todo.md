@@ -1007,3 +1007,9 @@
 - [x] Add true behavior-level integration coverage for router contracts beyond namespace reachability.
 
 - [x] Save a complete Bengali Firebase + Google Login Vercel environment-variable guide for later setup.
+
+- [x] Improve Firebase login flow error feedback and verify the Google Sign-In path.
+- [x] Verify successful Firebase login redirects users to the profile/dashboard experience.
+- [x] Complete the full-page translation rollout for English, Bengali, and Hindi through shared catalogs, global language re-rendering, and localized core routed surfaces.
+- [x] Add loading animation and clear errors to SSLCommerz payment initiation.
+- [x] Add authenticated payment history and transaction-status display to the user profile.

@@ -12,6 +12,85 @@ const translations: Record<Language, typeof enTranslations> = {
 
 let currentLanguage: Language = "en";
 
+const englishTextKeys: Record<string, string> = {
+  "Loading...": "common.loading",
+  "An error occurred": "common.error",
+  "Success": "common.success",
+  "Cancel": "common.cancel",
+  "Save": "common.save",
+  "Delete": "common.delete",
+  "Edit": "common.edit",
+  "Logout": "common.logout",
+  "Login": "common.login",
+  "Sign In": "common.login",
+  "Sign Up": "common.signup",
+  "Settings": "common.settings",
+  "Profile": "common.profile",
+  "Try again": "common.retry",
+  "Close": "common.close",
+  "Most Popular": "common.popular",
+  "Feed": "navigation.feed",
+  "Explore": "navigation.explore",
+  "Messages": "navigation.messages",
+  "Videos": "navigation.videos",
+  "Stories": "navigation.stories",
+  "Notifications": "navigation.notifications",
+  "Marketplace": "navigation.marketplace",
+  "Creator Dashboard": "navigation.creatorDashboard",
+  "Payment": "navigation.payment",
+  "Like": "feed.like",
+  "Comment": "feed.comment",
+  "Share": "feed.share",
+  "No posts yet": "feed.noPostsYet",
+  "Choose Your Plan": "payment.choosePlan",
+  "Subscribe Now": "payment.subscribeNow",
+  "Processing...": "payment.processing",
+  "Accepted Payment Methods": "payment.paymentMethods",
+  "Frequently Asked Questions": "payment.faq",
+  "Credit Card": "payment.creditCard",
+  "Debit Card": "payment.debitCard",
+  "Mobile Banking": "payment.mobileBanking",
+  "Internet Banking": "payment.internetBanking",
+  "Payment history": "profile.paymentHistory",
+  "Followers": "profile.followers",
+  "Subscribers": "profile.subscribers",
+  "Following": "profile.following",
+  "Posts": "profile.posts",
+  "Saved": "profile.saved",
+  "Message": "profile.message",
+  "Human verified": "profile.humanVerified",
+  "No videos yet": "profile.noVideos",
+  "No saved posts yet": "profile.noSavedPosts"
+};
+
+const originalDocumentText = new WeakMap<Text, string>();
+
+export function translateStaticText(text: string): string {
+  const leading = text.match(/^\s*/)?.[0] ?? "";
+  const trailing = text.match(/\s*$/)?.[0] ?? "";
+  const core = text.slice(leading.length, text.length - trailing.length || undefined);
+  const key = englishTextKeys[core];
+  if (!key) return text;
+  return `${leading}${t(key, core)}${trailing}`;
+}
+
+export function translateDocument(root: ParentNode = document.body): void {
+  if (typeof document === "undefined") return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let current: Node | null = walker.nextNode();
+  while (current) {
+    const textNode = current as Text;
+    const parent = textNode.parentElement;
+    if (parent && !parent.closest("script,style,textarea,input,[data-no-translate]")) {
+      const original = originalDocumentText.get(textNode) ?? textNode.nodeValue ?? "";
+      if (!originalDocumentText.has(textNode)) originalDocumentText.set(textNode, original);
+      const translated = translateStaticText(original);
+      if (textNode.nodeValue !== translated) textNode.nodeValue = translated;
+    }
+    current = walker.nextNode();
+  }
+}
+
 // Load language from localStorage
 export function initializeLanguage() {
   const saved = localStorage.getItem("language") as Language | null;

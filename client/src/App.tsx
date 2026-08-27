@@ -58,6 +58,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { shouldRedirectToWelcome } from "@/lib/modeOnboarding";
+import { useTranslation } from "@/hooks/useTranslation";
+import { translateDocument } from "@/lib/i18n";
 import InstallAppPrompt from "./components/InstallAppPrompt";
 import MiniPlayer, { MiniPlayerProvider } from "./components/MiniPlayer";
 import "./App.css";
@@ -139,8 +141,17 @@ function ModeSelectionGate({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { language } = useTranslation();
+  useEffect(() => {
+    const translate = () => translateDocument();
+    translate();
+    const observer = new MutationObserver(translate);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [language]);
   return (
     <ErrorBoundary>
+      <div data-language={language}>
       <ThemeProvider
         defaultTheme="dark"
         switchable
@@ -165,6 +176,7 @@ function App() {
         </TooltipProvider>
         </MiniPlayerProvider>
       </ThemeProvider>
+      </div>
     </ErrorBoundary>
   );
 }

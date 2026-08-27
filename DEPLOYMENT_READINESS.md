@@ -70,3 +70,13 @@ The **minimum production login set** is `DATABASE_URL`, `JWT_SECRET`, `FIREBASE_
 The screenshot’s `TypeError: Invalid URL` is not fixed by adding `VITE_FIREBASE_MEASUREMENT_ID`. It is commonly caused by a value such as `projects.vercel.app` being used where a complete URL is required, or by a Firebase `authDomain` value containing a malformed scheme. For `VITE_API_URL`, either leave it unset so the client uses the current Vercel origin, or set a complete URL such as `https://your-api-domain.example`; do not set only a hostname. The client now validates this value and falls back to the current deployment origin when it is malformed. The Firebase helper also validates and normalizes `VITE_FIREBASE_AUTH_DOMAIN` and returns a readable configuration error instead of allowing a malformed URL to crash the page.
 
 After changing any Vercel variable, apply it to **Production** and **Preview** as appropriate, save it, then create a new deployment or use **Redeploy** with the latest commit. A browser refresh alone does not rebuild Vite’s `VITE_*` values.
+
+## Monitoring and media-delivery handoff
+
+The server exposes the public tRPC health procedure at `/api/trpc/system.health`; configure the selected host’s health check to call the deployed equivalent and expect a successful JSON response. Monitor HTTP 5xx rates, authentication exchange failures, database connectivity, payment initiation failures, and WebSocket connection errors in the hosting provider’s runtime logs. The repository does not contain provider credentials or an external monitoring token, so alert destinations must be configured by the owner.
+
+Media bytes are designed to use the existing `server/storage.ts` S3 helpers (`storagePut` and `storageGet`) rather than the application filesystem. Before production activation, configure the selected storage/CDN provider, restrict write access to the server runtime, serve read URLs through the provider’s CDN where appropriate, configure cache-control for immutable media, and verify upload, playback, and deletion authorization. Do not place uploaded media in `client/public` or commit media files to Git.
+
+## Release handoff status
+
+Repository validation and CI are complete. Provider-owned work remains intentionally separate: enter the real environment values, register Firebase authorized domains and payment callbacks, configure health monitoring and media CDN settings, then perform the final Vercel or Render deployment from the owner’s console. No production deployment is triggered by this repository checkpoint.

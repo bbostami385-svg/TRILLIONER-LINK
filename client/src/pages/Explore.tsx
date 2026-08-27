@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Loader } from "lucide-react";
@@ -8,6 +9,7 @@ import "./Explore.css";
 
 export default function Explore() {
   const { isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"trending" | "suggested" | "categories">("trending");
@@ -37,9 +39,9 @@ export default function Explore() {
     return (
       <div className="explore-container">
         <div className="loading">
-          <p>Please log in to explore</p>
+          <p>{t("explore.loginRequired", "Please log in to explore")}</p>
           <Button onClick={() => setLocation("/signup")} className="mt-4">
-            Sign In
+            {t("common.login")}
           </Button>
         </div>
       </div>
@@ -53,7 +55,7 @@ export default function Explore() {
         <input
           type="text"
           className="search-input"
-          placeholder="Search posts, people, topics..."
+          placeholder={t("explore.searchPlaceholder", "Search posts, people, topics...")}
           value={searchQuery}
           onChange={(e) => { const value = e.target.value; setSearchQuery(value); if (value.trim().startsWith("@")) setActiveTab("suggested"); }}
         />
@@ -68,19 +70,19 @@ export default function Explore() {
           className={`tab ${activeTab === "trending" ? "active" : ""}`}
           onClick={() => setActiveTab("trending")}
         >
-          Trending
+          {t("explore.trending", "Trending")}
         </button>
         <button
           className={`tab ${activeTab === "suggested" ? "active" : ""}`}
           onClick={() => setActiveTab("suggested")}
         >
-          Suggested Users
+          {t("explore.suggestedUsers", "Suggested Users")}
         </button>
         <button
           className={`tab ${activeTab === "categories" ? "active" : ""}`}
           onClick={() => setActiveTab("categories")}
         >
-          Categories
+          {t("explore.categories", "Categories")}
         </button>
       </div>
 

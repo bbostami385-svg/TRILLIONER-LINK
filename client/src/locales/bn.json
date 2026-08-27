@@ -35,6 +35,13 @@
     "payment": "পেমেন্ট",
     "profile": "প্রোফাইল"
   },
+  "explore": {
+    "trending": "ট্রেন্ডিং",
+    "suggestedUsers": "প্রস্তাবিত ব্যবহারকারী",
+    "categories": "ক্যাটাগরি",
+    "loginRequired": "এক্সপ্লোর করতে অনুগ্রহ করে লগইন করুন",
+    "searchPlaceholder": "পোস্ট, মানুষ, বিষয় খুঁজুন..."
+  },
   "feed": {
     "createPost": "একটি পোস্ট তৈরি করুন",
     "postContent": "আপনার মনে কী আছে?",

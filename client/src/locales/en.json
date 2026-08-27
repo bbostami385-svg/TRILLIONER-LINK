@@ -35,6 +35,13 @@
     "payment": "Payment",
     "profile": "Profile"
   },
+  "explore": {
+    "trending": "Trending",
+    "suggestedUsers": "Suggested Users",
+    "categories": "Categories",
+    "loginRequired": "Please log in to explore",
+    "searchPlaceholder": "Search posts, people, topics..."
+  },
   "feed": {
     "createPost": "Create a post",
     "postContent": "What's on your mind?",

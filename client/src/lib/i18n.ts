@@ -38,6 +38,7 @@ const englishTextKeys: Record<string, string> = {
   "Marketplace": "navigation.marketplace",
   "Creator Dashboard": "navigation.creatorDashboard",
   "Payment": "navigation.payment",
+  "Trending": "explore.trending",
   "Like": "feed.like",
   "Comment": "feed.comment",
   "Share": "feed.share",

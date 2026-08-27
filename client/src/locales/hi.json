@@ -35,6 +35,13 @@
     "payment": "भुगतान",
     "profile": "प्रोफ़ाइल"
   },
+  "explore": {
+    "trending": "ट्रेंडिंग",
+    "suggestedUsers": "सुझाए गए उपयोगकर्ता",
+    "categories": "श्रेणियाँ",
+    "loginRequired": "एक्सप्लोर करने के लिए कृपया लॉग इन करें",
+    "searchPlaceholder": "पोस्ट, लोग और विषय खोजें..."
+  },
   "feed": {
     "createPost": "पोस्ट बनाएं",
     "postContent": "आपके मन में क्या है?",

@@ -120,7 +120,7 @@
 - [x] UI Components: ThemeToggle, LanguageSelector in App header
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
-- [ ] Backend Integrations (ready for production deployment; Firebase-only matrix documented in DEPLOYMENT_READINESS.md):
+- [ ] Backend Integrations (application integrations complete; production provider configuration remains documented separately):
   - [x] Register Socket.io server in app startup
   - [x] Wire Messages.tsx to useWebSocket
   - [x] Implement real DB-backed live stream handlers
@@ -1013,3 +1013,6 @@
 - [x] Complete the full-page translation rollout for English, Bengali, and Hindi through shared catalogs, global language re-rendering, and localized core routed surfaces.
 - [x] Add loading animation and clear errors to SSLCommerz payment initiation.
 - [x] Add authenticated payment history and transaction-status display to the user profile.
+
+- [x] Audit every routed page for direct i18n usage and replace common hard-coded UI copy with catalog-driven translations plus the shared global fallback layer.
+- [x] Add language-switch regression coverage for Feed, Explore, and shared labels used by Videos and Settings.

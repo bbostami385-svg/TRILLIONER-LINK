@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Bell, Lock, Globe, Palette, LogOut, ChevronRight, Zap, Trophy, MailPlus } from "lucide-react";
@@ -18,6 +19,7 @@ import "./Settings.css";
 
 export default function Settings() {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("en");
@@ -56,9 +58,9 @@ export default function Settings() {
     return (
       <div className="settings-container">
         <div className="loading">
-          <p>Please log in to access settings</p>
+          <p>{t("settings.loginRequired", "Please log in to access settings")}</p>
           <Button onClick={() => setLocation("/signup")} className="mt-4">
-            Sign In
+            {t("common.login")}
           </Button>
         </div>
       </div>
@@ -112,8 +114,8 @@ export default function Settings() {
     <div className="settings-container">
       {/* Header */}
       <div className="settings-header">
-        <h1>Settings</h1>
-        <p>Manage your account, mode, and level</p>
+        <h1>{t("common.settings")}</h1>
+        <p>{t("settings.subtitle", "Manage your account, mode, and level")}</p>
       </div>
 
       {/* Account Overview */}
@@ -121,11 +123,11 @@ export default function Settings() {
         <div className="account-info">
           <div className="account-avatar">👤</div>
           <div>
-            <h3>{user?.name || "User"}</h3>
+            <h3>{user?.name || t("common.user", "User")}</h3>
             <p>{user?.email || "user@example.com"}</p>
           </div>
         </div>
-        <Button className="edit-profile-btn">Edit Profile</Button>
+        <Button className="edit-profile-btn">{t("settings.editProfile", "Edit Profile")}</Button>
       </div>
 
       {/* Tab Navigation */}

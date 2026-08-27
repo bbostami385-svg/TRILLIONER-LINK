@@ -24,6 +24,15 @@ describe("application translations", () => {
     expect(translateStaticText("Followers")).toBe("फॉलोअर्स");
   });
 
+  it("translates shared labels used by additional major routed pages", () => {
+    setLanguage("bn");
+    expect(translateStaticText("Trending")).toBe("ট্রেন্ডিং");
+    expect(translateStaticText("Settings")).toBe("সেটিংস");
+    setLanguage("hi");
+    expect(translateStaticText("Followers")).toBe("फॉलोअर्स");
+    expect(translateStaticText("Videos")).toBe("वीडियो");
+  });
+
   it("falls back to English for an unknown key and preserves the supplied default", () => {
     setLanguage("en");
     expect(t("payment.notARealKey", "Fallback copy")).toBe("Fallback copy");

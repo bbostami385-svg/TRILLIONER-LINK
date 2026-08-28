@@ -7,9 +7,16 @@ export interface VerificationMetricCounts {
   rejected: number;
 }
 
+export interface VerificationTrendPoint {
+  day: string;
+  approved: number;
+  rejected: number;
+}
+
 export interface VerificationMetricsReport {
   liveness: VerificationMetricCounts;
   kyc: VerificationMetricCounts;
+  trends?: { liveness: VerificationTrendPoint[]; kyc: VerificationTrendPoint[] };
   range?: { from: string | null; to: string | null };
 }
 

@@ -62,6 +62,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { translateDocument } from "@/lib/i18n";
 import InstallAppPrompt from "./components/InstallAppPrompt";
 import MiniPlayer, { MiniPlayerProvider } from "./components/MiniPlayer";
+import RouteSkeleton from "./components/RouteSkeleton";
 import "./App.css";
 
 function Router() {
@@ -167,7 +168,7 @@ function App() {
           </div>
           <VerificationGate>
             <ModeSelectionGate>
-              <Suspense fallback={<div className="min-h-screen grid place-items-center p-6 text-muted-foreground">Loading TRILLIONER LINK…</div>}><Router /></Suspense>
+              <Suspense fallback={<RouteSkeleton />}><Router /></Suspense>
             </ModeSelectionGate>
           </VerificationGate>
           <InstallAppPrompt />

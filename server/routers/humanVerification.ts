@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, inArray, like, lt, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
@@ -221,9 +221,21 @@ export const humanVerificationRouter = router({
     const kycFilters = [from ? gte(kycDocuments.createdAt, from) : undefined, toExclusive ? lt(kycDocuments.createdAt, toExclusive) : undefined].filter(Boolean);
     const livenessQuery = db.select({ status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords);
     const kycQuery = db.select({ status: kycDocuments.status, total: count() }).from(kycDocuments);
-    const [livenessRows, kycRows] = await Promise.all([
+    const trendQueries = typeof sql === "function" ? (() => {
+      const livenessDay = sql<string>`DATE_FORMAT(${faceLivenessRecords.createdAt}, '%Y-%m-%d')`;
+      const kycDay = sql<string>`DATE_FORMAT(${kycDocuments.createdAt}, '%Y-%m-%d')`;
+      const livenessTrendQuery = db.select({ day: livenessDay, status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords);
+      const kycTrendQuery = db.select({ day: kycDay, status: kycDocuments.status, total: count() }).from(kycDocuments);
+      return [
+        livenessFilters.length ? livenessTrendQuery.where(and(...livenessFilters)).groupBy(livenessDay, faceLivenessRecords.status) : livenessTrendQuery.groupBy(livenessDay, faceLivenessRecords.status),
+        kycFilters.length ? kycTrendQuery.where(and(...kycFilters)).groupBy(kycDay, kycDocuments.status) : kycTrendQuery.groupBy(kycDay, kycDocuments.status),
+      ];
+    })() : [Promise.resolve([]), Promise.resolve([])];
+    const [livenessRows, kycRows, livenessTrendRows, kycTrendRows] = await Promise.all([
       livenessFilters.length ? livenessQuery.where(and(...livenessFilters)).groupBy(faceLivenessRecords.status) : livenessQuery.groupBy(faceLivenessRecords.status),
       kycFilters.length ? kycQuery.where(and(...kycFilters)).groupBy(kycDocuments.status) : kycQuery.groupBy(kycDocuments.status),
+      trendQueries[0],
+      trendQueries[1],
     ]);
     const summarize = (rows: Array<{ status: string; total: number }>) => ({
       total: rows.reduce((sum, row) => sum + Number(row.total), 0),
@@ -231,7 +243,17 @@ export const humanVerificationRouter = router({
       approved: Number(rows.find((row) => row.status === "approved")?.total ?? 0),
       rejected: Number(rows.find((row) => row.status === "rejected")?.total ?? 0),
     });
-    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), generatedAt: new Date(), range: { from: input.from ?? null, to: input.to ?? null } };
+    const buildTrend = (rows: Array<{ day: string; status: string; total: number }>) => {
+      const byDay = new Map<string, { approved: number; rejected: number }>();
+      for (const row of rows) {
+        const point = byDay.get(row.day) ?? { approved: 0, rejected: 0 };
+        if (row.status === "approved") point.approved = Number(row.total);
+        if (row.status === "rejected") point.rejected = Number(row.total);
+        byDay.set(row.day, point);
+      }
+      return Array.from(byDay.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([day, values]) => ({ day, ...values }));
+    };
+    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), trends: { liveness: buildTrend(livenessTrendRows), kyc: buildTrend(kycTrendRows) }, generatedAt: new Date(), range: { from: input.from ?? null, to: input.to ?? null } };
   }),
 
   getPendingLiveness: adminProcedure

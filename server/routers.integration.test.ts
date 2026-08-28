@@ -135,6 +135,16 @@ describe("verification metrics integration contract", () => {
           from: vi.fn(() => ({
             groupBy: vi.fn().mockResolvedValue([{ status: "pending", total: 4 }, { status: "approved", total: 6 }]),
           })),
+        }))
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            groupBy: vi.fn().mockResolvedValue([{ day: "2026-08-01", status: "approved", total: 2 }, { day: "2026-08-02", status: "rejected", total: 1 }]),
+          })),
+        }))
+        .mockImplementationOnce(() => ({
+          from: vi.fn(() => ({
+            groupBy: vi.fn().mockResolvedValue([{ day: "2026-08-01", status: "approved", total: 3 }]),
+          })),
         })),
     };
     vi.mocked(db.getRequiredDb).mockResolvedValue(databaseStub as never);
@@ -143,6 +153,10 @@ describe("verification metrics integration contract", () => {
     await expect(caller.humanVerification.getVerificationMetrics()).resolves.toMatchObject({
       liveness: { total: 10, pending: 3, approved: 5, rejected: 2 },
       kyc: { total: 10, pending: 4, approved: 6, rejected: 0 },
+      trends: {
+        liveness: [{ day: "2026-08-01", approved: 2, rejected: 0 }, { day: "2026-08-02", approved: 0, rejected: 1 }],
+        kyc: [{ day: "2026-08-01", approved: 3, rejected: 0 }],
+      },
     });
   });
 });

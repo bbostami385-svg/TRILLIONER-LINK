@@ -1029,3 +1029,15 @@
 - [x] Add multilingual child-safety UI, warnings, report reasons, and settings labels in English, Bengali, and Hindi.
 - [x] Add unit and integration regression coverage for age classification, teen policy, moderation risk categories, reports, and enforcement; existing browser coverage continues to validate protected auth/verification gating.
 - [x] Document the Child Safety System, legal-review boundary, data minimization, escalation, and operational response procedures.
+
+## Latest UX, Verification, and Safety Operations Request
+- [ ] Add reusable skeleton loading screens for lazy-loaded route transitions.
+- [ ] Add approval and rejection trend charts to the admin verification dashboard for the selected date range.
+- [ ] Add a profile KYC stage indicator with clear rejection reasons and resubmission guidance.
+- [ ] Prepare provider-console configuration handoff for production secrets, Firebase domains, SSLCommerz callbacks, and monitoring alerts.
+- [ ] Prepare child-safety copy review, moderator training, escalation, retention, and operations runbook documentation; formal approval remains owner/legal-team controlled.
+
+## Focused UX Verification Pass
+- [x] Re-verify and strengthen lazy-loaded route transition skeleton screens.
+- [x] Re-verify and strengthen selected-date-range approval/rejection trend charts in the admin verification dashboard.
+- [x] Re-verify and strengthen the profile KYC stage and rejection-reason visual indicator.

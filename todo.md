@@ -1031,11 +1031,11 @@
 - [x] Document the Child Safety System, legal-review boundary, data minimization, escalation, and operational response procedures.
 
 ## Latest UX, Verification, and Safety Operations Request
-- [ ] Add reusable skeleton loading screens for lazy-loaded route transitions.
-- [ ] Add approval and rejection trend charts to the admin verification dashboard for the selected date range.
-- [ ] Add a profile KYC stage indicator with clear rejection reasons and resubmission guidance.
-- [ ] Prepare provider-console configuration handoff for production secrets, Firebase domains, SSLCommerz callbacks, and monitoring alerts.
-- [ ] Prepare child-safety copy review, moderator training, escalation, retention, and operations runbook documentation; formal approval remains owner/legal-team controlled.
+- [x] Add reusable skeleton loading screens for lazy-loaded route transitions.
+- [x] Add approval and rejection trend charts to the admin verification dashboard for the selected date range.
+- [x] Add a profile KYC stage indicator with clear rejection reasons and resubmission guidance.
+- [x] Prepare provider-console configuration handoff for production secrets, Firebase domains, SSLCommerz callbacks, and monitoring alerts.
+- [x] Prepare child-safety copy review, moderator training, escalation, retention, and operations runbook documentation; formal approval remains owner/legal-team controlled.
 
 ## Focused UX Verification Pass
 - [x] Re-verify and strengthen lazy-loaded route transition skeleton screens.

@@ -80,3 +80,17 @@ Media bytes are designed to use the existing `server/storage.ts` S3 helpers (`st
 ## Release handoff status
 
 Repository validation and CI are complete. Provider-owned work remains intentionally separate: enter the real environment values, register Firebase authorized domains and payment callbacks, configure health monitoring and media CDN settings, then perform the final Vercel or Render deployment from the owner’s console. No production deployment is triggered by this repository checkpoint.
+
+## Provider-console configuration handoff
+
+The following steps are intentionally owner-controlled because they require access to production consoles and real credentials. Do not commit any of these values to GitHub.
+
+| Console | Configure | Verification before release |
+|---|---|---|
+| Vercel or Render | `DATABASE_URL`, `JWT_SECRET`, `FIREBASE_SERVICE_ACCOUNT_BASE64`, and the four required `VITE_FIREBASE_*` browser variables. Add Forge, storage, streaming, or payment variables only when the corresponding feature is enabled. | Confirm Production and Preview scopes are correct, then redeploy from the latest `main` commit. |
+| Firebase Authentication | Enable Google provider. Add the exact Vercel/Render hostname and any staging hostname under Authorized domains. | Test Google sign-in, sign-out, refresh persistence, and backend Firebase ID-token exchange on the deployed origin. |
+| SSLCommerz | Add production store credentials on the server only. Register success, failure, cancel, and IPN/webhook callback URLs for the deployed origin; use HTTPS and the project’s payment routes. | Complete a sandbox transaction, verify the server-side transaction result, confirm duplicate callbacks are idempotent, and inspect the profile transaction history. |
+| Runtime monitoring | Configure the `/api/trpc/system.health` check, alert on sustained HTTP 5xx, Firebase exchange errors, database failures, payment initiation failures, elevated moderation queue age, and WebSocket disconnects. | Trigger a staging health check and confirm the alert destination receives a test notification. |
+| Media/CDN | Configure the production S3-compatible storage and CDN according to the existing server helpers. Keep writes server-side and set immutable cache headers for versioned media. | Test authorized upload, playback, deletion, unauthorized access, and a large video path before launch. |
+
+The final release sequence is: configure secrets; register Firebase domains and payment callbacks; apply database migrations; run `pnpm check`, `pnpm test -- --run`, and `pnpm build`; deploy from the selected GitHub commit; run the smoke tests; and only then enable public traffic. The owner should record the actual callback URLs and alert destination in the provider console, not in this repository.

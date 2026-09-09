@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/hooks/useTranslation";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -12,7 +11,6 @@ import "./Feed.css";
 
 export default function Feed() {
   const { user, isAuthenticated } = useAuth();
-  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [newPost, setNewPost] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -36,33 +34,14 @@ export default function Feed() {
   });
 
   // Like post mutation
-  const feedInput = { limit: 20, offset: 0 };
   const likePostMutation = trpc.feed.likePost.useMutation({
-    onMutate: async ({ postId }) => {
-      await utils.feed.getFeed.cancel(feedInput);
-      const previous = utils.feed.getFeed.getData(feedInput);
-      utils.feed.getFeed.setData(feedInput, (current) => current ? { ...current, posts: current.posts.map((post) => post.id === postId ? { ...post, likes: post.likes + 1 } : post) } : current);
-      return { previous };
+    onSuccess: () => {
+      utils.feed.getFeed.invalidate();
     },
-    onError: (_error, _input, context) => {
-      if (context?.previous) utils.feed.getFeed.setData(feedInput, context.previous);
-    },
-    onSettled: () => { utils.feed.getFeed.invalidate(feedInput); },
   });
 
   // Unlike post mutation
-  const unlikePostMutation = trpc.feed.unlikePost.useMutation({
-    onMutate: async ({ postId }) => {
-      await utils.feed.getFeed.cancel(feedInput);
-      const previous = utils.feed.getFeed.getData(feedInput);
-      utils.feed.getFeed.setData(feedInput, (current) => current ? { ...current, posts: current.posts.map((post) => post.id === postId ? { ...post, likes: Math.max(0, post.likes - 1) } : post) } : current);
-      return { previous };
-    },
-    onError: (_error, _input, context) => {
-      if (context?.previous) utils.feed.getFeed.setData(feedInput, context.previous);
-    },
-    onSettled: () => { utils.feed.getFeed.invalidate(feedInput); },
-  });
+  const unlikePostMutation = trpc.feed.unlikePost.useMutation({ onSuccess: () => { utils.feed.getFeed.invalidate(); } });
   const savePostMutation = trpc.collections.saveItem.useMutation();
   const removeSavedItemMutation = trpc.collections.removeItem.useMutation();
 
@@ -72,9 +51,9 @@ export default function Feed() {
     return (
       <div className="feed-container">
         <div className="loading">
-          <p>{t("feed.loginRequired", "Please log in to view your feed")}</p>
+          <p>Please log in to view your feed</p>
           <Button onClick={() => setLocation("/signup")} className="mt-4">
-            {t("common.login")}
+            Sign In
           </Button>
         </div>
       </div>

@@ -6,25 +6,9 @@ interface UseWebSocketOptions {
   autoConnect?: boolean;
 }
 
-export function resolveSocketUrl(candidate: string | undefined, fallback: string): string {
-  if (!candidate) return fallback;
-  try {
-    const parsed = new URL(candidate, fallback);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return fallback;
-    return parsed.toString().replace(/\/$/, "");
-  } catch {
-    console.warn("Invalid VITE_API_URL; using the current deployment origin.");
-    return fallback;
-  }
-}
-
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const defaultUrl = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
-  const configuredUrl = import.meta.env.VITE_API_URL as string | undefined;
-  const url = resolveSocketUrl(options.url ?? configuredUrl, defaultUrl);
-  const { autoConnect = true } = options;
+  const { url = process.env.VITE_API_URL || "http://localhost:3000", autoConnect = true } = options;
   const socketRef = useRef<Socket | null>(null);
-  const eventListeners = useRef(new Map<string, Set<(data: any) => void>>());
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
@@ -39,12 +23,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: maxReconnectAttempts,
-        withCredentials: true,
         transports: ["websocket", "polling"],
-      });
-
-      eventListeners.current.forEach((callbacks, event) => {
-        callbacks.forEach((callback) => socketRef.current?.on(event, callback));
       });
 
       socketRef.current.on("connect", () => {
@@ -84,16 +63,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, []);
 
   const on = useCallback((event: string, callback: (data: any) => void) => {
-    const callbacks = eventListeners.current.get(event) ?? new Set<(data: any) => void>();
-    callbacks.add(callback);
-    eventListeners.current.set(event, callbacks);
-    socketRef.current?.on(event, callback);
+    if (socketRef.current) {
+      socketRef.current.on(event, callback);
+    }
   }, []);
 
   const off = useCallback((event: string, callback?: (data: any) => void) => {
-    if (callback) eventListeners.current.get(event)?.delete(callback);
-    else eventListeners.current.delete(event);
-    socketRef.current?.off(event, callback);
+    if (socketRef.current) {
+      socketRef.current.off(event, callback);
+    }
   }, []);
 
   const joinConversation = useCallback((conversationId: number) => {

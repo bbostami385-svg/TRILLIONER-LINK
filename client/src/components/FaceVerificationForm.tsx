@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Camera, Upload, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, Camera, Upload, CheckCircle2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 interface FaceVerificationFormProps {
@@ -14,12 +13,8 @@ interface FaceVerificationFormProps {
 export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFormProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cameraLoading, setCameraLoading] = useState(false);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Choose camera or upload a clear face photo to begin.");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -27,24 +22,18 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
 
   // Start camera
   const startCamera = async () => {
-    setCameraLoading(true);
-    setError(null);
-    setStatusMessage("Requesting camera permission…");
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera is not supported in this browser.");
+      setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
-      setCameraStream(stream);
-      setCameraActive(true);
-      setStatusMessage("Camera ready. Center your face, then capture a photo.");
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
+      }
     } catch (err: any) {
-      const reason = err?.name === "NotAllowedError" || /permission/i.test(err?.message ?? "") ? "Camera permission was denied. Allow camera access in your browser settings, or upload a photo instead." : err?.name === "NotFoundError" ? "No camera was found. Upload a clear face photo instead." : err?.message === "Camera is not supported in this browser." ? err.message : "We could not start the camera. Check your connection and browser permissions, then try again.";
-      setError(reason);
-      setStatusMessage("Camera unavailable. You can upload a photo instead.");
-      onError?.(reason);
-    } finally {
-      setCameraLoading(false);
+      setError("Unable to access camera. Please check permissions.");
+      onError?.(err.message);
     }
   };
 
@@ -58,7 +47,6 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
         context.drawImage(videoRef.current, 0, 0);
         const imageData = canvasRef.current.toDataURL("image/jpeg");
         setCapturedImage(imageData);
-        setStatusMessage("Photo captured. Review it before submitting.");
         stopCamera();
       }
     }
@@ -66,56 +54,34 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
 
   // Stop camera
   const stopCamera = () => {
-    const stream = cameraStream ?? (videoRef.current?.srcObject as MediaStream | null);
-    stream?.getTracks().forEach((track) => track.stop());
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraStream(null);
-    setCameraActive(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      setCameraActive(false);
+    }
   };
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("Please choose a JPG, PNG, or WebP image file.");
-      setStatusMessage("The selected file is not an image.");
-      return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCapturedImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setError("This image is too large. Please choose a file smaller than 8 MB.");
-      setStatusMessage("Choose a smaller image and try again.");
-      return;
-    }
-    setUploadLoading(true);
-    setStatusMessage("Preparing your photo securely…");
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCapturedImage(event.target?.result as string);
-      setStatusMessage("Photo ready. Review it before submitting.");
-      setUploadLoading(false);
-    };
-    reader.onerror = () => {
-      setError("We could not read that image. Please choose another photo.");
-      setStatusMessage("Photo could not be prepared.");
-      setUploadLoading(false);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
   };
 
   // Submit face verification
   const handleSubmit = async () => {
     if (!capturedImage) {
-      setError("Please capture or upload a photo before submitting.");
-      setStatusMessage("A face photo is required before submission.");
+      setError("Please capture or upload a photo");
       return;
     }
 
     setLoading(true);
     setError(null);
-    setStatusMessage("Submitting your photo for secure human review…");
 
     try {
       // In production, upload to S3 first and get URL
@@ -125,26 +91,22 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
         verificationProvider: "aws_rekognition",
       });
 
-      setStatusMessage("Photo submitted. Your verification is now under review.");
       onSuccess?.();
     } catch (err: any) {
-      const errorMessage = err?.message || "Face verification failed. Please try again.";
+      const errorMessage = err?.message || "Face verification failed";
       setError(errorMessage);
-      setStatusMessage("Submission failed. Review the message above and try again.");
       onError?.(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (cameraActive && cameraStream && videoRef.current) videoRef.current.srcObject = cameraStream;
-  }, [cameraActive, cameraStream]);
-
   // Cleanup camera on unmount
-  useEffect(() => () => {
-    cameraStream?.getTracks().forEach((track) => track.stop());
-  }, [cameraStream]);
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -159,11 +121,6 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <p className="flex items-center gap-2 text-xs text-slate-500" aria-live="polite">
-            {(cameraLoading || uploadLoading || loading) && <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" aria-label="Working" />}
-            {statusMessage}
-          </p>
-
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -199,9 +156,9 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
                       Take a clear photo of your face
                     </p>
                   </div>
-                  <Button onClick={startCamera} disabled={cameraLoading || uploadLoading} className="w-full">
-                    {cameraLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" /> : <Camera className="h-4 w-4 mr-2" />}
-                    {cameraLoading ? "Opening camera…" : "Start Camera"}
+                  <Button onClick={startCamera} className="w-full">
+                    <Camera className="h-4 w-4 mr-2" />
+                    Start Camera
                   </Button>
 
                   <div className="relative">
@@ -214,10 +171,10 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
                   </div>
 
                   <label className="block">
-                    <Button variant="outline" disabled={cameraLoading || uploadLoading} className="w-full" asChild>
+                    <Button variant="outline" className="w-full" asChild>
                       <span>
-                        {uploadLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" /> : <Upload className="h-4 w-4 mr-2" />}
-                        {uploadLoading ? "Preparing photo…" : "Upload Photo"}
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Photo
                       </span>
                     </Button>
                     <input
@@ -244,11 +201,11 @@ export function FaceVerificationForm({ onSuccess, onError }: FaceVerificationFor
                 className="w-full rounded-lg"
               />
               <div className="flex gap-2">
-                <Button onClick={handleSubmit} disabled={loading || uploadLoading} className="flex-1">
-                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Submitting…</> : "Submit"}
+                <Button onClick={handleSubmit} disabled={loading} className="flex-1">
+                  {loading ? "Submitting..." : "Submit"}
                 </Button>
                 <Button
-                  onClick={() => { setCapturedImage(null); setError(null); setStatusMessage("Choose camera or upload a clear face photo to begin."); }}
+                  onClick={() => setCapturedImage(null)}
                   variant="outline"
                   className="flex-1"
                 >

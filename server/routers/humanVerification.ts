@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { assessLivenessRisk } from "../livenessSignals";
-import { faceLivenessRecords, kycDocuments, livenessChallenge, notifications, users, verificationAuditLogs } from "../../drizzle/schema";
+import { faceLivenessRecords, livenessChallenge, users, verificationAuditLogs } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -205,57 +205,6 @@ export const humanVerificationRouter = router({
     };
   }),
 
-  getVerificationMetrics: adminProcedure
-    .input(z.object({
-      from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    }).superRefine((input, ctx) => {
-      if (input.from && input.to && input.from > input.to) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["to"], message: "The end date must be on or after the start date." });
-    }).default({}))
-    .query(async ({ input }) => {
-    const db = await getRequiredDb();
-    const from = input.from ? new Date(`${input.from}T00:00:00.000Z`) : undefined;
-    const toExclusive = input.to ? new Date(`${input.to}T00:00:00.000Z`) : undefined;
-    if (toExclusive) toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
-    const livenessFilters = [from ? gte(faceLivenessRecords.createdAt, from) : undefined, toExclusive ? lt(faceLivenessRecords.createdAt, toExclusive) : undefined].filter(Boolean);
-    const kycFilters = [from ? gte(kycDocuments.createdAt, from) : undefined, toExclusive ? lt(kycDocuments.createdAt, toExclusive) : undefined].filter(Boolean);
-    const livenessQuery = db.select({ status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords);
-    const kycQuery = db.select({ status: kycDocuments.status, total: count() }).from(kycDocuments);
-    const trendQueries = typeof sql === "function" ? (() => {
-      const livenessDay = sql<string>`DATE_FORMAT(${faceLivenessRecords.createdAt}, '%Y-%m-%d')`;
-      const kycDay = sql<string>`DATE_FORMAT(${kycDocuments.createdAt}, '%Y-%m-%d')`;
-      const livenessTrendQuery = db.select({ day: livenessDay, status: faceLivenessRecords.status, total: count() }).from(faceLivenessRecords);
-      const kycTrendQuery = db.select({ day: kycDay, status: kycDocuments.status, total: count() }).from(kycDocuments);
-      return [
-        livenessFilters.length ? livenessTrendQuery.where(and(...livenessFilters)).groupBy(livenessDay, faceLivenessRecords.status) : livenessTrendQuery.groupBy(livenessDay, faceLivenessRecords.status),
-        kycFilters.length ? kycTrendQuery.where(and(...kycFilters)).groupBy(kycDay, kycDocuments.status) : kycTrendQuery.groupBy(kycDay, kycDocuments.status),
-      ];
-    })() : [Promise.resolve([]), Promise.resolve([])];
-    const [livenessRows, kycRows, livenessTrendRows, kycTrendRows] = await Promise.all([
-      livenessFilters.length ? livenessQuery.where(and(...livenessFilters)).groupBy(faceLivenessRecords.status) : livenessQuery.groupBy(faceLivenessRecords.status),
-      kycFilters.length ? kycQuery.where(and(...kycFilters)).groupBy(kycDocuments.status) : kycQuery.groupBy(kycDocuments.status),
-      trendQueries[0],
-      trendQueries[1],
-    ]);
-    const summarize = (rows: Array<{ status: string; total: number }>) => ({
-      total: rows.reduce((sum, row) => sum + Number(row.total), 0),
-      pending: Number(rows.find((row) => row.status === "pending")?.total ?? 0),
-      approved: Number(rows.find((row) => row.status === "approved")?.total ?? 0),
-      rejected: Number(rows.find((row) => row.status === "rejected")?.total ?? 0),
-    });
-    const buildTrend = (rows: Array<{ day: string; status: string; total: number }>) => {
-      const byDay = new Map<string, { approved: number; rejected: number }>();
-      for (const row of rows) {
-        const point = byDay.get(row.day) ?? { approved: 0, rejected: 0 };
-        if (row.status === "approved") point.approved = Number(row.total);
-        if (row.status === "rejected") point.rejected = Number(row.total);
-        byDay.set(row.day, point);
-      }
-      return Array.from(byDay.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([day, values]) => ({ day, ...values }));
-    };
-    return { liveness: summarize(livenessRows), kyc: summarize(kycRows), trends: { liveness: buildTrend(livenessTrendRows), kyc: buildTrend(kycTrendRows) }, generatedAt: new Date(), range: { from: input.from ?? null, to: input.to ?? null } };
-  }),
-
   getPendingLiveness: adminProcedure
     .input(z.object({
       limit: z.number().int().min(1).max(100).default(25),
@@ -318,7 +267,6 @@ export const humanVerificationRouter = router({
           : { livenessVerified: false }).where(eq(users.id, record.userId))));
         await Promise.all(pending.map((record) => tx.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: input.action === "approve" ? "review_approved" : "review_rejected", details: input.reason ? { reason: input.reason.trim() } : null })));
       });
-      await Promise.all(pending.map((record) => db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: input.action === "approve" ? "Human verification approved. Your account is now protected." : `Human verification needs another attempt: ${input.reason!.trim()}`, isRead: false })));
       return { success: true, updated: pending.length, skipped: records.length - pending.length, reviewedBy: ctx.user.id };
     }),
 
@@ -334,7 +282,6 @@ export const humanVerificationRouter = router({
       await db.update(users).set({ livenessVerified: true, livenessVerificationAt: new Date(), livenessAttempts: 0 })
         .where(eq(users.id, record.userId));
       await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_approved", details: null });
-      await db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: "Human verification approved. Your account is now protected.", isRead: false });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification approved." };
     }),
 
@@ -350,7 +297,6 @@ export const humanVerificationRouter = router({
       await db.update(users).set({ livenessVerified: false })
         .where(eq(users.id, record.userId));
       await db.insert(verificationAuditLogs).values({ userId: record.userId, livenessRecordId: record.id, actorUserId: ctx.user.id, event: "review_rejected", details: { reason: input.reason } });
-      await db.insert(notifications).values({ userId: record.userId, fromUserId: ctx.user.id, type: "verification_reminder", message: `Human verification needs another attempt: ${input.reason}`, isRead: false });
       return { success: true, reviewedBy: ctx.user.id, message: "Human verification rejected." };
     }),
 });

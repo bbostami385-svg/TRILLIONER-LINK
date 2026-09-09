@@ -1,14 +1,12 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, BarChart3, CheckCircle2, Clock, Download, ExternalLink, Eye, FileText, Filter, ShieldCheck, X, XCircle } from "lucide-react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AlertCircle, CheckCircle2, Clock, ExternalLink, Eye, Filter, ShieldCheck, X, XCircle } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { trpc } from "@/lib/trpc";
-import { downloadVerificationMetricsCsv, downloadVerificationMetricsPdf, downloadVerificationTrendCsv, type VerificationMetricsReport } from "@/lib/verificationReport";
 
 type ReviewStatus = "all" | "pending" | "approved" | "rejected";
 type ReviewSort = "newest" | "oldest";
@@ -28,36 +26,6 @@ function SelectBox({ label, value, onChange, children }: { label: string; value:
   return <label className="space-y-1 text-sm font-medium">{label}<select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 font-normal outline-none focus:ring-2 focus:ring-indigo-500">{children}</select></label>;
 }
 
-function TrendChart({ title, points }: { title: string; points: Array<{ day: string; approved: number; rejected: number }> }) {
-  return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>Daily decisions in the selected UTC date range.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {points.length === 0 ? (
-          <div className="grid h-56 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">No approval or rejection activity in this range.</div>
-        ) : (
-          <div className="h-56 w-full" aria-label={`${title} approval and rejection trend chart`}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={points} margin={{ top: 8, right: 12, left: -16, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="day" tickFormatter={(day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric" })} tick={{ fontSize: 11 }} minTickGap={22} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={34} />
-                <Tooltip labelFormatter={(day) => new Date(`${String(day)}T00:00:00Z`).toLocaleDateString()} />
-                <Legend />
-                <Line type="monotone" dataKey="approved" name="Approved" stroke="#059669" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="rejected" name="Rejected" stroke="#e11d48" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function AdminVerification() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -69,9 +37,7 @@ export default function AdminVerification() {
   const [draftSearch, setDraftSearch] = useState("");
   const [draftChallenge, setDraftChallenge] = useState("");
   const [draftDocumentType, setDraftDocumentType] = useState("");
-  const [draftMetricsFrom, setDraftMetricsFrom] = useState("");
-  const [draftMetricsTo, setDraftMetricsTo] = useState("");
-  const [filters, setFilters] = useState({ status: "pending" as ReviewStatus, sort: "newest" as ReviewSort, search: "", challengeType: "", documentType: "", metricsFrom: "", metricsTo: "" });
+  const [filters, setFilters] = useState({ status: "pending" as ReviewStatus, sort: "newest" as ReviewSort, search: "", challengeType: "", documentType: "" });
   const [selectedLiveness, setSelectedLiveness] = useState<Set<number>>(new Set());
   const [selectedKyc, setSelectedKyc] = useState<Set<number>>(new Set());
   const [preview, setPreview] = useState<{ url: string; label: string } | null>(null);
@@ -82,8 +48,6 @@ export default function AdminVerification() {
   const livenessInput = useMemo(() => ({ limit: 25, offset: 0, status: filters.status, sort: filters.sort, search: filters.search || undefined, challengeType: filters.challengeType ? filters.challengeType as "nod" | "turn_left" | "turn_right" | "blink" : undefined }), [filters]);
   const kycInput = useMemo(() => ({ limit: 25, offset: 0, status: filters.status, sort: filters.sort, search: filters.search || undefined, documentType: filters.documentType ? filters.documentType as "passport" | "driver_license" | "national_id" | "other" : undefined }), [filters]);
   const adminEnabled = Boolean(user?.role === "admin");
-  const metricsInput = useMemo(() => ({ from: filters.metricsFrom || undefined, to: filters.metricsTo || undefined }), [filters.metricsFrom, filters.metricsTo]);
-  const metricsQuery = trpc.humanVerification.getVerificationMetrics.useQuery(metricsInput, { enabled: adminEnabled, retry: false, refetchInterval: 30_000 });
   const livenessQuery = trpc.humanVerification.getPendingLiveness.useQuery(livenessInput, { enabled: adminEnabled, retry: false });
   const kycQuery = trpc.kyc.getPendingKYCSubmissions.useQuery(kycInput, { enabled: adminEnabled, retry: false });
   const approveLiveness = trpc.humanVerification.approveLiveness.useMutation();
@@ -96,11 +60,11 @@ export default function AdminVerification() {
   const applyFilters = () => {
     setSelectedLiveness(new Set());
     setSelectedKyc(new Set());
-    setFilters({ status: draftStatus, sort: draftSort, search: draftSearch.trim(), challengeType: draftChallenge, documentType: draftDocumentType, metricsFrom: draftMetricsFrom, metricsTo: draftMetricsTo });
+    setFilters({ status: draftStatus, sort: draftSort, search: draftSearch.trim(), challengeType: draftChallenge, documentType: draftDocumentType });
   };
   const clearFilters = () => {
-    setDraftStatus("pending"); setDraftSort("newest"); setDraftSearch(""); setDraftChallenge(""); setDraftDocumentType(""); setDraftMetricsFrom(""); setDraftMetricsTo(""); setSelectedLiveness(new Set()); setSelectedKyc(new Set());
-    setFilters({ status: "pending", sort: "newest", search: "", challengeType: "", documentType: "", metricsFrom: "", metricsTo: "" });
+    setDraftStatus("pending"); setDraftSort("newest"); setDraftSearch(""); setDraftChallenge(""); setDraftDocumentType(""); setSelectedLiveness(new Set()); setSelectedKyc(new Set());
+    setFilters({ status: "pending", sort: "newest", search: "", challengeType: "", documentType: "" });
   };
   const refresh = async () => { await Promise.all([livenessQuery.refetch(), kycQuery.refetch()]); };
   const closeRejection = () => { setRejectionTarget(null); setRejectionReason(""); setRejectionError(null); };
@@ -149,12 +113,6 @@ export default function AdminVerification() {
   const kycPendingIds = (kycQuery.data?.documents ?? []).filter((document) => document.status === "pending").map((document) => document.id);
   const allLivenessSelected = livenessPendingIds.length > 0 && livenessPendingIds.every((id) => selectedLiveness.has(id));
   const allKycSelected = kycPendingIds.length > 0 && kycPendingIds.every((id) => selectedKyc.has(id));
-  const metrics = metricsQuery.data as VerificationMetricsReport | undefined;
-  const exportMetrics = (format: "csv" | "pdf") => {
-    if (!metrics) return;
-    if (format === "csv") downloadVerificationMetricsCsv(metrics);
-    else downloadVerificationMetricsPdf(metrics);
-  };
 
   if (authLoading) return <div className="min-h-screen grid place-items-center p-6">Loading verification console…</div>;
   if (!user) return <div className="min-h-screen grid place-items-center p-6"><ErrorState message="Please sign in to access the verification console." /></div>;
@@ -167,12 +125,7 @@ export default function AdminVerification() {
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="mb-2 flex items-center gap-2 text-sm font-medium text-indigo-600"><ShieldCheck className="h-4 w-4" /> Trust & Safety</div><h1 className="text-3xl font-bold tracking-tight">Verification Review</h1><p className="mt-2 max-w-2xl text-slate-600">Review liveness and identity evidence separately. Select pending records for a faster bulk decision.</p></div><Button variant="outline" onClick={() => setLocation("/")}>Exit console</Button></header>
         <div className="grid gap-4 sm:grid-cols-2"><Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-slate-500">Matching human checks</p><p className="mt-1 text-3xl font-bold">{livenessQuery.data?.total ?? "—"}</p></div><Clock className="h-8 w-8 text-indigo-500" /></CardContent></Card><Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-slate-500">Matching KYC reviews</p><p className="mt-1 text-3xl font-bold">{kycQuery.data?.total ?? "—"}</p></div><ShieldCheck className="h-8 w-8 text-amber-500" /></CardContent></Card></div>
-        <Card><CardHeader className="pb-3"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="h-5 w-5 text-indigo-600" /> Verification metrics</CardTitle><CardDescription>Persisted review records for the selected date range. Refreshes every 30 seconds.</CardDescription></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={!metrics || metricsQuery.isFetching} onClick={() => exportMetrics("csv")}><Download className="mr-2 h-4 w-4" />CSV</Button><Button variant="outline" size="sm" disabled={!metrics || metricsQuery.isFetching} onClick={() => exportMetrics("pdf")}><FileText className="mr-2 h-4 w-4" />PDF</Button><Button variant="outline" size="sm" disabled={!metrics || metricsQuery.isFetching || !(metrics?.trends?.liveness.length || metrics?.trends?.kyc.length)} onClick={() => metrics && downloadVerificationTrendCsv(metrics)}><Download className="mr-2 h-4 w-4" />Trend CSV</Button></div></div></CardHeader><CardContent>{metricsQuery.error ? <ErrorState message={metricsQuery.error.message} /> : metricsQuery.isLoading ? <div className="grid gap-3 sm:grid-cols-2"><div className="h-24 animate-pulse rounded-xl bg-slate-100" /><div className="h-24 animate-pulse rounded-xl bg-slate-100" /></div> : <div className="grid gap-4 sm:grid-cols-2"><div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4"><div className="flex items-center justify-between"><p className="font-semibold text-indigo-950">Human liveness</p><span className="text-2xl font-bold text-indigo-700">{metricsQuery.data?.liveness.total ?? 0}</span></div><div className="mt-4 grid grid-cols-3 gap-2 text-xs"><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Pending</p><p className="mt-1 text-lg font-bold text-amber-700">{metricsQuery.data?.liveness.pending ?? 0}</p></div><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Approved</p><p className="mt-1 text-lg font-bold text-emerald-700">{metricsQuery.data?.liveness.approved ?? 0}</p></div><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Rejected</p><p className="mt-1 text-lg font-bold text-rose-700">{metricsQuery.data?.liveness.rejected ?? 0}</p></div></div></div><div className="rounded-xl border border-amber-100 bg-amber-50 p-4"><div className="flex items-center justify-between"><p className="font-semibold text-amber-950">Identity / KYC</p><span className="text-2xl font-bold text-amber-700">{metricsQuery.data?.kyc.total ?? 0}</span></div><div className="mt-4 grid grid-cols-3 gap-2 text-xs"><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Pending</p><p className="mt-1 text-lg font-bold text-amber-700">{metricsQuery.data?.kyc.pending ?? 0}</p></div><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Approved</p><p className="mt-1 text-lg font-bold text-emerald-700">{metricsQuery.data?.kyc.approved ?? 0}</p></div><div className="rounded-lg bg-white/70 p-2"><p className="text-slate-500">Rejected</p><p className="mt-1 text-lg font-bold text-rose-700">{metricsQuery.data?.kyc.rejected ?? 0}</p></div></div></div></div>}</CardContent></Card>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TrendChart title="Human liveness decisions" points={metrics?.trends?.liveness ?? []} />
-          <TrendChart title="Identity / KYC decisions" points={metrics?.trends?.kyc ?? []} />
-        </div>
-        <Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><Filter className="h-5 w-5 text-indigo-600" /> Filter and sort reviews</CardTitle><CardDescription>Search by user name or email. Use the status filter to review pending, approved, rejected, or all records.</CardDescription></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5"><SelectBox label="Status" value={draftStatus} onChange={(value) => setDraftStatus(value as ReviewStatus)}><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All statuses</option></SelectBox><label className="space-y-1 text-sm font-medium">Search user<input value={draftSearch} onChange={(event) => setDraftSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && applyFilters()} placeholder="Name or email" className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 font-normal outline-none focus:ring-2 focus:ring-indigo-500" /></label><SelectBox label="Date order" value={draftSort} onChange={(value) => setDraftSort(value as ReviewSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></SelectBox>{activeTab === "liveness" ? <SelectBox label="Challenge" value={draftChallenge} onChange={setDraftChallenge}><option value="">All challenges</option><option value="nod">Nod</option><option value="turn_left">Turn left</option><option value="turn_right">Turn right</option><option value="blink">Blink</option></SelectBox> : <SelectBox label="Document type" value={draftDocumentType} onChange={setDraftDocumentType}><option value="">All document types</option><option value="passport">Passport</option><option value="driver_license">Driver license</option><option value="national_id">National ID</option><option value="other">Other</option></SelectBox>}<label className="space-y-1 text-sm font-medium">Metrics from<input type="date" value={draftMetricsFrom} onChange={(event) => setDraftMetricsFrom(event.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 font-normal outline-none focus:ring-2 focus:ring-indigo-500" /></label><label className="space-y-1 text-sm font-medium">Metrics to<input type="date" value={draftMetricsTo} onChange={(event) => setDraftMetricsTo(event.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 font-normal outline-none focus:ring-2 focus:ring-indigo-500" /></label><div className="flex items-end gap-2"><Button onClick={applyFilters} className="flex-1">Apply</Button><Button onClick={clearFilters} variant="outline">Reset</Button></div></div><p className="mt-3 text-xs text-slate-500">Active: <span className="font-medium capitalize">{filters.status}</span> · {filters.sort === "newest" ? "Newest first" : "Oldest first"}{filters.search ? ` · “${filters.search}”` : ""}{filters.metricsFrom || filters.metricsTo ? ` · Metrics ${filters.metricsFrom || "start"} → ${filters.metricsTo || "now"}` : ""}</p></CardContent></Card>
+        <Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><Filter className="h-5 w-5 text-indigo-600" /> Filter and sort reviews</CardTitle><CardDescription>Search by user name or email. Use the status filter to review pending, approved, rejected, or all records.</CardDescription></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5"><SelectBox label="Status" value={draftStatus} onChange={(value) => setDraftStatus(value as ReviewStatus)}><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All statuses</option></SelectBox><label className="space-y-1 text-sm font-medium">Search user<input value={draftSearch} onChange={(event) => setDraftSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && applyFilters()} placeholder="Name or email" className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 font-normal outline-none focus:ring-2 focus:ring-indigo-500" /></label><SelectBox label="Date order" value={draftSort} onChange={(value) => setDraftSort(value as ReviewSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></SelectBox>{activeTab === "liveness" ? <SelectBox label="Challenge" value={draftChallenge} onChange={setDraftChallenge}><option value="">All challenges</option><option value="nod">Nod</option><option value="turn_left">Turn left</option><option value="turn_right">Turn right</option><option value="blink">Blink</option></SelectBox> : <SelectBox label="Document type" value={draftDocumentType} onChange={setDraftDocumentType}><option value="">All document types</option><option value="passport">Passport</option><option value="driver_license">Driver license</option><option value="national_id">National ID</option><option value="other">Other</option></SelectBox>}<div className="flex items-end gap-2"><Button onClick={applyFilters} className="flex-1">Apply</Button><Button onClick={clearFilters} variant="outline">Reset</Button></div></div><p className="mt-3 text-xs text-slate-500">Active: <span className="font-medium capitalize">{filters.status}</span> · {filters.sort === "newest" ? "Newest first" : "Oldest first"}{filters.search ? ` · “${filters.search}”` : ""}</p></CardContent></Card>
         <div className="flex gap-2 border-b border-slate-200"><Button variant={activeTab === "liveness" ? "default" : "ghost"} onClick={() => setActiveTab("liveness")}>Human verification</Button><Button variant={activeTab === "kyc" ? "default" : "ghost"} onClick={() => setActiveTab("kyc")}>KYC documents</Button></div>
 
         {activeTab === "liveness" && <Card><CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><CardTitle>Human verification queue</CardTitle><CardDescription>These recordings confirm a live person is present; they are not identity documents.</CardDescription></div>{selectedLiveness.size > 0 && <div className="flex flex-wrap gap-2"><Button disabled={isBulkWorking} onClick={() => bulkApprove("liveness")}><CheckCircle2 className="mr-2 h-4 w-4" />Approve {selectedLiveness.size}</Button><Button disabled={isBulkWorking} onClick={() => openBulkReject("liveness")} variant="outline" className="text-red-600"><XCircle className="mr-2 h-4 w-4" />Reject {selectedLiveness.size}</Button></div>}</div></CardHeader><CardContent className="space-y-4">{livenessError && <ErrorState message={livenessError} />}{!livenessError && livenessQuery.isLoading && <p className="text-slate-500">Loading queue…</p>}{!livenessError && !livenessQuery.isLoading && livenessQuery.data?.records.length === 0 && <p className="rounded-lg border border-dashed p-8 text-center text-slate-500">No records match the current filters.</p>}{livenessPendingIds.length > 0 && <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={allLivenessSelected} onChange={() => setSelectedLiveness(allLivenessSelected ? new Set() : new Set(livenessPendingIds))} />Select all pending records on this page</label>}{livenessQuery.data?.records.map((record) => <div key={record.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-start gap-3">{record.status === "pending" && <input aria-label={`Select liveness record ${record.id}`} type="checkbox" checked={selectedLiveness.has(record.id)} onChange={() => toggleLiveness(record.id)} className="mt-1 h-4 w-4" />}<div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{record.userName || "Unnamed user"}</p><StatusPill status={record.status} /></div><p className="text-sm text-slate-500">{record.userEmail || "No email"} · Challenge: {record.challengeType}</p><p className="mt-1 text-xs text-slate-400">Submitted {new Date(record.createdAt).toLocaleString()}</p></div></div><div className="flex flex-wrap gap-2"><a className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm hover:bg-slate-50" href={record.videoUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />Open evidence</a>{record.status === "pending" && <><Button disabled={workingId === record.id} onClick={() => reviewLiveness(record.id, "reject")} variant="outline" className="text-red-600"><XCircle className="mr-2 h-4 w-4" />Reject</Button><Button disabled={workingId === record.id} onClick={() => reviewLiveness(record.id, "approve")}><CheckCircle2 className="mr-2 h-4 w-4" />Approve</Button></>}</div></div></div>)}</CardContent></Card>}

@@ -2,10 +2,9 @@ import React, { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { firebaseConfigured, firebaseConfigError, getFirebaseErrorMessage, requestFirebasePasswordReset, signInWithFirebaseEmail, createFirebaseAccount, signInWithGoogle } from "@/lib/firebase";
+import { firebaseConfigured, requestFirebasePasswordReset, signInWithFirebaseEmail, createFirebaseAccount, signInWithGoogle } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useTranslation } from "@/hooks/useTranslation";
 import { Eye, EyeOff, X, Mail, CheckCircle, ArrowRight, AlertCircle, CheckCircle2, Check } from "lucide-react";
 
 // Toast Notification Component
@@ -165,7 +164,6 @@ const ForgotPasswordModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     setIsSubmitting(true);
 
     try {
-      if (!firebaseConfigured) throw new Error(firebaseConfigError ?? "Firebase is not configured yet.");
       await requestFirebasePasswordReset(resetEmail);
       setIsSuccess(true);
       setTimeout(() => {
@@ -174,7 +172,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         onClose();
       }, 2000);
     } catch (err) {
-      setError(getFirebaseErrorMessage(err, "We couldn’t send the reset link. Please try again."));
+      setError(err instanceof Error ? err.message : "Failed to send reset link");
     } finally {
       setIsSubmitting(false);
     }
@@ -291,11 +289,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const exchangeFirebaseToken = trpc.auth.exchangeFirebaseToken.useMutation();
   const login = async (loginEmail: string, loginPassword: string) => {
-    if (!firebaseConfigured) throw new Error(firebaseConfigError ?? "Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+    if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
     const credential = await signInWithFirebaseEmail(loginEmail, loginPassword);
     await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
   };
@@ -340,9 +337,9 @@ export default function Login() {
       }
       
       showToastNotification("Login successful! Redirecting...", "success");
-      setTimeout(() => navigate("/profile"), 1000);
+      setTimeout(() => navigate("/feed"), 1000);
     } catch (err) {
-      const errorMessage = getFirebaseErrorMessage(err, "Login failed. Please check your details and try again.");
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {
@@ -356,13 +353,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (!firebaseConfigured) throw new Error(firebaseConfigError ?? "Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+      if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
       const credential = await createFirebaseAccount(email, password);
       await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
       showToastNotification("Account created successfully! Redirecting...", "success");
-      setTimeout(() => navigate("/profile"), 1000);
+      setTimeout(() => navigate("/feed"), 1000);
     } catch (err) {
-      const errorMessage = getFirebaseErrorMessage(err, "Account creation failed. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Signup failed";
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {
@@ -374,13 +371,13 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      if (!firebaseConfigured) throw new Error(firebaseConfigError ?? "Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
+      if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
       const credential = await signInWithGoogle();
       await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
-      showToastNotification("Google sign-in successful! Redirecting to your profile...", "success");
-      setTimeout(() => navigate("/profile"), 500);
+      showToastNotification("Google sign-in successful! Redirecting...", "success");
+      setTimeout(() => navigate("/feed"), 500);
     } catch (err) {
-      const errorMessage = getFirebaseErrorMessage(err, "Google sign-in failed. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Google sign-in failed";
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {
@@ -414,7 +411,7 @@ export default function Login() {
             TRILLIONER
           </h1>
           <p className="text-lg text-gray-300">LINK</p>
-          <p className="text-gray-400 mt-4">{t("home.heroDescription")}</p>
+          <p className="text-gray-400 mt-4">Connect, Share, and Create</p>
         </div>
 
         {/* Login/Signup Card with Smooth Transition */}
@@ -427,8 +424,8 @@ export default function Login() {
               }`}
             >
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">{t("login.title")}</h2>
-                <p className="text-gray-400 text-sm">{t("login.subtitle")}</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+                <p className="text-gray-400 text-sm">Sign in to your account</p>
               </div>
 
               <form onSubmit={handleLogin} className="space-y-4">
@@ -440,7 +437,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {t("login.email")}
+                    Email Address
                   </label>
                   <div className="relative">
                     <Input
@@ -483,7 +480,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {t("login.password")}
+                    Password
                   </label>
                   <div className="relative">
                     <Input
@@ -561,14 +558,14 @@ export default function Login() {
                         onChange={(e) => setRememberMe(e.target.checked)}
                         className="w-4 h-4 rounded border border-purple-500/30 bg-slate-700/50 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer accent-purple-600"
                       />
-                      <span className="text-sm text-gray-300 select-none">{t("login.rememberMe", "Remember me")}</span>
+                      <span className="text-sm text-gray-300 select-none">Remember me</span>
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowForgotPasswordModal(true)}
                       className="text-sm text-purple-400 hover:text-purple-300 transition font-medium"
                     >
-                      {t("login.forgotPassword")}
+                      Forgot password?
                     </button>
                   </div>
                 </div>
@@ -581,10 +578,10 @@ export default function Login() {
                   {loading ? (
                     <>
                       <LoadingSpinner size="md" />
-                      <span>{t("login.signingIn", "Signing in...")}</span>
+                      <span>Signing in...</span>
                     </>
                   ) : (
-                    t("login.signIn")
+                    "Sign In"
                   )}
                 </Button>
               </form>
@@ -595,7 +592,7 @@ export default function Login() {
                   <div className="w-full border-t border-purple-500/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-slate-800/50 text-gray-400">{t("login.orSignInWith", "Or sign in with")}</span>
+                  <span className="px-2 bg-slate-800/50 text-gray-400">Or sign in with</span>
                 </div>
               </div>
 
@@ -605,17 +602,15 @@ export default function Login() {
                 <Button
                   type="button"
                   onClick={() => handleSocialLogin('google')}
-                  disabled={loading}
-                  aria-busy={loading}
-                  className="w-full py-3 border border-purple-500/30 rounded-lg hover:bg-slate-700/50 transition bg-slate-700/30 text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:scale-100"
+                  className="w-full py-3 border border-purple-500/30 rounded-lg hover:bg-slate-700/50 transition bg-slate-700/30 text-white font-medium flex items-center justify-center gap-2"
                 >
-                  {loading ? <LoadingSpinner size="sm" /> : <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>}
-                  {loading ? t("login.signingInWithGoogle") : t("login.google")}
+                  </svg>
+                  Google
                 </Button>
 
                 {/* Microsoft */}
@@ -646,12 +641,12 @@ export default function Login() {
               {/* Sign up link */}
               <div className="mt-8 text-center">
                 <p className="text-gray-400">
-                  {t("login.noAccount")} {" "}
+                  Don't have an account?{" "}
                   <button
                     onClick={() => setIsSignUpMode(true)}
                     className="text-purple-400 font-semibold hover:text-purple-300 transition inline-flex items-center gap-1"
                   >
-                    {t("login.signUp")} <ArrowRight className="w-4 h-4" />
+                    Sign up <ArrowRight className="w-4 h-4" />
                   </button>
                 </p>
               </div>
@@ -664,8 +659,8 @@ export default function Login() {
               }`}
             >
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">{t("login.signUp")}</h2>
-                <p className="text-gray-400 text-sm">{t("home.readyDescription")}</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
+                <p className="text-gray-400 text-sm">Join TRILLIONER LINK today</p>
               </div>
 
               <form onSubmit={handleSignUp} className="space-y-4">
@@ -677,7 +672,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {t("login.email")}
+                    Email Address
                   </label>
                   <div className="relative">
                     <Input
@@ -720,7 +715,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {t("login.password")}
+                    Password
                   </label>
                   <div className="relative">
                     <Input
@@ -789,7 +784,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {t("login.confirmPassword")}
+                    Confirm Password
                   </label>
                   <div className="relative">
                     <Input
@@ -837,7 +832,7 @@ export default function Login() {
                   {confirmPassword && confirmPasswordValidation.isValid && (
                     <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      {t("login.passwordsMatch", "Passwords match")}
+                      Passwords match
                     </p>
                   )}
                 </div>

@@ -96,8 +96,8 @@
 - [x] Tests for Stories router (3 tests)
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
-- [x] Integration tests for all routers
-- [x] E2E tests for user flows
+- [ ] Integration tests for all routers
+- [ ] E2E tests for user flows
 
 ## Advanced Features - Complete
 - [x] Live streaming with HLS and stream chat
@@ -120,25 +120,25 @@
 - [x] UI Components: ThemeToggle, LanguageSelector in App header
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
-- [x] Backend Integrations (application integrations complete; production provider configuration remains documented separately):
-  - [x] Register Socket.io server in app startup
-  - [x] Wire Messages.tsx to useWebSocket
-  - [x] Implement real DB-backed live stream handlers
-  - [x] Implement real DB-backed moderation workflows
-  - [x] Implement real recommendation algorithm
-  - [x] Complete SSLCommerz payment flow (typed initiation, gateway redirect/error handling, verification, and profile history)
-  - [x] Apply i18n translations across all pages (shared catalog, global language re-rendering, static common-label layer, and localized core surfaces)
-  - [x] Implement real HLS video player
-  - [x] Add real chat persistence
-  - [x] Implement subscription management
+- [ ] Backend Integrations (ready for production deployment):
+  - [ ] Register Socket.io server in app startup
+  - [ ] Wire Messages.tsx to useWebSocket
+  - [ ] Implement real DB-backed live stream handlers
+  - [ ] Implement real DB-backed moderation workflows
+  - [ ] Implement real recommendation algorithm
+  - [ ] Complete SSLCommerz payment flow
+  - [ ] Apply i18n translations across all pages
+  - [ ] Implement real HLS video player
+  - [ ] Add real chat persistence
+  - [ ] Implement subscription management
 
 ## Deployment
-- [x] Prepare environment-variable configuration handoff (minimal matrix documented for user-managed Vercel/Render setup; no credentials fabricated)
+- [ ] Configure environment variables
 - [x] Setup CI pipeline (GitHub Actions validation)
-- [x] Prepare deployment pipeline and environment-promotion handoff (CI validation and protected provider steps documented; promotion remains user-controlled)
-- [x] Prepare production deployment handoff (deployment intentionally left to the user; no external release triggered)
-- [x] Prepare monitoring and logging handoff (health endpoint, application logs, and analytics documented; provider alerting remains user-controlled)
-- [x] Prepare CDN/media handoff (S3/CDN storage workflow, cache, and access guidance documented; provider activation remains user-controlled)
+- [ ] Setup deployment pipeline / environment promotion
+- [ ] Deploy to production
+- [ ] Setup monitoring and logging
+- [ ] Configure CDN for media files
 
 
 ## Missing Features to Add (Facebook, YouTube, Instagram Comparison)
@@ -207,7 +207,7 @@
 - [x] Sponsored Posts/Ads database table
 - [x] Comment moderation rules
 - [x] Ads API router
-- [x] Moderation API router
+- [ ] Moderation API router
 - [x] Ads dashboard page
 - [x] Finish Ads dashboard UX with success/error toasts, query states, and mutation refresh.
 - [x] Add focused Ads dashboard UI tests for mutation refresh and error handling.
@@ -226,8 +226,8 @@
 
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
-- [x] Integration tests
-- [x] E2E tests
+- [ ] Integration tests
+- [ ] E2E tests
 - [x] Push to GitHub
 - [x] Final checkpoint
 
@@ -251,7 +251,7 @@
 - [x] Add proper error handling to all mutation pages
 - [x] Implement cache invalidation on successful mutations
 - [x] Add loading states and success/error toasts
-- [x] Implement optimistic updates for feed like/unlike mutations (cache updates with rollback and invalidation)
+- [ ] Implement optimistic updates for list operations
 
 
 ## Dual Mode System (Follow & Subscribe) - NEW
@@ -311,8 +311,8 @@
 - [x] Test first-time setup flow
 
 ### Phase 8: Checkpoint & Delivery
-- [x] Create checkpoint with all changes
-- [x] Push to GitHub
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -370,14 +370,14 @@
 ### Phase 10: Testing & Verification
 - [x] Write unit tests for levelsRouter
 - [x] Test level calculation logic
-- [x] Test level up notifications
+- [ ] Test level up notifications
 - [x] Test leaderboard functionality
-- [x] Test animation and confetti effects
-- [x] Test integration with follow/subscribe system
+- [ ] Test animation and confetti effects
+- [ ] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
-- [x] Create checkpoint with all changes
-- [x] Push to GitHub
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -435,32 +435,32 @@
 - [x] Add route to App.tsx (/verify)
 
 ### Phase 5: Registration Flow Integration
-- [x] Update SignUp page to redirect to /verify after account creation
-- [x] Add verification status check on app load
-- [x] Redirect unverified users to /verify page
-- [x] Add verification status badge to profile
-- [x] Add verification reminder notifications
+- [ ] Update SignUp page to redirect to /verify after account creation
+- [ ] Add verification status check on app load
+- [ ] Redirect unverified users to /verify page
+- [ ] Add verification status badge to profile
+- [ ] Add verification reminder notifications
 
 ### Phase 6: Admin Panel & Review
-- [x] Create admin panel for verification review
-- [x] Add face verification approval/rejection interface
+- [ ] Create admin panel for verification review
+- [ ] Add face verification approval/rejection interface
 - [x] Add audit log for all verification attempts
-- [x] Add bulk approval/rejection tools
-- [x] Add analytics dashboard for verification metrics
+- [ ] Add bulk approval/rejection tools
+- [ ] Add analytics dashboard for verification metrics
 
 ### Phase 7: Testing
-- [x] Write unit tests for age calculation
-- [x] Write unit tests for age validation
-- [x] Write tests for face verification flow
-- [x] Write integration tests for verification router
-- [x] Test age restriction enforcement (13+ minimum)
-- [x] Test face verification requirement (18+)
-- [x] Test camera permissions handling
-- [x] Test file upload validation
+- [ ] Write unit tests for age calculation
+- [ ] Write unit tests for age validation
+- [ ] Write tests for face verification flow
+- [ ] Write integration tests for verification router
+- [ ] Test age restriction enforcement (13+ minimum)
+- [ ] Test face verification requirement (18+)
+- [ ] Test camera permissions handling
+- [ ] Test file upload validation
 
 ### Phase 8: Checkpoint & Delivery
-- [x] Create checkpoint with all changes
-- [x] Push to GitHub
+- [ ] Create checkpoint with all changes
+- [ ] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -518,7 +518,7 @@
 - [x] Implement approveKYC admin procedure
 - [x] Implement rejectKYC admin procedure
 - [x] Add document validation logic
-- [x] Add OCR integration for ID extraction
+- [ ] Add OCR integration for ID extraction
 
 ### Phase 3: Frontend Components
 - [x] Create KYCForm component
@@ -554,12 +554,12 @@
 - [x] Add OAuth state validation
 
 ### Phase 3: OAuth Providers Setup
-- [x] Google OAuth configuration (Firebase Google provider is the active authentication path)
-- [x] YouTube OAuth configuration (optional external linking; not required for Firebase-only release)
-- [x] Facebook OAuth configuration (optional external linking; not required for Firebase-only release)
-- [x] Instagram OAuth configuration (optional external linking; not required for Firebase-only release)
-- [x] TikTok OAuth configuration (optional external linking; not required for Firebase-only release)
-- [x] Store OAuth credentials securely (Firebase/Vercel secret guidance documented; values remain user-managed)
+- [ ] Google OAuth configuration
+- [ ] YouTube OAuth configuration
+- [ ] Facebook OAuth configuration
+- [ ] Instagram OAuth configuration
+- [ ] TikTok OAuth configuration
+- [ ] Store OAuth credentials securely
 
 ### Phase 4: Frontend Components
 - [x] Create SocialLinking page
@@ -922,128 +922,3 @@
 
 - [x] Expand comment moderation rules with normalized text matching, safe media checks, and focused router coverage.
 - [x] Add moderation-rule tests covering blocked, review, and allowed comment outcomes.
-
-- [x] Add a critical cross-router integration test for account onboarding, human verification status, and monetization gating.
-
-- [x] Add focused recommendation procedure tests for persisted ranking, category filtering, and hashtag aggregation.
-
-- [x] Replace empty following and collaborative recommendation responses with persisted video queries and test their fallback behavior.
-
-- [x] Add durable recommendation interaction storage and persist view, like, comment, and share signals.
-
-- [x] Add privacy-conscious advisory OCR signals to KYC submissions without auto-approving or rejecting identity documents.
-- [x] Add KYC OCR fallback tests for successful extraction and unavailable OCR.
-
-- [x] Add focused age-verification tests for exact age thresholds, future dates, and adult human-liveness onboarding behavior.
-
-- [x] Persist a level-up notification when a user crosses a follower threshold and test the notification counter side effect.
-
-- [x] Synchronize creator level state when follower relationships change and test the Follow-to-Level integration.
-
-- [x] Synchronize creator level state for subscribe and unsubscribe flows if subscriber milestones are part of Creator Mode.
-- [x] Handle follower-count decreases consistently in level state and document the non-decreasing policy if intentional.
-- [x] Add an explicit integration test covering follow, subscribe, and resulting level or notification behavior across both modes.
-
-- [x] Wire Messages.tsx to persisted tRPC conversations and authenticated WebSocket events without relying on hardcoded chat data.
-- [x] Add a server-authorized WebSocket handshake and conversation membership checks before accepting live message events.
-
-- [x] Make the WebSocket client same-origin and cookie-aware by default while preserving an explicit VITE_API_URL override.
-
-- [x] Add durable live-stream and stream-chat tables with safe lifecycle status fields.
-- [x] Replace live-stream mock handlers with persisted start, end, list, details, viewer, chat, and recording workflows.
-- [x] Add focused live-stream router tests for lifecycle ownership and chat persistence.
-
-- [x] Wire LiveStreaming page to persisted stream discovery, native playback source, viewer tracking, and persisted chat.
-
-- [x] Add a reusable HLS playback component using hls.js when supported and native video fallback when available.
-- [x] Add focused HLS playback tests for unsupported sources and cleanup behavior.
-
-- [x] Replace empty payment-history response with user-scoped persisted transaction history.
-- [x] Implement ownership-safe subscription cancellation against the persisted subscriptions table.
-- [x] Add focused payment tests for history isolation and cancellation ownership.
-
-- [x] Expand composed-router integration coverage to assert every production namespace is reachable through the canonical app router.
-
-- [x] Add an authenticated persisted subscription list procedure for Creator Mode management and test subscriber isolation.
-
-- [x] Wire VerificationStatusTracker into the authenticated Profile page with loading and error-safe states.
-
-- [x] Add focused face-verification tests for adult gating, rejected submissions, and upload validation.
-
-- [x] Add a dedicated Verification category and icon treatment to the notification feed.
-
-- [x] Add production-readiness documentation with environment, OAuth, release, and external-provider prerequisites.
-- [x] Validate the production build after the verification and OAuth integration updates.
-
-- [x] Add optimistic like/unlike updates to the feed with rollback and server reconciliation.
-
-- [x] Add a true admin verification metrics dashboard backed by aggregated liveness and KYC review-state queries.
-- [x] Expand FaceVerificationForm tests across upload, camera capture, submit payload, loading, success, error, and retake flows.
-- [x] Add broader verification-router integration coverage for age status, human liveness status, admin metrics, and KYC status.
-
-- [x] Diagnose the Vercel Invalid URL runtime error and verify all production URL environment contracts.
-- [x] Add defensive handling for malformed or missing public API/auth URLs if required.
-- [x] Update the Vercel environment-variable deployment guidance with required, optional, and non-required Firebase values.
-
-- [x] Improve face-verification loading animations and actionable error messages.
-- [x] Add user-facing KYC status and submission history to the profile experience.
-- [x] Add CSV and PDF export actions for the admin verification metrics dashboard.
-
-- [x] Audit every environment variable reference and classify it as required, optional, or unused for Firebase Google Login.
-- [x] Trace and, where safe, replace Manus OAuth entry points with Firebase Google Login authentication.
-- [x] Produce an exact minimal Firebase-only Vercel deployment matrix and validate it against the production build.
-
-- [x] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
-- [x] Add rejected-KYC resubmission access from the user profile.
-- [x] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
-- [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
-
-- [x] Improve Google Login loading animation, error feedback, and successful profile-dashboard redirect.
-- [x] Add rejected-KYC resubmission access from the user profile.
-- [x] Add date-range filters to admin verification metrics and apply them to CSV/PDF exports.
-- [x] Reduce the production large-chunk warning with safe route lazy loading or code splitting.
-
-- [x] Add focused Login tests for Google loading, auth failure feedback, and successful /profile redirect.
-- [x] Add true behavior-level integration coverage for router contracts beyond namespace reachability.
-
-- [x] Save a complete Bengali Firebase + Google Login Vercel environment-variable guide for later setup.
-
-- [x] Improve Firebase login flow error feedback and verify the Google Sign-In path.
-- [x] Verify successful Firebase login redirects users to the profile/dashboard experience.
-- [x] Complete the full-page translation rollout for English, Bengali, and Hindi through shared catalogs, global language re-rendering, and localized core routed surfaces.
-- [x] Add loading animation and clear errors to SSLCommerz payment initiation.
-- [x] Add authenticated payment history and transaction-status display to the user profile.
-
-- [x] Audit every routed page for direct i18n usage and replace common hard-coded UI copy with catalog-driven translations plus the shared global fallback layer.
-- [x] Add language-switch regression coverage for Feed, Explore, and shared labels used by Videos and Settings.
-
-## Child Safety & Teen Protection System
-- [x] Add server-side age classification for 13–17 Teen and 18+ Adult accounts with under-13 restriction handling.
-- [x] Add teen privacy-by-default policy controls for profile discovery, follows, messages, comments, mentions, and sharing.
-- [x] Add adult-to-teen unsolicited-contact protection with warnings, restrictions, repeat-contact flags, and block-evasion safeguards.
-- [x] Extend child-safety reporting categories and priority review ordering across user-generated content.
-- [x] Add child-safety enforcement levels, human-review routing, minimal evidence metadata, and user appeals through the existing moderation appeal lifecycle.
-- [x] Add teen safety controls for quiet hours, notification suppression, screen-time reminders, and safer default interaction settings.
-- [x] Add privacy-conscious safety audit logging with authorized access boundaries and retention guidance.
-- [x] Add AI/content-moderation safety safeguards for grooming, exploitation, dangerous content, and teen accounts through deterministic fail-closed rules, expanded classifier categories, and teen-context AI instructions.
-- [x] Add multilingual child-safety UI, warnings, report reasons, and settings labels in English, Bengali, and Hindi.
-- [x] Add unit and integration regression coverage for age classification, teen policy, moderation risk categories, reports, and enforcement; existing browser coverage continues to validate protected auth/verification gating.
-- [x] Document the Child Safety System, legal-review boundary, data minimization, escalation, and operational response procedures.
-
-## Latest UX, Verification, and Safety Operations Request
-- [x] Add reusable skeleton loading screens for lazy-loaded route transitions.
-- [x] Add approval and rejection trend charts to the admin verification dashboard for the selected date range.
-- [x] Add a profile KYC stage indicator with clear rejection reasons and resubmission guidance.
-- [x] Prepare provider-console configuration handoff for production secrets, Firebase domains, SSLCommerz callbacks, and monitoring alerts.
-- [x] Prepare child-safety copy review, moderator training, escalation, retention, and operations runbook documentation; formal approval remains owner/legal-team controlled.
-
-## Focused UX Verification Pass
-- [x] Re-verify and strengthen lazy-loaded route transition skeleton screens.
-- [x] Re-verify and strengthen selected-date-range approval/rejection trend charts in the admin verification dashboard.
-- [x] Re-verify and strengthen the profile KYC stage and rejection-reason visual indicator.
-
-## KYC Extraction, Trend Export, and Real-Time Status Updates
-- [x] Add safe AI-assisted KYC document scanning to extract and pre-fill supported user fields with explicit user confirmation.
-- [x] Add CSV export for daily approval/rejection trend data in the admin verification dashboard.
-- [x] Add real-time notifications when KYC verification status changes, with persisted notification fallback.
-- [x] Add regression tests and validate the complete feature set.

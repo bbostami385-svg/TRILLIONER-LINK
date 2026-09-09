@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/hooks/useTranslation";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Bell, Lock, Globe, Palette, LogOut, ChevronRight, Zap, Trophy, MailPlus } from "lucide-react";
@@ -14,13 +13,11 @@ import { LivenessVerification } from "@/components/LivenessVerification";
 import { KYCForm } from "@/components/KYCForm";
 import { SocialLinking } from "@/components/SocialLinking";
 import { VerificationStatusTracker } from "@/components/VerificationStatusTracker";
-import { TeenSafetyPanel } from "@/components/TeenSafetyPanel";
 import { trpc } from "@/lib/trpc";
 import "./Settings.css";
 
 export default function Settings() {
   const { isAuthenticated, user } = useAuth();
-  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("en");
@@ -59,9 +56,9 @@ export default function Settings() {
     return (
       <div className="settings-container">
         <div className="loading">
-          <p>{t("settings.loginRequired", "Please log in to access settings")}</p>
+          <p>Please log in to access settings</p>
           <Button onClick={() => setLocation("/signup")} className="mt-4">
-            {t("common.login")}
+            Sign In
           </Button>
         </div>
       </div>
@@ -115,8 +112,8 @@ export default function Settings() {
     <div className="settings-container">
       {/* Header */}
       <div className="settings-header">
-        <h1>{t("common.settings")}</h1>
-        <p>{t("settings.subtitle", "Manage your account, mode, and level")}</p>
+        <h1>Settings</h1>
+        <p>Manage your account, mode, and level</p>
       </div>
 
       {/* Account Overview */}
@@ -124,11 +121,11 @@ export default function Settings() {
         <div className="account-info">
           <div className="account-avatar">👤</div>
           <div>
-            <h3>{user?.name || t("common.user", "User")}</h3>
+            <h3>{user?.name || "User"}</h3>
             <p>{user?.email || "user@example.com"}</p>
           </div>
         </div>
-        <Button className="edit-profile-btn">{t("settings.editProfile", "Edit Profile")}</Button>
+        <Button className="edit-profile-btn">Edit Profile</Button>
       </div>
 
       {/* Tab Navigation */}
@@ -167,7 +164,6 @@ export default function Settings() {
       {/* Account Tab */}
       {activeTab === "account" && (
         <>
-          <TeenSafetyPanel />
           <div className="settings-section"><div className="section-header"><MailPlus size={20} /><div><h2>Invite your circle</h2><p>Share a secure, expiring link with friends.</p></div></div><Button onClick={() => setLocation("/invitations")} className="w-full justify-between bg-indigo-500 text-white hover:bg-indigo-400">Open invitation center<ChevronRight size={18} /></Button><Button onClick={() => setLocation("/profile-rewards")} variant="outline" className="mt-3 w-full justify-between border-cyan-300/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20">Open profile cosmetics<ChevronRight size={18} /></Button><Button onClick={() => setLocation("/subscription-topics")} variant="outline" className="mt-3 w-full justify-between border-emerald-300/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20">Organize subscriptions<ChevronRight size={18} /></Button>{user?.accountMode === "creator" && <Button onClick={() => setLocation("/creator-playlists")} variant="outline" className="mt-3 w-full justify-between border-indigo-300/25 bg-indigo-500/10 text-indigo-100 hover:bg-indigo-500/20">Manage creator playlists<ChevronRight size={18} /></Button>}</div>
 
           {/* Notification Settings */}

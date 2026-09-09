@@ -57,8 +57,23 @@ function downloadBlob(content: BlobPart, filename: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+export function verificationTrendCsv(metrics: VerificationMetricsReport): string {
+  const headers = ["category", "day", "approved", "rejected"];
+  const rows = ([
+    ...(metrics.trends?.liveness ?? []).map((point) => ({ category: "Human liveness", ...point })),
+    ...(metrics.trends?.kyc ?? []).map((point) => ({ category: "Identity / KYC", ...point })),
+  ]).sort((a, b) => a.day.localeCompare(b.day) || a.category.localeCompare(b.category));
+  const range = metrics.range ? `range_from,${metrics.range.from ?? ""}\nrange_to,${metrics.range.to ?? ""}\n` : "";
+  const serialized = rows.map((row) => headers.map((header) => escapeCsvCell(row[header as keyof typeof row] as string | number)).join(","));
+  return `${range}${[headers.join(","), ...serialized].join("\n")}`;
+}
+
 export function downloadVerificationMetricsCsv(metrics: VerificationMetricsReport, filename = "trillioner-link-verification-metrics.csv") {
   downloadBlob(`\uFEFF${verificationMetricsCsv(metrics)}`, filename, "text/csv;charset=utf-8");
+}
+
+export function downloadVerificationTrendCsv(metrics: VerificationMetricsReport, filename = "trillioner-link-verification-trends.csv") {
+  downloadBlob(`\uFEFF${verificationTrendCsv(metrics)}`, filename, "text/csv;charset=utf-8");
 }
 
 export function downloadVerificationMetricsPdf(metrics: VerificationMetricsReport, filename = "trillioner-link-verification-metrics.pdf") {

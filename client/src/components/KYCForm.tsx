@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Upload, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle2, Upload, FileText, Sparkles, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 type DocumentType = "passport" | "driver_license" | "national_id" | "other";
@@ -17,10 +17,31 @@ export function KYCForm({ isResubmission = false, onComplete }: { isResubmission
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
 
   const submitKYCMutation = trpc.kyc.submitKYCDocument.useMutation();
+  const scanKYCMutation = trpc.kyc.scanKYCDocument.useMutation();
   const retryKYCMutation = trpc.kyc.retryKYCSubmission.useMutation();
   const activeMutation = isResubmission ? retryKYCMutation : submitKYCMutation;
+
+  const scanFrontDocument = async (imageData: string) => {
+    setScanMessage("Scanning the front of your document…");
+    try {
+      const result = await scanKYCMutation.mutateAsync({ documentType, imageUrl: imageData });
+      const fields = result.extractedFields;
+      if (fields.fullName) setFullName(fields.fullName);
+      if (fields.dateOfBirth) setDateOfBirth(fields.dateOfBirth);
+      if (fields.documentNumber) setDocumentNumber(fields.documentNumber);
+      if (fields.expiryDate) setExpiryDate(fields.expiryDate);
+      setScanMessage(result.status === "completed" ? "Suggested fields added. Check every value against the document before submitting." : result.note);
+    } catch {
+      setScanMessage("Automatic scanning was unavailable. You can enter the fields manually and continue.");
+    }
+  };
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -31,8 +52,10 @@ export function KYCForm({ isResubmission = false, onComplete }: { isResubmission
       const reader = new FileReader();
       reader.onload = (event) => {
         const imageData = event.target?.result as string;
-        if (type === "front") setFrontImage(imageData);
-        else if (type === "back") setBackImage(imageData);
+        if (type === "front") {
+          setFrontImage(imageData);
+          void scanFrontDocument(imageData);
+        } else if (type === "back") setBackImage(imageData);
         else setSelfieImage(imageData);
       };
       reader.readAsDataURL(file);
@@ -58,6 +81,7 @@ export function KYCForm({ isResubmission = false, onComplete }: { isResubmission
         metadata: {
           submittedAt: new Date().toISOString(),
           userAgent: navigator.userAgent,
+          aiPrefill: { fullName: fullName || null, dateOfBirth: dateOfBirth || null, documentNumberLast4: documentNumber.slice(-4) || null, expiryDate: expiryDate || null },
         },
       });
 
@@ -76,6 +100,11 @@ export function KYCForm({ isResubmission = false, onComplete }: { isResubmission
     setBackImage(null);
     setSelfieImage(null);
     setError(null);
+    setScanMessage(null);
+    setFullName("");
+    setDateOfBirth("");
+    setDocumentNumber("");
+    setExpiryDate("");
   };
 
   if (step === "success") {
@@ -176,6 +205,16 @@ export function KYCForm({ isResubmission = false, onComplete }: { isResubmission
             <option value="national_id">National ID</option>
             <option value="other">Other</option>
           </select>
+        </div>
+
+        {scanMessage && <Alert className="border-indigo-200 bg-indigo-50 text-indigo-950"><Sparkles className="h-4 w-4" /><AlertDescription>{scanKYCMutation.isPending && <Loader2 className="mr-1 inline h-3 w-3 animate-spin" />}{scanMessage}</AlertDescription></Alert>}
+
+        <div className="grid gap-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><p className="flex items-center gap-2 text-sm font-semibold text-indigo-950"><Sparkles className="h-4 w-4" />AI-assisted document details</p><p className="mt-1 text-xs text-indigo-800">These are suggestions only. Review and correct them; they never approve your KYC.</p></div>
+          <label className="space-y-1 text-sm font-medium">Full name<input value={fullName} onChange={(event) => setFullName(event.target.value)} className="h-10 w-full rounded-md border border-indigo-200 bg-white px-3 font-normal" placeholder="As shown on document" /></label>
+          <label className="space-y-1 text-sm font-medium">Date of birth<input type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} className="h-10 w-full rounded-md border border-indigo-200 bg-white px-3 font-normal" /></label>
+          <label className="space-y-1 text-sm font-medium">Document number<input value={documentNumber} onChange={(event) => setDocumentNumber(event.target.value)} className="h-10 w-full rounded-md border border-indigo-200 bg-white px-3 font-normal" placeholder="Check carefully" /></label>
+          <label className="space-y-1 text-sm font-medium">Expiry date<input type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} className="h-10 w-full rounded-md border border-indigo-200 bg-white px-3 font-normal" /></label>
         </div>
 
         {/* Front Image Upload */}

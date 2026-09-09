@@ -1041,3 +1041,9 @@
 - [x] Re-verify and strengthen lazy-loaded route transition skeleton screens.
 - [x] Re-verify and strengthen selected-date-range approval/rejection trend charts in the admin verification dashboard.
 - [x] Re-verify and strengthen the profile KYC stage and rejection-reason visual indicator.
+
+## KYC Extraction, Trend Export, and Real-Time Status Updates
+- [x] Add safe AI-assisted KYC document scanning to extract and pre-fill supported user fields with explicit user confirmation.
+- [x] Add CSV export for daily approval/rejection trend data in the admin verification dashboard.
+- [x] Add real-time notifications when KYC verification status changes, with persisted notification fallback.
+- [x] Add regression tests and validate the complete feature set.

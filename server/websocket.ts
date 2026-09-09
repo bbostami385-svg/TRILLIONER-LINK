@@ -12,6 +12,22 @@ interface ConnectedUser {
 }
 
 const connectedUsers = new Map<number, ConnectedUser>();
+let websocketIo: Server | null = null;
+
+export type UserNotificationEvent = {
+  notificationId?: number;
+  type: "kyc_status_changed";
+  status: "pending" | "approved" | "rejected";
+  message: string;
+  createdAt: Date;
+};
+
+export function emitUserNotification(userId: number, event: UserNotificationEvent) {
+  const socketId = connectedUsers.get(userId)?.socketId;
+  if (!websocketIo || !socketId) return false;
+  websocketIo.to(socketId).emit("notification:received", event);
+  return true;
+}
 
 export function setupWebSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
@@ -47,6 +63,7 @@ export function setupWebSocket(httpServer: HttpServer) {
     return Boolean(conversation);
   };
 
+  websocketIo = io;
   io.on("connection", (socket: Socket) => {
     const authenticatedUserId = socket.data.user.id as number;
     connectedUsers.set(authenticatedUserId, {

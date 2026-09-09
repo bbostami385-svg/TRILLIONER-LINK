@@ -81,6 +81,18 @@ describe("WebSocket Server", () => {
 });
 
 
+describe("Realtime user notifications", () => {
+  it("does not broadcast a KYC status event to an offline user", async () => {
+    const { emitUserNotification } = await import("./websocket");
+    expect(emitUserNotification(999999, {
+      type: "kyc_status_changed",
+      status: "approved",
+      message: "Identity verification approved.",
+      createdAt: new Date(),
+    })).toBe(false);
+  });
+});
+
 describe("Socket.io startup integration", () => {
   it("attaches to the canonical HTTP server instance", async () => {
     const { createServer } = await import("http");

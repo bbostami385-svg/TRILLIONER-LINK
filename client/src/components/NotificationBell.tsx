@@ -1,23 +1,31 @@
-import { Bell, CheckCheck, MessageCircle, Sparkles, UserPlus, X } from "lucide-react";
-import { useState } from "react";
+import { Bell, CheckCheck, FileCheck, MessageCircle, Sparkles, UserPlus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
-const categories = [{ value: "all", label: "All" }, { value: "subscriptions", label: "Subs" }, { value: "appeals", label: "Appeals" }, { value: "social", label: "Social" }] as const;
+const categories = [{ value: "all", label: "All" }, { value: "subscriptions", label: "Subs" }, { value: "appeals", label: "Appeals" }, { value: "social", label: "Social" }, { value: "verification", label: "Verification" }] as const;
 type Category = (typeof categories)[number]["value"];
 function relativeTime(value: Date | string) { const seconds = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000)); if (seconds < 60) return "now"; if (seconds < 3600) return `${Math.floor(seconds / 60)}m`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`; return `${Math.floor(seconds / 86400)}d`; }
-function NotificationIcon({ type }: { type: string }) { if (type === "subscribe") return <UserPlus className="h-4 w-4 text-indigo-300" />; if (type === "appeal_result") return <Sparkles className="h-4 w-4 text-amber-300" />; if (type === "comment") return <MessageCircle className="h-4 w-4 text-cyan-300" />; return <Bell className="h-4 w-4 text-slate-300" />; }
+function NotificationIcon({ type }: { type: string }) { if (type === "kyc_status_changed" || type === "verification_reminder") return <FileCheck className="h-4 w-4 text-emerald-300" />; if (type === "subscribe") return <UserPlus className="h-4 w-4 text-indigo-300" />; if (type === "appeal_result") return <Sparkles className="h-4 w-4 text-amber-300" />; if (type === "comment") return <MessageCircle className="h-4 w-4 text-cyan-300" />; return <Bell className="h-4 w-4 text-slate-300" />; }
 
 export function NotificationBell() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<Category>("all");
+  const { on, off } = useWebSocket({ autoConnect: isAuthenticated });
   const feed = trpc.notifications.getBellFeed.useQuery({ limit: 8, category }, { enabled: isAuthenticated, refetchInterval: 15_000, staleTime: 10_000, gcTime: 5 * 60_000, refetchOnWindowFocus: true });
   const markRead = trpc.notifications.markAsRead.useMutation({ onSuccess: () => void feed.refetch() });
   const markAll = trpc.notifications.markAllAsRead.useMutation({ onSuccess: () => void feed.refetch() });
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const handleKycStatusChange = () => { void feed.refetch(); };
+    on("notification:received", handleKycStatusChange);
+    return () => off("notification:received", handleKycStatusChange);
+  }, [feed.refetch, isAuthenticated, off, on]);
   if (!isAuthenticated) return null;
   const notifications = feed.data ?? [];
   const unread = notifications.filter((item) => !item.isRead).length;

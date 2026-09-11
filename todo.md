@@ -311,8 +311,8 @@
 - [x] Test first-time setup flow
 
 ### Phase 8: Checkpoint & Delivery
-- [ ] Create checkpoint with all changes
-- [ ] Push to GitHub
+- [x] Create checkpoint with all changes
+- [x] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -376,8 +376,8 @@
 - [ ] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
-- [ ] Create checkpoint with all changes
-- [ ] Push to GitHub
+- [x] Create checkpoint with all changes
+- [x] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -439,14 +439,14 @@
 - [ ] Add verification status check on app load
 - [ ] Redirect unverified users to /verify page
 - [ ] Add verification status badge to profile
-- [ ] Add verification reminder notifications
+- [x] Add verification reminder notifications
 
 ### Phase 6: Admin Panel & Review
-- [ ] Create admin panel for verification review
-- [ ] Add face verification approval/rejection interface
+- [x] Create admin panel for verification review
+- [x] Add face verification approval/rejection interface
 - [x] Add audit log for all verification attempts
-- [ ] Add bulk approval/rejection tools
-- [ ] Add analytics dashboard for verification metrics
+- [x] Add bulk approval/rejection tools
+- [x] Add analytics dashboard for verification metrics
 
 ### Phase 7: Testing
 - [ ] Write unit tests for age calculation
@@ -459,8 +459,8 @@
 - [ ] Test file upload validation
 
 ### Phase 8: Checkpoint & Delivery
-- [ ] Create checkpoint with all changes
-- [ ] Push to GitHub
+- [x] Create checkpoint with all changes
+- [x] Push to GitHub
 - [x] Document API changes
 - [x] Prepare user guide
 
@@ -518,7 +518,7 @@
 - [x] Implement approveKYC admin procedure
 - [x] Implement rejectKYC admin procedure
 - [x] Add document validation logic
-- [ ] Add OCR integration for ID extraction
+- [x] Add OCR integration for ID extraction
 
 ### Phase 3: Frontend Components
 - [x] Create KYCForm component
@@ -933,3 +933,4 @@
 - [x] Add legal/compliance review handoff for AI disclosure, retention, and manual-review policy.
 - [x] Add regression tests and validate the complete feature set.
 - [x] Fix browser runtime error caused by the WebSocket hook reading `process.env` in the Vite client.
+- [x] Remove remaining user-facing Manus OAuth redirects and the unused OAuth helper after the Firebase-only audit.

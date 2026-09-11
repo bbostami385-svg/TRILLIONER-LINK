@@ -4,7 +4,9 @@ import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
-import { kycDocuments, kycVerificationRecords, users } from "../../drizzle/schema";
+import { extractKycOcrSignals, sanitizeKycOcrForStorage } from "../kycOcr";
+import { kycDocuments, kycVerificationRecords, notifications, users } from "../../drizzle/schema";
+import { emitToUser } from "../websocket";
 
 export const documentTypeSchema = z.enum(["passport", "driver_license", "national_id", "other"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -18,6 +20,14 @@ const documentInputSchema = z.object({
   metadata: metadataSchema,
 });
 
+async function notifyKycStatus(userId: number, status: "pending" | "approved" | "rejected", reason?: string) {
+  const db = await getRequiredDb();
+  const message = status === "approved" ? "your KYC verification was approved." : status === "rejected" ? `your KYC verification was rejected${reason ? `: ${reason}` : "."}` : "your KYC documents are now under review.";
+  const result = await db.insert(notifications).values({ userId, type: "verification_reminder", message, isRead: false });
+  const notificationId = Number(result[0].insertId);
+  emitToUser(userId, "kyc:status", { status, message, notificationId });
+}
+
 async function getLatestDocument(userId: number) {
   const db = await getRequiredDb();
   const [document] = await db
@@ -30,6 +40,13 @@ async function getLatestDocument(userId: number) {
 }
 
 export const kycRouter = router({
+  scanKYCDocument: protectedProcedure
+    .input(z.object({ documentType: documentTypeSchema, imageUrl: z.string().min(1).max(12_000_000) }))
+    .mutation(async ({ input }) => {
+      const ocr = await extractKycOcrSignals(input.imageUrl, input.documentType);
+      return { ...ocr, note: "These fields are suggestions only. Check every value against the document before submitting." };
+    }),
+
   submitKYCDocument: protectedProcedure
     .input(documentInputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -49,6 +66,7 @@ export const kycRouter = router({
         input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
         persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
       ]);
+      const ocr = await extractKycOcrSignals(frontImageUrl, input.documentType);
       const result = await db.insert(kycDocuments).values({
         userId: ctx.user.id,
         documentType: input.documentType,
@@ -56,7 +74,7 @@ export const kycRouter = router({
         backImageUrl,
         selfieImageUrl,
         status: "pending",
-        metadata: input.metadata,
+        metadata: { ...(input.metadata ?? {}), ocr: sanitizeKycOcrForStorage(ocr) },
       });
       const documentId = Number(result[0].insertId);
 
@@ -70,6 +88,7 @@ export const kycRouter = router({
         kycDocumentType: input.documentType,
         kycVerified: false,
       }).where(eq(users.id, ctx.user.id));
+      await notifyKycStatus(ctx.user.id, "pending");
 
       return { success: true, documentId, message: "KYC documents submitted for review." };
     }),
@@ -119,6 +138,7 @@ export const kycRouter = router({
           ? { kycVerified: true, kycStatus: "approved", kycVerificationAt: new Date() }
           : { kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, document.userId))));
       });
+      await Promise.all(pending.map((document) => notifyKycStatus(document.userId, input.action === "approve" ? "approved" : "rejected", input.reason)));
       return { success: true, updated: pending.length, skipped: documents.length - pending.length, reviewedBy: ctx.user.id };
     }),
 
@@ -141,6 +161,7 @@ export const kycRouter = router({
         kycStatus: "approved",
         kycVerificationAt: new Date(),
       }).where(eq(users.id, input.userId));
+      await notifyKycStatus(input.userId, "approved");
       return { success: true, message: "KYC approved." };
     }),
 
@@ -163,6 +184,7 @@ export const kycRouter = router({
         notes: input.notes,
       }).where(eq(kycVerificationRecords.documentId, document.id));
       await db.update(users).set({ kycVerified: false, kycStatus: "rejected" }).where(eq(users.id, input.userId));
+      await notifyKycStatus(input.userId, "rejected", input.rejectionReason);
       return { success: true, message: "KYC rejected; the user may resubmit." };
     }),
 
@@ -181,6 +203,7 @@ export const kycRouter = router({
         input.backImageUrl ? persistVerificationMedia(input.backImageUrl, `verification/kyc/${ctx.user.id}/back`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024) : Promise.resolve(undefined),
         persistVerificationMedia(input.selfieImageUrl, `verification/kyc/${ctx.user.id}/selfie`, ["image/jpeg", "image/png", "image/webp"], 8 * 1024 * 1024),
       ]);
+      const ocr = await extractKycOcrSignals(frontImageUrl, input.documentType);
       const result = await db.insert(kycDocuments).values({
         userId: ctx.user.id,
         documentType: input.documentType,
@@ -188,11 +211,12 @@ export const kycRouter = router({
         backImageUrl,
         selfieImageUrl,
         status: "pending",
-        metadata: input.metadata,
+        metadata: { ...(input.metadata ?? {}), ocr: sanitizeKycOcrForStorage(ocr) },
       });
       const documentId = Number(result[0].insertId);
       await db.insert(kycVerificationRecords).values({ userId: ctx.user.id, documentId, status: "pending" });
       await db.update(users).set({ kycStatus: "pending", kycDocumentType: input.documentType }).where(eq(users.id, ctx.user.id));
+      await notifyKycStatus(ctx.user.id, "pending");
       return { success: true, documentId, message: "KYC resubmitted for review." };
     }),
 

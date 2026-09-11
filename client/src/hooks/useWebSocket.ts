@@ -4,10 +4,12 @@ import { io, Socket } from "socket.io-client";
 interface UseWebSocketOptions {
   url?: string;
   autoConnect?: boolean;
+  userId?: number;
+  onKycStatus?: (data: { status: "pending" | "approved" | "rejected"; message: string; notificationId?: number }) => void;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const { url = process.env.VITE_API_URL || "http://localhost:3000", autoConnect = true } = options;
+  const { url = import.meta.env.VITE_API_URL || "http://localhost:3000", autoConnect = true, userId, onKycStatus } = options;
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
@@ -29,7 +31,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       socketRef.current.on("connect", () => {
         console.log("WebSocket connected");
         reconnectAttempts.current = 0;
+        if (userId) socketRef.current?.emit("user:join", userId);
       });
+
+      if (onKycStatus) socketRef.current.on("kyc:status", onKycStatus);
 
       socketRef.current.on("disconnect", () => {
         console.log("WebSocket disconnected");
@@ -52,7 +57,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         socketRef.current.disconnect();
       }
     };
-  }, [url, autoConnect]);
+  }, [url, autoConnect, userId, onKycStatus]);
 
   const emit = useCallback((event: string, data?: any) => {
     if (socketRef.current?.connected) {

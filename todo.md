@@ -121,7 +121,7 @@
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
 - [ ] Backend Integrations (ready for production deployment):
-  - [ ] Register Socket.io server in app startup
+  - [x] Register Socket.io server in app startup
   - [ ] Wire Messages.tsx to useWebSocket
   - [ ] Implement real DB-backed live stream handlers
   - [ ] Implement real DB-backed moderation workflows
@@ -922,3 +922,14 @@
 
 - [x] Expand comment moderation rules with normalized text matching, safe media checks, and focused router coverage.
 - [x] Add moderation-rule tests covering blocked, review, and allowed comment outcomes.
+
+## KYC UX and Production Verification Re-implementation
+- [x] Preserve the existing Social Mode/Creator Mode selection interface, branding, and platform-mode behavior without visual changes.
+- [x] Re-implement advisory AI-assisted KYC document scanning with editable prefilled fields and manual-review safeguards.
+- [x] Improve KYC form loading animations, validation, and inline error handling.
+- [x] Add admin daily approval/rejection trend CSV export.
+- [x] Document and locally verify production WebSocket origin and SSL/TLS settings for Vercel/Render; provider-console execution remains owner-controlled.
+- [x] Define a staging KYC test using non-production documents and reconnect notification checks; provider execution remains user-controlled.
+- [x] Add legal/compliance review handoff for AI disclosure, retention, and manual-review policy.
+- [x] Add regression tests and validate the complete feature set.
+- [x] Fix browser runtime error caused by the WebSocket hook reading `process.env` in the Vite client.

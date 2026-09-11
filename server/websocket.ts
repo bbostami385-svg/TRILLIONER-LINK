@@ -12,16 +12,19 @@ interface ConnectedUser {
 }
 
 const connectedUsers = new Map<number, ConnectedUser>();
+let activeIo: Server | null = null;
 
 export function setupWebSocket(app: express.Application) {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: (process.env.FRONTEND_URL || "http://localhost:3000").split(",").map((origin) => origin.trim()).filter(Boolean),
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
+  activeIo = io;
   io.on("connection", (socket: Socket) => {
     console.log(`User connected: ${socket.id}`);
 
@@ -154,6 +157,13 @@ export function setupWebSocket(app: express.Application) {
   });
 
   return httpServer;
+}
+
+export function emitToUser(userId: number, event: "kyc:status", payload: { status: "pending" | "approved" | "rejected"; message: string; notificationId?: number }) {
+  const socketId = connectedUsers.get(userId)?.socketId;
+  if (!socketId || !activeIo) return false;
+  activeIo.to(socketId).emit(event, payload);
+  return true;
 }
 
 export function getConnectedUsers() {

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, like, lt, or } from "drizzle-orm";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
 import { persistVerificationMedia } from "../verificationMedia";
 import { assessLivenessRisk } from "../livenessSignals";
-import { faceLivenessRecords, livenessChallenge, users, verificationAuditLogs } from "../../drizzle/schema";
+import { faceLivenessRecords, kycDocuments, livenessChallenge, users, verificationAuditLogs } from "../../drizzle/schema";
 
 export const challengeSchema = z.enum(["nod", "turn_left", "turn_right", "blink"]);
 const metadataSchema = z.record(z.string(), z.unknown()).optional();
@@ -18,6 +18,33 @@ function generateChallenges(): Array<z.infer<typeof challengeSchema>> {
 }
 
 export const humanVerificationRouter = router({
+  getVerificationMetrics: adminProcedure
+    .input(z.object({ from: z.string().date().optional(), to: z.string().date().optional() }))
+    .query(async ({ input }) => {
+      const db = await getRequiredDb();
+      const from = input.from ? new Date(`${input.from}T00:00:00.000Z`) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const toExclusive = input.to ? new Date(`${input.to}T00:00:00.000Z`) : new Date();
+      if (input.to) toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+      if (from >= toExclusive) throw new TRPCError({ code: "BAD_REQUEST", message: "The metrics start date must be before the end date." });
+      const [livenessRows, kycRows] = await Promise.all([
+        db.select({ status: faceLivenessRecords.status, createdAt: faceLivenessRecords.createdAt }).from(faceLivenessRecords).where(and(gte(faceLivenessRecords.createdAt, from), lt(faceLivenessRecords.createdAt, toExclusive))),
+        db.select({ status: kycDocuments.status, createdAt: kycDocuments.createdAt }).from(kycDocuments).where(and(gte(kycDocuments.createdAt, from), lt(kycDocuments.createdAt, toExclusive))),
+      ]);
+      const summarize = (rows: Array<{ status: string }>) => ({ total: rows.length, pending: rows.filter((row) => row.status === "pending").length, approved: rows.filter((row) => row.status === "approved").length, rejected: rows.filter((row) => row.status === "rejected").length });
+      const trend = (rows: Array<{ status: string; createdAt: Date }>) => {
+        const byDay = new Map<string, { day: string; approved: number; rejected: number }>();
+        for (const row of rows) {
+          if (row.status !== "approved" && row.status !== "rejected") continue;
+          const day = row.createdAt.toISOString().slice(0, 10);
+          const point = byDay.get(day) ?? { day, approved: 0, rejected: 0 };
+          point[row.status] += 1;
+          byDay.set(day, point);
+        }
+        return Array.from(byDay.values()).sort((a, b) => a.day.localeCompare(b.day));
+      };
+      return { liveness: summarize(livenessRows), kyc: summarize(kycRows), trends: { liveness: trend(livenessRows), kyc: trend(kycRows) }, range: { from: input.from ?? from.toISOString().slice(0, 10), to: input.to ?? new Date(toExclusive.getTime() - 1).toISOString().slice(0, 10) }, generatedAt: new Date() };
+    }),
+
   startLivenessChallenge: protectedProcedure.mutation(async ({ ctx }) => {
     const db = await getRequiredDb();
     const now = new Date();

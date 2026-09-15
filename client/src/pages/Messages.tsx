@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import "./Messages.css";
@@ -26,6 +27,14 @@ export default function Messages() {
   const [, setLocation] = useLocation();
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messageText, setMessageText] = useState("");
+  const { isConnected, joinConversation, leaveConversation, markMessagesAsRead, sendMessage } = useWebSocket({ userId: user?.id });
+
+  useEffect(() => {
+    if (!selectedChat || !isConnected) return;
+    joinConversation(selectedChat.id);
+    markMessagesAsRead(selectedChat.id, user?.id ?? 0);
+    return () => leaveConversation(selectedChat.id);
+  }, [isConnected, joinConversation, leaveConversation, markMessagesAsRead, selectedChat, user?.id]);
 
   const chats: Chat[] = [
     {
@@ -84,7 +93,7 @@ export default function Messages() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim()) {
-      console.log("Message sent:", messageText);
+      if (selectedChat && user?.id) sendMessage(selectedChat.id, messageText.trim(), user.id);
       setMessageText("");
     }
   };
@@ -138,7 +147,7 @@ export default function Messages() {
                   <div className="chat-avatar">{selectedChat.avatar}</div>
                   <div>
                     <p className="chat-name">{selectedChat.name}</p>
-                    <p className="chat-status">Active now</p>
+                    <p className="chat-status">{isConnected ? "Active now" : "Reconnecting…"}</p>
                   </div>
                 </div>
                 <div className="chat-header-actions">

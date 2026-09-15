@@ -1,281 +1,76 @@
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { getDb } from "../db";
+import { getRequiredDb } from "../db";
+import { follows, posts, recommendationInteractions, subscriptions, users, videos } from "../../drizzle/schema";
 
-interface UserInteraction {
-  userId: number;
-  contentId: number;
-  type: "like" | "comment" | "share" | "view";
-  weight: number;
-}
-
-interface ContentVector {
-  id: number;
-  tags: string[];
-  category: string;
-  author: number;
-  engagementScore: number;
-}
-
-// Simple recommendation algorithm
-function calculateSimilarity(vector1: string[], vector2: string[]): number {
-  const set1 = new Set(vector1);
-  const set2 = new Set(vector2);
-  const v1Array = Array.from(set1);
-  const v2Array = Array.from(set2);
-  const intersection = new Set(v1Array.filter((x) => set2.has(x)));
-  const union = new Set([...v1Array, ...v2Array]);
-  return intersection.size / union.size;
-}
+const pageInput = z.object({ limit: z.number().int().min(1).max(100).default(20), offset: z.number().int().nonnegative().default(0) });
+export const scoreFreshness = (createdAt: Date | null, engagement: number) => {
+  const hours = Math.max(0, (Date.now() - (createdAt?.getTime() ?? Date.now())) / 3_600_000);
+  return engagement / Math.pow(1 + hours / 24, 0.65);
+};
 
 export const recommendationsRouter = router({
-  // Get personalized feed recommendations
-  getRecommendedPosts: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
+  getRecommendedPosts: protectedProcedure.input(pageInput).query(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const candidates = await db.select().from(posts).where(ne(posts.userId, ctx.user.id)).orderBy(desc(posts.createdAt)).limit(200);
+    const postsWithScore = candidates.map((post) => ({ ...post, score: scoreFreshness(post.createdAt, post.likes + post.comments * 2 + post.shares * 3), reason: post.likes + post.comments + post.shares > 0 ? "Based on recent engagement" : "Recently published" })).sort((a, b) => b.score - a.score);
+    return { posts: postsWithScore.slice(input.offset, input.offset + input.limit), total: postsWithScore.length };
+  }),
 
-        // 1. Get user's interaction history
-        // 2. Extract user preferences from interactions
-        // 3. Score all available posts
-        // 4. Return top scored posts
+  getRecommendedVideos: protectedProcedure.input(pageInput).query(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const candidates = await db.select().from(videos).where(and(eq(videos.isPublic, true), ne(videos.userId, ctx.user.id))).orderBy(desc(videos.createdAt)).limit(200);
+    const videosWithScore = candidates.map((video) => ({ ...video, score: scoreFreshness(video.createdAt, video.views + video.likes * 4 + video.comments * 6), reason: video.category ? `Popular in ${video.category}` : "Recommended from recent activity" })).sort((a, b) => b.score - a.score);
+    return { videos: videosWithScore.slice(input.offset, input.offset + input.limit), total: videosWithScore.length };
+  }),
 
-        // For now, return mock recommendations
-        return {
-          posts: [
-            {
-              id: 1,
-              title: "Amazing Travel Experience",
-              score: 0.95,
-              reason: "Based on your travel interests",
-            },
-            {
-              id: 2,
-              title: "Tech News Update",
-              score: 0.87,
-              reason: "Popular in your network",
-            },
-          ],
-          total: 2,
-        };
-      } catch (error) {
-        console.error("Error getting recommendations:", error);
-        throw new Error("Failed to get recommendations");
-      }
-    }),
+  getSuggestedUsers: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(50).default(10) })).query(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const following = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, ctx.user.id));
+    const followedIds = new Set(following.map((row) => row.followingId));
+    const candidates = await db.select({ id: users.id, name: users.name, username: users.handle, avatar: users.profileImage, accountMode: users.accountMode }).from(users).where(ne(users.id, ctx.user.id)).limit(200);
+    const suggestions = candidates.filter((candidate) => !followedIds.has(candidate.id)).slice(0, input.limit).map((candidate) => ({ ...candidate, mutualFollowers: 0, score: candidate.accountMode === "creator" ? 1 : 0.5 }));
+    return { users: suggestions, total: suggestions.length };
+  }),
 
-  // Get recommended videos
-  getRecommendedVideos: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
+  getTrendingContent: publicProcedure.input(z.object({ category: z.string().optional(), timeframe: z.enum(["1h", "24h", "7d", "30d"]).default("24h"), limit: z.number().int().min(1).max(100).default(20) })).query(async ({ input }) => {
+    const db = await getRequiredDb();
+    const since = new Date(Date.now() - ({ "1h": 3_600_000, "24h": 86_400_000, "7d": 604_800_000, "30d": 2_592_000_000 }[input.timeframe]));
+    const candidates = await db.select().from(videos).where(and(eq(videos.isPublic, true), sql`${videos.createdAt} >= ${since}`)).orderBy(desc(videos.createdAt)).limit(200);
+    const filtered = input.category ? candidates.filter((video) => video.category === input.category) : candidates;
+    const trending = filtered.map((video) => ({ id: video.id, title: video.title, engagementScore: scoreFreshness(video.createdAt, video.views + video.likes * 4 + video.comments * 6), viewCount: video.views, trendingRank: 0 })).sort((a, b) => b.engagementScore - a.engagementScore).slice(0, input.limit).map((item, index) => ({ ...item, trendingRank: index + 1 }));
+    return { trending, total: trending.length };
+  }),
 
-        // Similar to posts recommendations
+  getTrendingHashtags: publicProcedure.input(z.object({ limit: z.number().int().min(1).max(50).default(10), timeframe: z.enum(["1h", "24h", "7d", "30d"]).default("24h") })).query(async ({ input }) => {
+    const db = await getRequiredDb();
+    const since = new Date(Date.now() - ({ "1h": 3_600_000, "24h": 86_400_000, "7d": 604_800_000, "30d": 2_592_000_000 }[input.timeframe]));
+    const recent = await db.select({ hashtags: videos.hashtags }).from(videos).where(and(eq(videos.isPublic, true), sql`${videos.createdAt} >= ${since}`));
+    const counts = new Map<string, number>();
+    recent.forEach(({ hashtags }) => (hashtags ?? []).forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1)));
+    const hashtags = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, input.limit).map(([tag, count], index) => ({ tag: tag.startsWith("#") ? tag : `#${tag}`, count, trend: "up" as const, trendingRank: index + 1 }));
+    return { hashtags, total: hashtags.length };
+  }),
 
-        return {
-          videos: [],
-          total: 0,
-        };
-      } catch (error) {
-        console.error("Error getting video recommendations:", error);
-        throw new Error("Failed to get video recommendations");
-      }
-    }),
+  trackInteraction: protectedProcedure.input(z.object({ contentId: z.number().int().positive(), contentType: z.enum(["post", "video", "comment"]), interactionType: z.enum(["like", "comment", "share", "view"]), duration: z.number().int().nonnegative().optional() })).mutation(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    await db.insert(recommendationInteractions).values({ userId: ctx.user.id, contentId: input.contentId, contentType: input.contentType, interactionType: input.interactionType, duration: input.duration });
+    return { success: true, message: "Interaction tracked" };
+  }),
 
-  // Get suggested users to follow
-  getSuggestedUsers: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(50).default(10),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
+  getFollowingRecommendations: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(100).default(20) })).query(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const creators = await db.select({ creatorId: follows.followingId }).from(follows).where(eq(follows.followerId, ctx.user.id));
+    const ids = creators.map((row) => row.creatorId);
+    if (ids.length === 0) return { content: [], total: 0 };
+    const feed = await db.select().from(videos).where(and(eq(videos.isPublic, true), sql`${videos.userId} in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)).orderBy(desc(videos.createdAt)).limit(input.limit);
+    return { content: feed, total: feed.length };
+  }),
 
-        // 1. Find users with similar interests
-        // 2. Find users followed by users you follow
-        // 3. Calculate suggestion score
-        // 4. Return top suggestions
-
-        return {
-          users: [
-            {
-              id: 1,
-              name: "John Doe",
-              username: "johndoe",
-              avatar: "https://example.com/avatar1.jpg",
-              mutualFollowers: 5,
-              score: 0.92,
-            },
-          ],
-          total: 1,
-        };
-      } catch (error) {
-        console.error("Error getting suggested users:", error);
-        throw new Error("Failed to get suggested users");
-      }
-    }),
-
-  // Get trending content
-  getTrendingContent: publicProcedure
-    .input(
-      z.object({
-        category: z.string().optional(),
-        timeframe: z.enum(["1h", "24h", "7d", "30d"]).default("24h"),
-        limit: z.number().min(1).max(100).default(20),
-      })
-    )
-    .query(async ({ input }) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Calculate trending score based on:
-        // - Engagement rate (likes, comments, shares)
-        // - Time decay (newer content scores higher)
-        // - Category relevance
-        // - Viral coefficient
-
-        return {
-          trending: [
-            {
-              id: 1,
-              title: "Viral Post",
-              engagementScore: 9.8,
-              viewCount: 100000,
-              trendingRank: 1,
-            },
-          ],
-          total: 1,
-        };
-      } catch (error) {
-        console.error("Error getting trending content:", error);
-        throw new Error("Failed to get trending content");
-      }
-    }),
-
-  // Get trending hashtags
-  getTrendingHashtags: publicProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(50).default(10),
-        timeframe: z.enum(["1h", "24h", "7d", "30d"]).default("24h"),
-      })
-    )
-    .query(async ({ input }) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Get hashtags sorted by usage count and trend velocity
-
-        return {
-          hashtags: [
-            {
-              tag: "#TRILLIONER",
-              count: 50000,
-              trend: "up",
-              trendingRank: 1,
-            },
-          ],
-          total: 1,
-        };
-      } catch (error) {
-        console.error("Error getting trending hashtags:", error);
-        throw new Error("Failed to get trending hashtags");
-      }
-    }),
-
-  // Track user interaction for recommendations
-  trackInteraction: protectedProcedure
-    .input(
-      z.object({
-        contentId: z.number(),
-        contentType: z.enum(["post", "video", "comment"]),
-        interactionType: z.enum(["like", "comment", "share", "view"]),
-        duration: z.number().optional(), // in seconds, for view tracking
-      })
-    )
-    .mutation(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Save interaction to database for recommendation model training
-
-        return {
-          success: true,
-          message: "Interaction tracked",
-        };
-      } catch (error) {
-        console.error("Error tracking interaction:", error);
-        throw new Error("Failed to track interaction");
-      }
-    }),
-
-  // Get personalized recommendations based on user's followed creators
-  getFollowingRecommendations: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(100).default(20),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Get content from users the current user follows
-        // Sort by engagement and recency
-
-        return {
-          content: [],
-          total: 0,
-        };
-      } catch (error) {
-        console.error("Error getting following recommendations:", error);
-        throw new Error("Failed to get following recommendations");
-      }
-    }),
-
-  // Get collaborative filtering recommendations
-  getCollaborativeRecommendations: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(100).default(20),
-      })
-    )
-    .query(async ({ input, ctx }: any) => {
-      try {
-        const db = await getDb();
-        if (!db) throw new Error("Database not available");
-
-        // Find users with similar preferences
-        // Recommend content they liked that current user hasn't seen
-
-        return {
-          content: [],
-          total: 0,
-        };
-      } catch (error) {
-        console.error("Error getting collaborative recommendations:", error);
-        throw new Error("Failed to get collaborative recommendations");
-      }
-    }),
+  getCollaborativeRecommendations: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(100).default(20) })).query(async ({ input, ctx }) => {
+    const db = await getRequiredDb();
+    const popular = await db.select({ contentId: recommendationInteractions.contentId, contentType: recommendationInteractions.contentType, signalCount: sql<number>`count(*)` }).from(recommendationInteractions).where(ne(recommendationInteractions.userId, ctx.user.id)).groupBy(recommendationInteractions.contentId, recommendationInteractions.contentType).orderBy(desc(sql`count(*)`)).limit(input.limit);
+    return { content: popular, total: popular.length };
+  }),
 });

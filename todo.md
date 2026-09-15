@@ -122,15 +122,15 @@
 - [x] Integration Tests: 58 tests passing
 - [ ] Backend Integrations (ready for production deployment):
   - [x] Register Socket.io server in app startup
-  - [ ] Wire Messages.tsx to useWebSocket
-  - [ ] Implement real DB-backed live stream handlers
-  - [ ] Implement real DB-backed moderation workflows
-  - [ ] Implement real recommendation algorithm
-  - [ ] Complete SSLCommerz payment flow
+  - [x] Wire Messages.tsx to useWebSocket
+  - [x] Implement real DB-backed live stream handlers
+  - [x] Implement real DB-backed moderation workflows; account bans remain disabled pending a dedicated enforcement policy.
+  - [x] Implement real recommendation algorithm
+  - [x] Complete SSLCommerz payment flow; production credentials and callback URLs remain owner-controlled.
   - [ ] Apply i18n translations across all pages
   - [ ] Implement real HLS video player
   - [ ] Add real chat persistence
-  - [ ] Implement subscription management
+  - [x] Implement subscription management
 
 ## Deployment
 - [ ] Configure environment variables
@@ -436,9 +436,9 @@
 
 ### Phase 5: Registration Flow Integration
 - [ ] Update SignUp page to redirect to /verify after account creation
-- [ ] Add verification status check on app load
-- [ ] Redirect unverified users to /verify page
-- [ ] Add verification status badge to profile
+- [x] Add verification status check on app load
+- [x] Redirect unverified users to /verify page
+- [x] Add verification status badge to profile
 - [x] Add verification reminder notifications
 
 ### Phase 6: Admin Panel & Review

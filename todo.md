@@ -207,7 +207,7 @@
 - [x] Sponsored Posts/Ads database table
 - [x] Comment moderation rules
 - [x] Ads API router
-- [ ] Moderation API router
+- [x] Moderation API router
 - [x] Ads dashboard page
 - [x] Finish Ads dashboard UX with success/error toasts, query states, and mutation refresh.
 - [x] Add focused Ads dashboard UI tests for mutation refresh and error handling.
@@ -370,10 +370,10 @@
 ### Phase 10: Testing & Verification
 - [x] Write unit tests for levelsRouter
 - [x] Test level calculation logic
-- [ ] Test level up notifications
+- [x] Test level up notifications
 - [x] Test leaderboard functionality
 - [ ] Test animation and confetti effects
-- [ ] Test integration with follow/subscribe system
+- [x] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
 - [x] Create checkpoint with all changes
@@ -449,10 +449,10 @@
 - [x] Add analytics dashboard for verification metrics
 
 ### Phase 7: Testing
-- [ ] Write unit tests for age calculation
-- [ ] Write unit tests for age validation
-- [ ] Write tests for face verification flow
-- [ ] Write integration tests for verification router
+- [x] Write unit tests for age calculation
+- [x] Write unit tests for age validation
+- [x] Write tests for face verification flow
+- [x] Write integration tests for verification router
 - [ ] Test age restriction enforcement (13+ minimum)
 - [ ] Test face verification requirement (18+)
 - [ ] Test camera permissions handling
@@ -934,3 +934,5 @@
 - [x] Add regression tests and validate the complete feature set.
 - [x] Fix browser runtime error caused by the WebSocket hook reading `process.env` in the Vite client.
 - [x] Remove remaining user-facing Manus OAuth redirects and the unused OAuth helper after the Firebase-only audit.
+- [x] Add a regression/integration test proving follower or subscriber changes interact correctly with the level system.
+- [x] Fix dual-mode test doubles and add regression coverage for follower/subscriber level synchronization after the new level hook.

@@ -233,3 +233,19 @@ describe("Dual mode subscription creation", () => {
     await expect(dualModeRouter.createCaller({ user: { id: 42 } } as any).subscribeToCreator({ creatorId: 7, tier: "free" })).rejects.toThrow("Creator not found.");
   });
 });
+
+describe("audience progression integration", () => {
+  it("updates a creator level when the audience reaches the next threshold", async () => {
+    const values = vi.fn().mockResolvedValue({});
+    const set = vi.fn(() => ({ where: vi.fn().mockResolvedValue({}) }));
+    const db = {
+      select: vi.fn(() => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ userId: 7, currentLevel: 1, totalFollowers: 0, levelUpCount: 0, lastLevelUpAt: null }]) }) }) })),
+      update: vi.fn(() => ({ set })),
+      insert: vi.fn(() => ({ values })),
+    };
+    const { syncLevelForAudience } = await import("./dualMode");
+    await syncLevelForAudience(db as never, 7, 50);
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ currentLevel: 2, totalFollowers: 50, levelUpCount: 1 }));
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, type: "level_up" }));
+  });
+});

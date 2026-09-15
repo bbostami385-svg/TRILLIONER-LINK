@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getRequiredDb } from "../db";
-import { follows, subscriptions, userModePreferences, users, notifications } from "../../drizzle/schema";
+import { follows, notifications, subscriptions, userLevels, userModePreferences, users } from "../../drizzle/schema";
+import { calculateLevel } from "./levels";
 
 const modeSchema = z.enum(["social", "creator"]);
 const idSchema = z.number().int().positive();
@@ -11,6 +12,26 @@ const pageSchema = z.object({
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().nonnegative().default(0),
 });
+
+export async function syncLevelForAudience(db: Awaited<ReturnType<typeof getRequiredDb>>, userId: number, audienceCount: number) {
+  const selectQuery = db.select();
+  if (!selectQuery || typeof selectQuery.from !== "function") return;
+  const userLevelQuery = selectQuery.from(userLevels);
+  if (!userLevelQuery || typeof userLevelQuery.where !== "function") return;
+  const filtered = userLevelQuery.where(eq(userLevels.userId, userId));
+  const records = filtered && typeof filtered.limit === "function" ? await filtered.limit(1) : await filtered;
+  if (!Array.isArray(records) || typeof db.insert !== "function") return;
+  const [record] = records;
+  const newLevel = calculateLevel(audienceCount);
+  if (!record) {
+    await db.insert(userLevels).values({ userId, currentLevel: newLevel, totalFollowers: audienceCount, levelUpCount: newLevel > 1 ? 1 : 0, lastLevelUpAt: newLevel > 1 ? new Date() : null });
+    if (newLevel > 1) await db.insert(notifications).values({ userId, type: "level_up", message: `You reached level ${newLevel}.`, isRead: false });
+    return;
+  }
+  const leveledUp = newLevel > record.currentLevel;
+  await db.update(userLevels).set({ currentLevel: newLevel, totalFollowers: audienceCount, levelUpCount: record.levelUpCount + (leveledUp ? 1 : 0), lastLevelUpAt: leveledUp ? new Date() : record.lastLevelUpAt, updatedAt: new Date() }).where(eq(userLevels.userId, userId));
+  if (leveledUp) await db.insert(notifications).values({ userId, type: "level_up", message: `You reached level ${newLevel}.`, isRead: false });
+}
 
 async function ensureModePreferences(db: Awaited<ReturnType<typeof getRequiredDb>>, userId: number) {
   const existing = await db.select({ mode: userModePreferences.mode })
@@ -86,6 +107,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
       ));
+      await syncLevelForAudience(db, input.targetUserId, followers.length);
       return { success: true, message: "Successfully followed user." };
     }),
 
@@ -102,6 +124,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ followers: followers.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.targetUserId), eq(userModePreferences.mode, "social")
       ));
+      await syncLevelForAudience(db, input.targetUserId, followers.length);
       return { success: true, message: "Successfully unfollowed user." };
     }),
 
@@ -154,6 +177,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
       ));
+      await syncLevelForAudience(db, input.creatorId, count.length);
       await db.insert(notifications).values({
         userId: input.creatorId,
         fromUserId: ctx.user.id,
@@ -175,6 +199,7 @@ export const dualModeRouter = router({
       await db.update(userModePreferences).set({ subscribers: count.length, updatedAt: new Date() }).where(and(
         eq(userModePreferences.userId, input.creatorId), eq(userModePreferences.mode, "creator")
       ));
+      await syncLevelForAudience(db, input.creatorId, count.length);
       return { success: true, message: "Successfully unsubscribed from creator." };
     }),
 

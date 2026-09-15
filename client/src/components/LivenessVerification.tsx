@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { getMotionFeedback, type FaceBounds } from "@/lib/livenessMotion";
+import { getCameraPermissionMessage } from "@/lib/cameraPermission";
 
 type VerificationStep = "instructions" | "recording" | "processing" | "pending" | "success" | "failed";
 const challengeCopy: Record<string, { title: string; detail: string }> = {
@@ -59,8 +60,8 @@ export function LivenessVerification() {
       recorder.ondataavailable = (event) => event.data.size > 0 && chunksRef.current.push(event.data);
       recorder.start();
       setCameraReady(true);
-    } catch {
-      setError("Camera access is needed for human verification. Allow camera permission, then try again.");
+    } catch (cameraError) {
+      setError(getCameraPermissionMessage(cameraError));
       setStep("failed");
     }
   };

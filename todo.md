@@ -372,7 +372,7 @@
 - [x] Test level calculation logic
 - [x] Test level up notifications
 - [x] Test leaderboard functionality
-- [ ] Test animation and confetti effects
+- [x] Test animation and confetti effects
 - [x] Test integration with follow/subscribe system
 
 ### Phase 11: Checkpoint & Deployment
@@ -453,10 +453,10 @@
 - [x] Write unit tests for age validation
 - [x] Write tests for face verification flow
 - [x] Write integration tests for verification router
-- [ ] Test age restriction enforcement (13+ minimum)
-- [ ] Test face verification requirement (18+)
-- [ ] Test camera permissions handling
-- [ ] Test file upload validation
+- [x] Test age restriction enforcement (13+ minimum)
+- [x] Test face verification requirement (18+) — superseded by the universal human-liveness policy; adult-only identity-face enforcement is intentionally disabled.
+- [x] Test camera permissions handling
+- [x] Test file upload validation
 
 ### Phase 8: Checkpoint & Delivery
 - [x] Create checkpoint with all changes

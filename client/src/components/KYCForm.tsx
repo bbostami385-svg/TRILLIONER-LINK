@@ -4,11 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, FileCheck2, FileText, Loader2, Sparkles, Upload } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { validateVerificationImage } from "@/lib/verificationValidation";
 
 type DocumentType = "passport" | "driver_license" | "national_id" | "other";
 type SubmissionStep = "form" | "scanning" | "uploading" | "success" | "failed";
 type ImageKind = "front" | "back" | "selfie";
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export function KYCForm() {
   const [step, setStep] = useState<SubmissionStep>("form");
@@ -37,8 +37,8 @@ export function KYCForm() {
     event.target.value = "";
     if (!file) return;
     setError(null);
-    if (!file.type.startsWith("image/")) { setFieldErrors((current) => ({ ...current, [kind]: "Choose a JPG, PNG, or WebP image." })); return; }
-    if (file.size > MAX_IMAGE_BYTES) { setFieldErrors((current) => ({ ...current, [kind]: "Image must be 8 MB or smaller." })); return; }
+    const validationError = validateVerificationImage(file);
+    if (validationError) { setFieldErrors((current) => ({ ...current, [kind]: validationError })); return; }
     setFieldErrors((current) => ({ ...current, [kind]: "" }));
     const reader = new FileReader();
     reader.onerror = () => setFieldErrors((current) => ({ ...current, [kind]: "This image could not be read. Please try another file." }));

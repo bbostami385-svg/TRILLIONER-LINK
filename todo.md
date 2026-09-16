@@ -96,7 +96,7 @@
 - [x] Tests for Stories router (3 tests)
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
-- [ ] Integration tests for all routers
+- [ ] Integration tests for all routers — focused Vitest coverage exists, but true cross-router persistence integration coverage is still required.
 - [x] E2E tests for user flows (Playwright smoke coverage added for mode selection and Firebase signup routing)
 
 ## Advanced Features - Complete
@@ -226,8 +226,8 @@
 
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
-- [ ] Integration tests
-- [ ] E2E tests
+- [ ] Integration tests — focused router tests exist; add true procedure-caller integration coverage before marking complete.
+- [ ] E2E tests — broad authenticated user-flow coverage remains pending; current Playwright checks are smoke tests.
 - [x] Push to GitHub
 - [x] Final checkpoint
 
@@ -938,3 +938,4 @@
 - [x] Fix dual-mode test doubles and add regression coverage for follower/subscriber level synchronization after the new level hook.
 - [x] Add a browser smoke test for the public platform-mode selection screen and Firebase login entry path.
 - [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey; current mode/signup checks remain smoke coverage only.
+- [x] Add root app-router integration coverage for a protected recommendation interaction.

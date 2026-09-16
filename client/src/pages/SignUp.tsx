@@ -6,7 +6,7 @@ import { Users, Sparkles, Shield, Zap } from "lucide-react";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
-  const handleSignUp = () => setLocation("/login");
+  const handleSignUp = () => setLocation("/login?returnTo=/verify");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">

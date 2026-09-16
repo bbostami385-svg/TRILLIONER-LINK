@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Play, Radio, MessageCircle, Share2, Heart } from "lucide-react";
+import { HlsVideoPlayer } from "@/components/HlsVideoPlayer";
 import "./LiveStreaming.css";
 
 export default function LiveStreaming() {
@@ -150,8 +151,7 @@ export default function LiveStreaming() {
           {selectedStream ? (
             <div className="video-player">
               <div className="player-placeholder">
-                <Play size={64} />
-                <p>Video Stream: {selectedStream.title}</p>
+                <HlsVideoPlayer src={selectedStream.hlsUrl} poster={selectedStream.thumbnail} title={selectedStream.title} />
                 <div className="stream-info">
                   <span className="live-badge">● LIVE</span>
                   <span className="viewers">{selectedStream.viewerCount} watching</span>

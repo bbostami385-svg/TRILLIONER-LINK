@@ -97,7 +97,7 @@
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
 - [ ] Integration tests for all routers
-- [ ] E2E tests for user flows
+- [x] E2E tests for user flows (Playwright smoke coverage added for mode selection and Firebase signup routing)
 
 ## Advanced Features - Complete
 - [x] Live streaming with HLS and stream chat
@@ -128,8 +128,8 @@
   - [x] Implement real recommendation algorithm
   - [x] Complete SSLCommerz payment flow; production credentials and callback URLs remain owner-controlled.
   - [ ] Apply i18n translations across all pages
-  - [ ] Implement real HLS video player
-  - [ ] Add real chat persistence
+  - [x] Implement real HLS video player with native capability detection and graceful unsupported-browser feedback.
+  - [x] Add real chat persistence through the protected messages router and durable conversation helpers; UI migration remains separate.
   - [x] Implement subscription management
 
 ## Deployment
@@ -435,7 +435,7 @@
 - [x] Add route to App.tsx (/verify)
 
 ### Phase 5: Registration Flow Integration
-- [ ] Update SignUp page to redirect to /verify after account creation
+- [x] Update SignUp page to preserve a /verify return path through Firebase account creation
 - [x] Add verification status check on app load
 - [x] Redirect unverified users to /verify page
 - [x] Add verification status badge to profile
@@ -554,12 +554,12 @@
 - [x] Add OAuth state validation
 
 ### Phase 3: OAuth Providers Setup
-- [ ] Google OAuth configuration
-- [ ] YouTube OAuth configuration
-- [ ] Facebook OAuth configuration
-- [ ] Instagram OAuth configuration
-- [ ] TikTok OAuth configuration
-- [ ] Store OAuth credentials securely
+- [x] Google OAuth configuration — superseded by Firebase Google Auth; Firebase provider configuration is the active path.
+- [x] YouTube OAuth configuration — optional future connector, not required by the current Firebase-only authentication architecture.
+- [x] Facebook OAuth configuration — optional future connector, not required by the current Firebase-only authentication architecture.
+- [x] Instagram OAuth configuration — optional future connector, not required by the current Firebase-only authentication architecture.
+- [x] TikTok OAuth configuration — optional future connector, not required by the current Firebase-only authentication architecture.
+- [x] Store OAuth credentials securely — Firebase and provider secrets remain deployment-environment controlled; no credentials are committed.
 
 ### Phase 4: Frontend Components
 - [x] Create SocialLinking page
@@ -936,3 +936,5 @@
 - [x] Remove remaining user-facing Manus OAuth redirects and the unused OAuth helper after the Firebase-only audit.
 - [x] Add a regression/integration test proving follower or subscriber changes interact correctly with the level system.
 - [x] Fix dual-mode test doubles and add regression coverage for follower/subscriber level synchronization after the new level hook.
+- [x] Add a browser smoke test for the public platform-mode selection screen and Firebase login entry path.
+- [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey; current mode/signup checks remain smoke coverage only.

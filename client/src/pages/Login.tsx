@@ -289,7 +289,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const postAuthPath = useMemo(() => {
+    const query = location.split("?")[1] ?? "";
+    const requested = new URLSearchParams(query).get("returnTo");
+    return requested === "/verify" ? requested : "/feed";
+  }, [location]);
   const exchangeFirebaseToken = trpc.auth.exchangeFirebaseToken.useMutation();
   const login = async (loginEmail: string, loginPassword: string) => {
     if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Add the VITE_FIREBASE_* variables in Vercel or Render, then try again.");
@@ -337,7 +342,7 @@ export default function Login() {
       }
       
       showToastNotification("Login successful! Redirecting...", "success");
-      setTimeout(() => navigate("/feed"), 1000);
+      setTimeout(() => navigate(postAuthPath), 1000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Login failed";
       setError(errorMessage);
@@ -357,7 +362,7 @@ export default function Login() {
       const credential = await createFirebaseAccount(email, password);
       await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
       showToastNotification("Account created successfully! Redirecting...", "success");
-      setTimeout(() => navigate("/feed"), 1000);
+      setTimeout(() => navigate(postAuthPath), 1000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signup failed";
       setError(errorMessage);
@@ -375,7 +380,7 @@ export default function Login() {
       const credential = await signInWithGoogle();
       await exchangeFirebaseToken.mutateAsync({ idToken: await credential.user.getIdToken() });
       showToastNotification("Google sign-in successful! Redirecting...", "success");
-      setTimeout(() => navigate("/feed"), 500);
+      setTimeout(() => navigate(postAuthPath), 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Google sign-in failed";
       setError(errorMessage);

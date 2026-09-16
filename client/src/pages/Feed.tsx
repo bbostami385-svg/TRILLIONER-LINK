@@ -33,17 +33,68 @@ export default function Feed() {
     },
   });
 
-  // Like post mutation
+  const updateLikeCache = (postId: number, delta: number) => {
+    utils.feed.getFeed.setData({ limit: 20, offset: 0 }, (current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        posts: current.posts.map((post) => post.id === postId ? { ...post, likes: Math.max(0, post.likes + delta) } : post),
+      };
+    });
+  };
+
+  // Like/unlike mutations update the visible list immediately and roll back if the server rejects.
   const likePostMutation = trpc.feed.likePost.useMutation({
-    onSuccess: () => {
-      utils.feed.getFeed.invalidate();
+    onMutate: async ({ postId }) => {
+      await utils.feed.getFeed.cancel({ limit: 20, offset: 0 });
+      const previous = utils.feed.getFeed.getData({ limit: 20, offset: 0 });
+      updateLikeCache(postId, 1);
+      return { previous };
     },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.feed.getFeed.setData({ limit: 20, offset: 0 }, context.previous);
+      toast.error("Could not like this post. Please try again.");
+    },
+    onSettled: () => { void utils.feed.getFeed.invalidate({ limit: 20, offset: 0 }); },
   });
 
-  // Unlike post mutation
-  const unlikePostMutation = trpc.feed.unlikePost.useMutation({ onSuccess: () => { utils.feed.getFeed.invalidate(); } });
-  const savePostMutation = trpc.collections.saveItem.useMutation();
-  const removeSavedItemMutation = trpc.collections.removeItem.useMutation();
+  const unlikePostMutation = trpc.feed.unlikePost.useMutation({
+    onMutate: async ({ postId }) => {
+      await utils.feed.getFeed.cancel({ limit: 20, offset: 0 });
+      const previous = utils.feed.getFeed.getData({ limit: 20, offset: 0 });
+      updateLikeCache(postId, -1);
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.feed.getFeed.setData({ limit: 20, offset: 0 }, context.previous);
+      toast.error("Could not remove your like. Please try again.");
+    },
+    onSettled: () => { void utils.feed.getFeed.invalidate({ limit: 20, offset: 0 }); },
+  });
+  const savePostMutation = trpc.collections.saveItem.useMutation({
+    onMutate: async ({ collectionId, postId }) => {
+      const input = { collectionId };
+      await utils.collections.getCollectionItems.cancel(input);
+      const previous = utils.collections.getCollectionItems.getData(input);
+      const optimisticItem = { id: -Date.now(), collectionId, postId: postId ?? null, videoId: null, reelId: null, savedAt: new Date() };
+      utils.collections.getCollectionItems.setData(input, (current) => current ? [...current, optimisticItem] : [optimisticItem]);
+      return { previous, input };
+    },
+    onError: (_error, _input, context) => { if (context?.previous) utils.collections.getCollectionItems.setData(context.input, context.previous); },
+    onSettled: (_data, _error, input) => { void utils.collections.getCollectionItems.invalidate({ collectionId: input.collectionId }); },
+  });
+  const removeSavedItemMutation = trpc.collections.removeItem.useMutation({
+    onMutate: async ({ itemId }) => {
+      if (!activeCollectionId) return undefined;
+      const input = { collectionId: activeCollectionId };
+      await utils.collections.getCollectionItems.cancel(input);
+      const previous = utils.collections.getCollectionItems.getData(input);
+      utils.collections.getCollectionItems.setData(input, (current) => current?.filter((item) => item.id !== itemId));
+      return { previous, input };
+    },
+    onError: (_error, _input, context) => { if (context?.previous) utils.collections.getCollectionItems.setData(context.input, context.previous); },
+    onSettled: () => { if (activeCollectionId) void utils.collections.getCollectionItems.invalidate({ collectionId: activeCollectionId }); },
+  });
 
 
 
@@ -83,7 +134,6 @@ export default function Feed() {
     try {
       if (existing) { await removeSavedItemMutation.mutateAsync({ itemId: existing.id }); toast.success("Post removed from your collection."); }
       else { const result = await savePostMutation.mutateAsync({ collectionId: activeCollectionId, postId }); toast.success(result.duplicate ? "Post is already saved in this collection." : "Post saved to your collection."); }
-      await utils.collections.getCollectionItems.invalidate({ collectionId: activeCollectionId });
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update the saved post."); }
   };
 

@@ -21,9 +21,29 @@ export default function Notifications() {
   const { isAuthenticated } = useAuth();
   const [category, setCategory] = useState<Category>("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const query = trpc.notifications.getBellFeed.useQuery({ limit: 30, category }, { enabled: isAuthenticated, refetchInterval: 15_000, staleTime: 10_000 });
-  const markRead = trpc.notifications.markAsRead.useMutation({ onSuccess: () => void query.refetch() });
-  const markAll = trpc.notifications.markAllAsRead.useMutation({ onSuccess: () => void query.refetch() });
+  const utils = trpc.useUtils();
+  const feedInput = { limit: 30, category } as const;
+  const query = trpc.notifications.getBellFeed.useQuery(feedInput, { enabled: isAuthenticated, refetchInterval: 15_000, staleTime: 10_000 });
+  const markRead = trpc.notifications.markAsRead.useMutation({
+    onMutate: async ({ notificationId }) => {
+      await utils.notifications.getBellFeed.cancel(feedInput);
+      const previous = utils.notifications.getBellFeed.getData(feedInput);
+      utils.notifications.getBellFeed.setData(feedInput, (current) => current?.map((item) => item.id === notificationId ? { ...item, isRead: true } : item));
+      return { previous };
+    },
+    onError: (_error, _input, context) => { if (context?.previous) utils.notifications.getBellFeed.setData(feedInput, context.previous); },
+    onSettled: () => { void utils.notifications.getBellFeed.invalidate(feedInput); },
+  });
+  const markAll = trpc.notifications.markAllAsRead.useMutation({
+    onMutate: async () => {
+      await utils.notifications.getBellFeed.cancel(feedInput);
+      const previous = utils.notifications.getBellFeed.getData(feedInput);
+      utils.notifications.getBellFeed.setData(feedInput, (current) => current?.map((item) => ({ ...item, isRead: true })));
+      return { previous };
+    },
+    onError: (_error, _input, context) => { if (context?.previous) utils.notifications.getBellFeed.setData(feedInput, context.previous); },
+    onSettled: () => { void utils.notifications.getBellFeed.invalidate(feedInput); },
+  });
   if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#080b14] p-6 text-white"><Card className="border-white/10 bg-white/5 p-8 text-center"><h1 className="text-2xl font-bold">Sign in to view notifications</h1></Card></main>;
   const all = query.data ?? [];
   const list = unreadOnly ? all.filter((item) => !item.isRead) : all;

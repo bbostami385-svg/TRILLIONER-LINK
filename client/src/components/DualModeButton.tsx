@@ -20,22 +20,67 @@ export const DualModeButton: React.FC<DualModeButtonProps> = ({
   onActionComplete,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const utils = trpc.useUtils();
 
   // Social Mode queries/mutations
   const { data: isFollowingData } = trpc.dualMode.isFollowing.useQuery(
     { targetUserId },
     { enabled: currentMode === "social" }
   );
-  const followMutation = trpc.dualMode.followUser.useMutation();
-  const unfollowMutation = trpc.dualMode.unfollowUser.useMutation();
+  const followMutation = trpc.dualMode.followUser.useMutation({
+    onMutate: async () => {
+      await utils.dualMode.isFollowing.cancel({ targetUserId });
+      const previous = utils.dualMode.isFollowing.getData({ targetUserId });
+      utils.dualMode.isFollowing.setData({ targetUserId }, { isFollowing: true });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.dualMode.isFollowing.setData({ targetUserId }, context.previous);
+    },
+    onSettled: () => { void utils.dualMode.isFollowing.invalidate({ targetUserId }); },
+  });
+  const unfollowMutation = trpc.dualMode.unfollowUser.useMutation({
+    onMutate: async () => {
+      await utils.dualMode.isFollowing.cancel({ targetUserId });
+      const previous = utils.dualMode.isFollowing.getData({ targetUserId });
+      utils.dualMode.isFollowing.setData({ targetUserId }, { isFollowing: false });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.dualMode.isFollowing.setData({ targetUserId }, context.previous);
+    },
+    onSettled: () => { void utils.dualMode.isFollowing.invalidate({ targetUserId }); },
+  });
 
   // Creator Mode queries/mutations
   const { data: isSubscribedData } = trpc.dualMode.isSubscribed.useQuery(
     { creatorId: targetUserId },
     { enabled: currentMode === "creator" }
   );
-  const subscribeMutation = trpc.dualMode.subscribeToCreator.useMutation();
-  const unsubscribeMutation = trpc.dualMode.unsubscribeFromCreator.useMutation();
+  const subscribeMutation = trpc.dualMode.subscribeToCreator.useMutation({
+    onMutate: async () => {
+      await utils.dualMode.isSubscribed.cancel({ creatorId: targetUserId });
+      const previous = utils.dualMode.isSubscribed.getData({ creatorId: targetUserId });
+      utils.dualMode.isSubscribed.setData({ creatorId: targetUserId }, { isSubscribed: true, tier: previous?.tier ?? "free" });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.dualMode.isSubscribed.setData({ creatorId: targetUserId }, context.previous);
+    },
+    onSettled: () => { void utils.dualMode.isSubscribed.invalidate({ creatorId: targetUserId }); },
+  });
+  const unsubscribeMutation = trpc.dualMode.unsubscribeFromCreator.useMutation({
+    onMutate: async () => {
+      await utils.dualMode.isSubscribed.cancel({ creatorId: targetUserId });
+      const previous = utils.dualMode.isSubscribed.getData({ creatorId: targetUserId });
+      utils.dualMode.isSubscribed.setData({ creatorId: targetUserId }, { isSubscribed: false, tier: previous?.tier ?? "free" });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) utils.dualMode.isSubscribed.setData({ creatorId: targetUserId }, context.previous);
+    },
+    onSettled: () => { void utils.dualMode.isSubscribed.invalidate({ creatorId: targetUserId }); },
+  });
 
   const isFollowing = isFollowingData?.isFollowing || false;
   const isSubscribed = isSubscribedData?.isSubscribed || false;

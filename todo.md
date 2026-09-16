@@ -251,7 +251,7 @@
 - [x] Add proper error handling to all mutation pages
 - [x] Implement cache invalidation on successful mutations
 - [x] Add loading states and success/error toasts
-- [ ] Implement optimistic updates for list operations
+- [ ] Implement optimistic updates for list operations — feed likes and audience actions are complete; save/remove and notification read lists remain pending.
 
 
 ## Dual Mode System (Follow & Subscribe) - NEW
@@ -939,3 +939,6 @@
 - [x] Add a browser smoke test for the public platform-mode selection screen and Firebase login entry path.
 - [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey; current mode/signup checks remain smoke coverage only.
 - [x] Add root app-router integration coverage for a protected recommendation interaction.
+- [x] Extend optimistic updates to follow/unfollow and subscribe/unsubscribe flows with rollback in the shared DualModeButton.
+- [x] Extend optimistic updates to visible save/remove and notification read list mutations where applicable — Feed collections and Notifications now update with rollback and server reconciliation.
+- [ ] Add focused regression tests for optimistic cache updates and rollback behavior.

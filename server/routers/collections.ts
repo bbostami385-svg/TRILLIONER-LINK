@@ -73,8 +73,8 @@ export const collectionsRouter = router({
         const duplicate = await db.select({ id: savedItems.id }).from(savedItems).where(and(eq(savedItems.collectionId, input.collectionId), eq(savedItems.postId, input.postId))).limit(1);
         if (duplicate.length > 0) return { success: true, duplicate: true, itemId: duplicate[0].id };
       }
-      await db.insert(savedItems).values({ collectionId: input.collectionId, postId: input.postId, videoId: input.videoId, reelId: input.reelId });
-      return { success: true, duplicate: false };
+      const result = await db.insert(savedItems).values({ collectionId: input.collectionId, postId: input.postId, videoId: input.videoId, reelId: input.reelId });
+      return { success: true, duplicate: false, itemId: Number(result[0].insertId) };
     }),
 
   // Remove item from collection

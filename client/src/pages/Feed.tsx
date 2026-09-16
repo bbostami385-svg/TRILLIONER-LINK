@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getModerationToastMessage } from "@/lib/moderationFeedback";
+import { appendListItem, removeListItem } from "@/lib/optimisticCache";
 import { ModerationAppealDialog } from "@/components/ModerationAppealDialog";
 import { Loader } from "lucide-react";
 import "./Feed.css";
@@ -77,7 +78,7 @@ export default function Feed() {
       await utils.collections.getCollectionItems.cancel(input);
       const previous = utils.collections.getCollectionItems.getData(input);
       const optimisticItem = { id: -Date.now(), collectionId, postId: postId ?? null, videoId: null, reelId: null, savedAt: new Date() };
-      utils.collections.getCollectionItems.setData(input, (current) => current ? [...current, optimisticItem] : [optimisticItem]);
+      utils.collections.getCollectionItems.setData(input, (current) => appendListItem(current, optimisticItem));
       return { previous, input };
     },
     onError: (_error, _input, context) => { if (context?.previous) utils.collections.getCollectionItems.setData(context.input, context.previous); },
@@ -89,7 +90,7 @@ export default function Feed() {
       const input = { collectionId: activeCollectionId };
       await utils.collections.getCollectionItems.cancel(input);
       const previous = utils.collections.getCollectionItems.getData(input);
-      utils.collections.getCollectionItems.setData(input, (current) => current?.filter((item) => item.id !== itemId));
+      utils.collections.getCollectionItems.setData(input, (current) => removeListItem(current, itemId));
       return { previous, input };
     },
     onError: (_error, _input, context) => { if (context?.previous) utils.collections.getCollectionItems.setData(context.input, context.previous); },

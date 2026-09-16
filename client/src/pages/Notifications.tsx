@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import "./Notifications.css";
+import { patchListItem } from "@/lib/optimisticCache";
 
 const categories = [
   { value: "all", label: "All" },
@@ -28,7 +29,7 @@ export default function Notifications() {
     onMutate: async ({ notificationId }) => {
       await utils.notifications.getBellFeed.cancel(feedInput);
       const previous = utils.notifications.getBellFeed.getData(feedInput);
-      utils.notifications.getBellFeed.setData(feedInput, (current) => current?.map((item) => item.id === notificationId ? { ...item, isRead: true } : item));
+      utils.notifications.getBellFeed.setData(feedInput, (current) => patchListItem(current, notificationId, { isRead: true }));
       return { previous };
     },
     onError: (_error, _input, context) => { if (context?.previous) utils.notifications.getBellFeed.setData(feedInput, context.previous); },

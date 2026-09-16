@@ -227,7 +227,7 @@
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
 - [ ] Integration tests — focused router tests exist; add true procedure-caller integration coverage before marking complete.
-- [ ] E2E tests — broad authenticated user-flow coverage remains pending; current Playwright checks are smoke tests.
+- [ ] E2E tests — public and mocked authenticated Playwright smoke coverage exists; true backend-authenticated persistence coverage remains pending.
 - [x] Push to GitHub
 - [x] Final checkpoint
 
@@ -937,8 +937,8 @@
 - [x] Add a regression/integration test proving follower or subscriber changes interact correctly with the level system.
 - [x] Fix dual-mode test doubles and add regression coverage for follower/subscriber level synchronization after the new level hook.
 - [x] Add a browser smoke test for the public platform-mode selection screen and Firebase login entry path.
-- [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey; current mode/signup checks remain smoke coverage only.
+- [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey against real backend persistence; current five-test suite is smoke/mocked coverage.
 - [x] Add root app-router integration coverage for a protected recommendation interaction.
 - [x] Extend optimistic updates to follow/unfollow and subscribe/unsubscribe flows with rollback in the shared DualModeButton.
 - [x] Extend optimistic updates to visible save/remove and notification read list mutations where applicable — Feed collections and Notifications now update with rollback and server reconciliation.
-- [ ] Add focused regression tests for optimistic cache updates and rollback behavior.
+- [x] Add focused regression tests for optimistic cache updates and rollback behavior using shared patch, append, remove, and snapshot helpers.

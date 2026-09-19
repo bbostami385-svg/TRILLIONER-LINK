@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import en from "../locales/en.json";
+import bn from "../locales/bn.json";
+import hi from "../locales/hi.json";
 
 describe("useTranslation Hook", () => {
   it("should have translation functions", () => {
@@ -18,6 +21,23 @@ describe("useTranslation Hook", () => {
     expect(languages).toContain("en");
     expect(languages).toContain("bn");
     expect(languages).toContain("hi");
+  });
+
+  it("keeps the Home page translation contract complete in every supported language", () => {
+    const homeKeys = [
+      "discoverNow", "trendingTitle", "trendingDescription", "viewAll", "views",
+      "creatorVideo", "watched", "trendingEmpty", "heroTitle", "heroDescription",
+      "getStarted", "signIn", "powerfulFeatures", "connect", "connectDescription",
+      "share", "shareDescription", "create", "createDescription", "readyToJoin",
+      "joinDescription", "createAccount", "welcomeUser",
+    ] as const;
+
+    for (const locale of [en, bn, hi]) {
+      for (const key of homeKeys) {
+        expect(locale.home[key], `missing home.${key}`).toBeTruthy();
+      }
+      expect(locale.common.appName).toBe("TRILLIONER LINK");
+    }
   });
 
   it("should format dates correctly", () => {

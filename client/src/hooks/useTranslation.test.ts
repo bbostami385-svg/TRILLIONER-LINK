@@ -50,5 +50,19 @@ describe("useTranslation Hook", () => {
     const num = 1234.56;
     expect(num).toBeGreaterThan(1000);
     expect(num).toBeLessThan(2000);
+    });
   });
-});
+
+  it("keeps dashboard and notification copy available in every supported language", () => {
+    const contracts = {
+      creatorDashboard: ["privateTitle", "title", "description", "exportData", "historicalSnapshots", "customDateRange", "subscribers", "views", "likes", "engagementRate"],
+      adminVerification: ["loading", "signInRequired", "adminRequired", "trustSafety", "title", "description", "exit", "humanChecks", "kycReviews", "humanVerification", "kycDocuments"],
+      notifications: ["all", "subscriptions", "appeals", "verification", "social", "title", "refreshHint", "markAllRead", "close", "now", "empty", "viewAll"],
+    } as const;
+
+    for (const locale of [en, bn, hi]) {
+      for (const [namespace, keys] of Object.entries(contracts)) {
+        for (const key of keys) expect(locale[namespace][key], `missing ${namespace}.${key}`).toBeTruthy();
+      }
+    }
+  });

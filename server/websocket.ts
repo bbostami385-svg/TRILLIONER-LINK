@@ -12,6 +12,7 @@ interface ConnectedUser {
 }
 
 const connectedUsers = new Map<number, ConnectedUser>();
+const familyRoomMembers = new Map<string, Set<string>>();
 let activeIo: Server | null = null;
 
 export function setupWebSocket(app: express.Application) {
@@ -137,6 +138,33 @@ export function setupWebSocket(app: express.Application) {
       }
     });
 
+    // Family meetings keep audio/video in the browser and use Socket.IO only for WebRTC signaling.
+    socket.on("family:join", (data: { roomCode?: string }) => {
+      const roomCode = typeof data?.roomCode === "string" ? data.roomCode.trim() : "";
+      if (!roomCode || roomCode.length > 96) return;
+      const peers = familyRoomMembers.get(roomCode) ?? new Set<string>();
+      socket.emit("family:participants", { roomCode, peers: Array.from(peers) });
+      peers.add(socket.id);
+      familyRoomMembers.set(roomCode, peers);
+      socket.join(`family:${roomCode}`);
+      socket.to(`family:${roomCode}`).emit("family:peer-joined", { roomCode, peerId: socket.id });
+    });
+
+    socket.on("family:signal", (data: { roomCode?: string; target?: string; signal?: unknown }) => {
+      const roomCode = typeof data?.roomCode === "string" ? data.roomCode.trim() : "";
+      const target = typeof data?.target === "string" ? data.target : "";
+      if (!roomCode || !target || !data.signal || !familyRoomMembers.get(roomCode)?.has(socket.id) || !familyRoomMembers.get(roomCode)?.has(target)) return;
+      io.to(target).emit("family:signal", { roomCode, peerId: socket.id, signal: data.signal });
+    });
+
+    socket.on("family:leave", (data: { roomCode?: string }) => {
+      const roomCode = typeof data?.roomCode === "string" ? data.roomCode.trim() : "";
+      if (!roomCode) return;
+      familyRoomMembers.get(roomCode)?.delete(socket.id);
+      socket.leave(`family:${roomCode}`);
+      socket.to(`family:${roomCode}`).emit("family:peer-left", { roomCode, peerId: socket.id });
+    });
+
     // User disconnects
     socket.on("disconnect", () => {
       let disconnectedUserId: number | null = null;
@@ -151,6 +179,12 @@ export function setupWebSocket(app: express.Application) {
       if (disconnectedUserId) {
         io.emit("user:offline", { userId: disconnectedUserId, status: "offline" });
       }
+
+      familyRoomMembers.forEach((members, roomCode) => {
+        if (!members.delete(socket.id)) return;
+        if (members.size === 0) familyRoomMembers.delete(roomCode);
+        else io.to(`family:${roomCode}`).emit("family:peer-left", { roomCode, peerId: socket.id });
+      });
 
       console.log(`User disconnected: ${socket.id}`);
     });

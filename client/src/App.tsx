@@ -53,6 +53,8 @@ import WatchHistory from "./pages/WatchHistory";
 import CreatorPlaylists from "./pages/CreatorPlaylists";
 import SubscriptionCollections from "./pages/SubscriptionCollections";
 import PublicPlaylist from "./pages/PublicPlaylist";
+import FamilyCircles from "./pages/FamilyCircles";
+import FamilyMeeting from "./pages/FamilyMeeting";
 import { VerificationGate } from "./components/VerificationGate";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -87,6 +89,8 @@ function Router() {
       <Route path="/watch-history" component={WatchHistory} />
       <Route path="/creator-playlists" component={CreatorPlaylists} />
       <Route path="/subscription-topics" component={SubscriptionCollections} />
+      <Route path="/family" component={FamilyCircles} />
+      <Route path="/family-meeting/:meetingId" component={FamilyMeeting} />
       <Route path="/playlist/:playlistId" component={PublicPlaylist} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/marketplace"} component={Marketplace} />

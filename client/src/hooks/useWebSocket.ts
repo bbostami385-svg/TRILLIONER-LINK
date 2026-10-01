@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface UseWebSocketOptions {
@@ -11,6 +11,7 @@ interface UseWebSocketOptions {
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { url = import.meta.env.VITE_API_URL || "http://localhost:3000", autoConnect = true, userId, onKycStatus } = options;
   const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
@@ -30,6 +31,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       socketRef.current.on("connect", () => {
         console.log("WebSocket connected");
+        setIsConnected(true);
         reconnectAttempts.current = 0;
         if (userId) socketRef.current?.emit("user:join", userId);
       });
@@ -38,6 +40,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       socketRef.current.on("disconnect", () => {
         console.log("WebSocket disconnected");
+        setIsConnected(false);
       });
 
       socketRef.current.on("error", (error: any) => {
@@ -105,8 +108,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const stopTyping = useCallback((conversationId: number) => {
     emit("typing:end", conversationId);
   }, [emit]);
-
-  const isConnected = socketRef.current?.connected ?? false;
 
   return {
     socket: socketRef.current,

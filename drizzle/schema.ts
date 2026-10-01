@@ -487,6 +487,44 @@ export const groupMembers = mysqlTable("groupMembers", {
 export type GroupMember = typeof groupMembers.$inferSelect;
 export type InsertGroupMember = typeof groupMembers.$inferInsert;
 
+/** Invite-only private family spaces and scheduled browser meetings. */
+export const familyCircles = mysqlTable("familyCircles", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: varchar("description", { length: 500 }),
+  privacy: mysqlEnum("privacy", ["invite_only"]).default("invite_only").notNull(),
+  maxMembers: int("maxMembers").default(20).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const familyCircleMembers = mysqlTable("familyCircleMembers", {
+  id: int("id").autoincrement().primaryKey(),
+  circleId: int("circleId").notNull().references(() => familyCircles.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  invitedById: int("invitedById").notNull().references(() => users.id),
+  role: mysqlEnum("role", ["owner", "member"]).default("member").notNull(),
+  status: mysqlEnum("status", ["active", "revoked"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({ uniqueMember: uniqueIndex("unique_family_circle_member").on(table.circleId, table.userId) }));
+
+export const familyMeetings = mysqlTable("familyMeetings", {
+  id: int("id").autoincrement().primaryKey(),
+  circleId: int("circleId").notNull().references(() => familyCircles.id, { onDelete: "cascade" }),
+  createdById: int("createdById").notNull().references(() => users.id),
+  title: varchar("title", { length: 160 }).notNull(),
+  scheduledAt: timestamp("scheduledAt").notNull(),
+  roomCode: varchar("roomCode", { length: 96 }).notNull().unique(),
+  status: mysqlEnum("status", ["scheduled", "live", "ended", "cancelled"]).default("scheduled").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FamilyCircle = typeof familyCircles.$inferSelect;
+export type FamilyCircleMember = typeof familyCircleMembers.$inferSelect;
+export type FamilyMeeting = typeof familyMeetings.$inferSelect;
+
 /**
  * Pages/Channels table
  */

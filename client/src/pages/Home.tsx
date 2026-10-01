@@ -42,6 +42,9 @@ export default function Home() {
             {isAuthenticated && user ? (
               <>
                 <span className="text-sm text-muted-foreground">Welcome, {user.email}</span>
+                <Button variant="ghost" size="sm" onClick={() => setLocation("/family")}>
+                  Family Circles
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>

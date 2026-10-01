@@ -95,6 +95,10 @@
     "waiting": "Waiting for family members to join…",
     "leave": "Leave meeting",
     "mediaError": "Camera or microphone permission was not granted. You can still join without media.",
-    "noAccess": "You do not have access to this family meeting."
+    "noAccess": "You do not have access to this family meeting.",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "turnCameraOn": "Turn camera on",
+    "turnCameraOff": "Turn camera off"
   }
 }

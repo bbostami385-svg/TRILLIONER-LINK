@@ -8,6 +8,7 @@ import App from "./App";
 import "./index.css";
 
 const queryClient = new QueryClient();
+const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -43,12 +44,21 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: apiBaseUrl ? `${apiBaseUrl}/api/trpc` : "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+        }).then(async (response) => {
+          const contentType = response.headers.get("content-type") ?? "";
+          if (!contentType.includes("application/json") && !contentType.includes("application/octet-stream")) {
+            const body = await response.text();
+            if (body.trimStart().startsWith("<!DOCTYPE html") || body.trimStart().startsWith("<html")) {
+              throw new Error("TRILLIONER LINK backend API is unavailable. Configure VITE_API_URL to your deployed Render server, then redeploy the Vercel frontend.");
+            }
+          }
+          return response;
         });
       },
     }),

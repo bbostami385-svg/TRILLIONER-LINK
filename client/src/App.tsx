@@ -61,6 +61,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { shouldRedirectToWelcome } from "@/lib/modeOnboarding";
 import InstallAppPrompt from "./components/InstallAppPrompt";
+import UpdateAppPrompt from "./components/UpdateAppPrompt";
 import MiniPlayer, { MiniPlayerProvider } from "./components/MiniPlayer";
 import "./App.css";
 
@@ -164,6 +165,7 @@ function App() {
             </ModeSelectionGate>
           </VerificationGate>
           <InstallAppPrompt />
+          <UpdateAppPrompt />
           <Toaster />
           <MiniPlayer />
         </TooltipProvider>

@@ -1,4 +1,4 @@
-const SHELL_CACHE = "trillioner-link-shell-v2";
+const SHELL_CACHE = "trillioner-link-shell-v3";
 const SHELL_ROUTES = ["/", "/videos", "/shorts", "/offline-videos", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -7,6 +7,10 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== SHELL_CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {

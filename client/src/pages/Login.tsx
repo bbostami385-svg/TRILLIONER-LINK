@@ -65,6 +65,18 @@ const validateEmail = (email: string) => {
   return { isValid: true, message: "" };
 };
 
+const getAuthErrorMessage = (error: unknown, fallback: string) => {
+  const raw = error instanceof Error ? error.message : "";
+  if (/unexpected token|not valid json|backend api is unavailable|failed to fetch/i.test(raw)) {
+    return "The TRILLIONER LINK server is not connected to this Vercel page. Set VITE_API_URL to your Render backend URL, then redeploy and try Google again.";
+  }
+  if (/auth\/popup-closed-by-user/i.test(raw)) return "Google sign-in was cancelled.";
+  if (/auth\/popup-blocked/i.test(raw)) return "Your browser blocked the Google sign-in popup. Allow popups for TRILLIONER LINK and try again.";
+  if (/auth\/unauthorized-domain/i.test(raw)) return "This website domain is not authorized in Firebase. Add the Vercel domain under Firebase Authentication → Settings → Authorized domains.";
+  if (/auth\/operation-not-allowed/i.test(raw)) return "Google sign-in is not enabled in Firebase Authentication. Enable the Google provider and try again.";
+  return raw || fallback;
+};
+
 // Loading Spinner Component
 const LoadingSpinner = ({ size = "sm" }: { size?: "sm" | "md" | "lg" }) => {
   const sizeClasses = {
@@ -344,7 +356,7 @@ export default function Login() {
       showToastNotification("Login successful! Redirecting...", "success");
       setTimeout(() => navigate(postAuthPath), 1000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      const errorMessage = getAuthErrorMessage(err, "Login failed");
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {
@@ -364,7 +376,7 @@ export default function Login() {
       showToastNotification("Account created successfully! Redirecting...", "success");
       setTimeout(() => navigate(postAuthPath), 1000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Signup failed";
+      const errorMessage = getAuthErrorMessage(err, "Signup failed");
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {
@@ -382,7 +394,7 @@ export default function Login() {
       showToastNotification("Google sign-in successful! Redirecting...", "success");
       setTimeout(() => navigate(postAuthPath), 500);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Google sign-in failed";
+      const errorMessage = getAuthErrorMessage(err, "Google sign-in failed");
       setError(errorMessage);
       showToastNotification(errorMessage, "error");
     } finally {

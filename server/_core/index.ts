@@ -8,6 +8,12 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { setupWebSocket } from "../websocket";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { getSessionCookieOptions } from "./cookies";
+import { sdk } from "./sdk";
+import { getDb, getUserByOpenId, upsertUser } from "../db";
+import { users } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +43,31 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   registerSocialOAuthRoutes(app);
+  if (process.env.ENABLE_E2E_AUTH_BOOTSTRAP === "1" && process.env.NODE_ENV !== "production") {
+    app.post("/api/e2e/session", async (req, res) => {
+      if (!process.env.E2E_TEST_SECRET || req.header("x-e2e-secret") !== process.env.E2E_TEST_SECRET) {
+        res.status(404).end();
+        return;
+      }
+      const email = typeof req.body?.email === "string" ? req.body.email.trim().slice(0, 190) : "e2e@example.com";
+      const name = typeof req.body?.name === "string" ? req.body.name.trim().slice(0, 120) : "E2E Member";
+      const openId = `e2e:${email.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "member"}`;
+      try {
+        await upsertUser({ openId, name, email, role: "user", loginMethod: "e2e" });
+        const db = await getDb();
+        const user = await getUserByOpenId(openId);
+        if (!db || !user) throw new Error("E2E database is unavailable.");
+        await db.update(users).set({ age: 30, ageVerified: true, livenessVerified: true, livenessVerificationAt: new Date(), faceVerificationRequired: false, faceVerificationStatus: "not_required", accountMode: "social", modeSelected: true }).where(eq(users.id, user.id));
+        const sessionToken = await sdk.signSession({ openId, appId: "e2e", name });
+        const sessionCookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, sessionToken, { ...sessionCookieOptions, sameSite: req.protocol === "https" ? "none" : "lax", maxAge: ONE_YEAR_MS });
+        res.json({ success: true, userId: user.id });
+      } catch (error) {
+        console.error("[E2E] Failed to bootstrap session", error);
+        res.status(503).json({ error: "E2E database is unavailable." });
+      }
+    });
+  }
   // tRPC API
   app.use(
     "/api/trpc",

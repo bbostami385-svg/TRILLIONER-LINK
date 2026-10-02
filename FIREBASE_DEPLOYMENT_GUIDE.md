@@ -39,6 +39,20 @@ Enable **Google** and **Email/Password** under Firebase Console → Authenticati
 
 The code intentionally keeps Firebase configuration optional until these variables are supplied. This prevents a blank screen or an invalid Firebase initialization during development. The browser adapter is in `client/src/lib/firebase.ts`, while the server-only verifier is in `server/firebaseAuth.ts`.
 
+## Vercel frontend with Render backend
+
+If the Vercel deployment serves only the frontend and the Node/tRPC server runs on Render, add this **one additional browser-visible variable** to the Vercel Production and Preview environments:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | The public HTTPS URL of the Render service, without a trailing slash |
+
+The frontend then calls `${VITE_API_URL}/api/trpc`. Without this variable, Vercel may return its HTML application shell for `/api/trpc`, which produces the misleading `Unexpected token '<' ... is not valid JSON` error during Google login. After saving the variable, trigger a new Vercel deployment; refreshing the current deployment is not enough because `VITE_*` values are build-time values. If the same Render service serves both the frontend and API, leave `VITE_API_URL` unset.
+
+## Install and update without Play Store
+
+TRILLIONER LINK is a Progressive Web App. On Android Chrome, open the HTTPS site and choose **Install app** (or browser menu → **Add to Home screen**). A later deployment updates the service worker; the app checks for a new worker and shows an **Update now** button. Tapping it activates the new cache and reloads the latest version. This does not publish the app to Play Store and does not require a native APK.
+
 ## Security boundaries
 
 Never place `FIREBASE_SERVICE_ACCOUNT_BASE64`, a private key, or a service-account JSON document in the browser, `VITE_*` variables, GitHub, or Android client source. Firebase Web API keys and app identifiers are designed to be present in client configuration; authorization rules, Firebase Security Rules, and server-side ID-token verification provide the security boundary.

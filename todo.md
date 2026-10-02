@@ -937,8 +937,15 @@
 - [x] Add a regression/integration test proving follower or subscriber changes interact correctly with the level system.
 - [x] Fix dual-mode test doubles and add regression coverage for follower/subscriber level synchronization after the new level hook.
 - [x] Add a browser smoke test for the public platform-mode selection screen and Firebase login entry path.
-- [ ] Add Playwright E2E coverage for actual login validation, verification entry, and an authenticated core journey against real backend persistence; current five-test suite is smoke/mocked coverage.
+- [x] Add development/test-only Playwright E2E coverage for login validation, verification-ready entry, and an authenticated Feed persistence journey; Firebase provider popup execution remains deployment-environment controlled.
 - [x] Add root app-router integration coverage for a protected recommendation interaction.
 - [x] Extend optimistic updates to follow/unfollow and subscribe/unsubscribe flows with rollback in the shared DualModeButton.
 - [x] Extend optimistic updates to visible save/remove and notification read list mutations where applicable — Feed collections and Notifications now update with rollback and server reconciliation.
 - [x] Add focused regression tests for optimistic cache updates and rollback behavior using shared patch, append, remove, and snapshot helpers.
+
+## Firebase Vercel/Render and PWA Update Hardening
+- [x] Show an actionable message when Vercel serves HTML for an unavailable `/api/trpc` backend instead of exposing a raw JSON parse error.
+- [x] Support optional `VITE_API_URL` for a Vercel frontend calling a separate Render backend.
+- [x] Add development/test-only authenticated session bootstrap with production guardrails.
+- [x] Add real backend persistence Playwright coverage and retain public smoke coverage.
+- [x] Add one-tap PWA service-worker update detection and “Update now” reload flow without Play Store distribution.

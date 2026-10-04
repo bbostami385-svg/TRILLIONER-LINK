@@ -3,12 +3,13 @@ import { Flag, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { CopyrightReportDialog } from "./CopyrightReportDialog";
+import { CaptureProtection } from "./CaptureProtection";
 
 export function VideoProtectionNotice({ videoId }: { videoId: number }) {
   const [reportOpen, setReportOpen] = useState(false);
   const protection = trpc.copyright.getProtection.useQuery({ videoId }, { staleTime: 60_000 });
   const policy = protection.data;
-  return <>
+  return <CaptureProtection>
     <div className="pointer-events-none absolute inset-0 z-[2] select-none" onContextMenu={(event) => event.preventDefault()}>
       {policy?.watermarkEnabled && <div className="absolute inset-0 grid place-items-center -rotate-12 text-center text-lg font-semibold tracking-[0.25em] text-white/20 sm:text-2xl">{policy.watermarkText || "TRILLIONER LINK • ORIGINAL"}</div>}
       <div className="pointer-events-auto absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-xl border border-white/15 bg-black/60 px-3 py-2 text-xs text-white/85 backdrop-blur">
@@ -19,5 +20,5 @@ export function VideoProtectionNotice({ videoId }: { videoId: number }) {
       </div>
     </div>
     <CopyrightReportDialog open={reportOpen} onOpenChange={setReportOpen} targetVideoId={videoId} />
-  </>;
+  </CaptureProtection>;
 }

@@ -147,6 +147,8 @@
 - [x] Add Family Meeting privacy shield for hidden-page exposure, context-menu/copy deterrence, and participant warning.
 - [x] Add policy documentation, authorization tests, additive schema migration, and admin takedown behavior.
 - [x] Document that web/Android cannot guarantee prevention of OS-level screenshots, recordings, or camera capture; use watermarks, access control, detection, and enforcement instead.
+- [x] Research and document Android `FLAG_SECURE`, Android overlay restrictions, iOS capture-status handling, and the native WebView bridge required for black capture frames.
+- [x] Activate the native bridge hook and browser fallback on protected videos and Family Meetings; TypeScript, focused tests, and production build pass.
 
 
 ## Missing Features to Add (Facebook, YouTube, Instagram Comparison)

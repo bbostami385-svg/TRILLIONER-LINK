@@ -49,6 +49,8 @@ If the Vercel deployment serves only the frontend and the Node/tRPC server runs 
 
 The frontend then calls `${VITE_API_URL}/api/trpc`. Without this variable, Vercel may return its HTML application shell for `/api/trpc`, which produces the misleading `Unexpected token '<' ... is not valid JSON` error during Google login. After saving the variable, trigger a new Vercel deployment; refreshing the current deployment is not enough because `VITE_*` values are build-time values. If the same Render service serves both the frontend and API, leave `VITE_API_URL` unset.
 
+Before testing Google Sign-in, open `${VITE_API_URL}/api/health`. It must return JSON containing `"ok":true`. If it returns an HTML page, the Vercel variable points to the wrong service or the Render service is not running.
+
 ## Install and update without Play Store
 
 TRILLIONER LINK is a Progressive Web App. On Android Chrome, open the HTTPS site and choose **Install app** (or browser menu → **Add to Home screen**). A later deployment updates the service worker; the app checks for a new worker and shows an **Update now** button. Tapping it activates the new cache and reloads the latest version. This does not publish the app to Play Store and does not require a native APK.

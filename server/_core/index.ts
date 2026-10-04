@@ -43,6 +43,9 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   registerSocialOAuthRoutes(app);
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true, service: "trillioner-link-api", environment: process.env.NODE_ENV ?? "development", timestamp: new Date().toISOString() });
+  });
   if (process.env.ENABLE_E2E_AUTH_BOOTSTRAP === "1" && process.env.NODE_ENV !== "production") {
     app.post("/api/e2e/session", async (req, res) => {
       if (!process.env.E2E_TEST_SECRET || req.header("x-e2e-secret") !== process.env.E2E_TEST_SECRET) {

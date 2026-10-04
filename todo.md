@@ -949,3 +949,5 @@
 - [x] Add development/test-only authenticated session bootstrap with production guardrails.
 - [x] Add real backend persistence Playwright coverage and retain public smoke coverage.
 - [x] Add one-tap PWA service-worker update detection and “Update now” reload flow without Play Store distribution.
+- [x] Add a non-sensitive `/api/health` endpoint for Vercel-to-Render connectivity checks before Firebase login.
+- [x] Document prioritized next differentiators: Family Circle roles/agenda/safety, topic shelves, explainable recommendations, privacy center, moderation transparency, and offline cache controls.

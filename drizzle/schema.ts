@@ -1140,6 +1140,48 @@ export const moderationReports = mysqlTable("moderationReports", {
 export type ModerationReport = typeof moderationReports.$inferSelect;
 export type InsertModerationReport = typeof moderationReports.$inferInsert;
 
+/** Creator-controlled protection policy for original video works. */
+export const videoProtectionSettings = mysqlTable("videoProtectionSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  videoId: int("videoId").notNull().references(() => videos.id, { onDelete: "cascade" }),
+  ownerId: int("ownerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  allowDownload: boolean("allowDownload").default(false).notNull(),
+  watermarkEnabled: boolean("watermarkEnabled").default(true).notNull(),
+  watermarkText: varchar("watermarkText", { length: 160 }),
+  screenshotRecordingNotice: boolean("screenshotRecordingNotice").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  videoUnique: uniqueIndex("video_protection_video_unique").on(table.videoId),
+  ownerIdx: index("video_protection_owner_idx").on(table.ownerId),
+}));
+export type VideoProtectionSettings = typeof videoProtectionSettings.$inferSelect;
+export type InsertVideoProtectionSettings = typeof videoProtectionSettings.$inferInsert;
+
+/** Copyright, re-upload, screenshot, and recording complaints. */
+export const copyrightClaims = mysqlTable("copyrightClaims", {
+  id: int("id").autoincrement().primaryKey(),
+  claimantId: int("claimantId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetVideoId: int("targetVideoId").references(() => videos.id, { onDelete: "set null" }),
+  claimType: mysqlEnum("claimType", ["copyright", "unauthorized_reupload", "privacy_screenshot", "privacy_recording", "privacy_call_capture"]).notNull(),
+  originalWorkUrl: text("originalWorkUrl"),
+  evidenceUrl: text("evidenceUrl"),
+  description: varchar("description", { length: 4000 }).notNull(),
+  contactEmail: varchar("contactEmail", { length: 320 }).notNull(),
+  attestedOwnership: boolean("attestedOwnership").default(false).notNull(),
+  status: mysqlEnum("status", ["pending", "under_review", "actioned", "rejected"]).default("pending").notNull(),
+  reviewerId: int("reviewerId").references(() => users.id, { onDelete: "set null" }),
+  resolutionNote: varchar("resolutionNote", { length: 2000 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  resolvedAt: timestamp("resolvedAt"),
+}, (table) => ({
+  statusDateIdx: index("copyright_claims_status_date_idx").on(table.status, table.createdAt),
+  targetIdx: index("copyright_claims_target_idx").on(table.targetVideoId),
+  claimantIdx: index("copyright_claims_claimant_idx").on(table.claimantId),
+}));
+export type CopyrightClaim = typeof copyrightClaims.$inferSelect;
+export type InsertCopyrightClaim = typeof copyrightClaims.$inferInsert;
+
 /** User-level block relationships. */
 export const blockedUsers = mysqlTable("blockedUsers", {
   id: int("id").autoincrement().primaryKey(),

@@ -49,6 +49,7 @@ import { creatorPlaylistsRouter } from "./routers/creatorPlaylists";
 import { subscriptionCollectionsRouter } from "./routers/subscriptionCollections";
 import { adminMediaRouter } from "./routers/adminMedia";
 import { familyRouter } from "./routers/family";
+import { copyrightRouter } from "./routers/copyright";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -120,6 +121,7 @@ export const appRouter = router({
   subscriptionCollections: subscriptionCollectionsRouter,
   adminMedia: adminMediaRouter,
   family: familyRouter,
+  copyright: copyrightRouter,
 });
 
 export type AppRouter = typeof appRouter;

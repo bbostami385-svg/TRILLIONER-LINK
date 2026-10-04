@@ -140,6 +140,14 @@
 - [ ] Setup monitoring and logging
 - [ ] Configure CDN for media files
 
+## Copyright, Takedown, and Privacy Protection
+- [x] Add creator-owned video protection defaults with downloads disabled, watermark settings, and protected-viewing notices.
+- [x] Add copyright and unauthorized re-upload claims with ownership attestation, evidence links, deduplication, status tracking, and admin resolution.
+- [x] Add privacy reports for screenshots, screen recordings, and private video-call captures.
+- [x] Add Family Meeting privacy shield for hidden-page exposure, context-menu/copy deterrence, and participant warning.
+- [x] Add policy documentation, authorization tests, additive schema migration, and admin takedown behavior.
+- [x] Document that web/Android cannot guarantee prevention of OS-level screenshots, recordings, or camera capture; use watermarks, access control, detection, and enforcement instead.
+
 
 ## Missing Features to Add (Facebook, YouTube, Instagram Comparison)
 

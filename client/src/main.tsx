@@ -55,7 +55,7 @@ const trpcClient = trpc.createClient({
           if (!contentType.includes("application/json") && !contentType.includes("application/octet-stream")) {
             const body = await response.text();
             if (body.trimStart().startsWith("<!DOCTYPE html") || body.trimStart().startsWith("<html")) {
-              throw new Error("TRILLIONER LINK backend API is unavailable. Configure VITE_API_URL to your deployed Render server, then redeploy the Vercel frontend.");
+              throw new Error("TRILLIONER LINK backend API is unavailable. Redeploy the latest Vercel build with the API bridge, or configure VITE_API_URL to your deployed Render server.");
             }
           }
           return response;

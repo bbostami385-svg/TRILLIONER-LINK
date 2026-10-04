@@ -68,7 +68,7 @@ const validateEmail = (email: string) => {
 const getAuthErrorMessage = (error: unknown, fallback: string) => {
   const raw = error instanceof Error ? error.message : "";
   if (/unexpected token|not valid json|backend api is unavailable|failed to fetch/i.test(raw)) {
-    return "The TRILLIONER LINK server is not connected to this Vercel page. Set VITE_API_URL to your Render backend URL, then redeploy and try Google again.";
+    return "The TRILLIONER LINK API is not connected to this page. Redeploy the latest Vercel build with the API bridge, or set VITE_API_URL to your Render backend URL and redeploy.";
   }
   if (/auth\/popup-closed-by-user/i.test(raw)) return "Google sign-in was cancelled.";
   if (/auth\/popup-blocked/i.test(raw)) return "Your browser blocked the Google sign-in popup. Allow popups for TRILLIONER LINK and try again.";

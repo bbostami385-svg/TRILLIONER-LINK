@@ -41,13 +41,15 @@ The code intentionally keeps Firebase configuration optional until these variabl
 
 ## Vercel frontend with Render backend
 
-If the Vercel deployment serves only the frontend and the Node/tRPC server runs on Render, add this **one additional browser-visible variable** to the Vercel Production and Preview environments:
+The repository now includes a Vercel serverless API bridge at `api/index.ts`, so a normal Vercel deployment can serve `/api/trpc` on the same origin. This prevents the frontend SPA fallback from being returned as an API response during Google login.
+
+If the Vercel deployment intentionally serves only the frontend and the Node/tRPC server runs separately on Render, add this **one additional browser-visible variable** to the Vercel Production and Preview environments:
 
 | Variable | Value |
 |---|---|
 | `VITE_API_URL` | The public HTTPS URL of the Render service, without a trailing slash |
 
-The frontend then calls `${VITE_API_URL}/api/trpc`. Without this variable, Vercel may return its HTML application shell for `/api/trpc`, which produces the misleading `Unexpected token '<' ... is not valid JSON` error during Google login. After saving the variable, trigger a new Vercel deployment; refreshing the current deployment is not enough because `VITE_*` values are build-time values. If the same Render service serves both the frontend and API, leave `VITE_API_URL` unset.
+The frontend then calls `${VITE_API_URL}/api/trpc`. If `VITE_API_URL` is unset, it uses the same-origin Vercel bridge. After saving any `VITE_*` value, trigger a new Vercel deployment; refreshing the current deployment is not enough because `VITE_*` values are build-time values.
 
 Before testing Google Sign-in, open `${VITE_API_URL}/api/health`. It must return JSON containing `"ok":true`. If it returns an HTML page, the Vercel variable points to the wrong service or the Render service is not running.
 

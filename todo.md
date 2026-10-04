@@ -227,7 +227,7 @@
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
 - [ ] Integration tests — focused router tests exist; add true procedure-caller integration coverage before marking complete.
-- [ ] E2E tests — public and mocked authenticated Playwright smoke coverage exists; true backend-authenticated persistence coverage remains pending.
+- [x] E2E tests — public flows and a development/test-only backend-authenticated persistence journey are covered by Playwright; Firebase provider popup execution remains deployment-environment controlled.
 - [x] Push to GitHub
 - [x] Final checkpoint
 
@@ -251,7 +251,7 @@
 - [x] Add proper error handling to all mutation pages
 - [x] Implement cache invalidation on successful mutations
 - [x] Add loading states and success/error toasts
-- [ ] Implement optimistic updates for list operations — feed likes and audience actions are complete; save/remove and notification read lists remain pending.
+- [x] Implement optimistic updates for list operations — feed likes, audience actions, save/remove collections, and notification read states use rollback-safe cache updates.
 
 
 ## Dual Mode System (Follow & Subscribe) - NEW

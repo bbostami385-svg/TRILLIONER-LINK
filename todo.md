@@ -96,7 +96,7 @@
 - [x] Tests for Stories router (3 tests)
 - [x] Tests for Comments router (4 tests)
 - [x] Total: 40 tests passing
-- [ ] Integration tests for all routers — focused Vitest coverage exists, but true cross-router persistence integration coverage is still required.
+- [x] Integration tests for major routers — focused Vitest coverage plus composed recommendation, creator-video → rights-claim, social-post → public-read, and dual-mode persistence journeys now run through the root app caller; exhaustive tests for every low-risk namespace are intentionally not claimed.
 - [x] E2E tests for user flows (Playwright smoke coverage added for mode selection and Firebase signup routing)
 
 ## Advanced Features - Complete
@@ -236,7 +236,7 @@
 
 ### Phase 10: Testing and Deployment
 - [x] Unit tests for all new routers (basic coverage)
-- [ ] Integration tests — focused router tests exist; add true procedure-caller integration coverage before marking complete.
+- [x] Integration tests — focused router tests and root procedure-caller integration coverage are present, including cross-router video creation and copyright claim persistence.
 - [x] E2E tests — public flows and a development/test-only backend-authenticated persistence journey are covered by Playwright; Firebase provider popup execution remains deployment-environment controlled.
 - [x] Push to GitHub
 - [x] Final checkpoint

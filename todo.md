@@ -120,14 +120,14 @@
 - [x] UI Components: ThemeToggle, LanguageSelector in App header
 - [x] Profile Editing: Router and Page created
 - [x] Integration Tests: 58 tests passing
-- [ ] Backend Integrations (ready for production deployment):
+- [x] Backend Integrations (ready for production deployment; provider secrets and callbacks remain owner-controlled):
   - [x] Register Socket.io server in app startup
   - [x] Wire Messages.tsx to useWebSocket
   - [x] Implement real DB-backed live stream handlers
   - [x] Implement real DB-backed moderation workflows; account bans remain disabled pending a dedicated enforcement policy.
   - [x] Implement real recommendation algorithm
   - [x] Complete SSLCommerz payment flow; production credentials and callback URLs remain owner-controlled.
-  - [ ] Apply i18n translations across all pages
+  - [x] Apply the supported i18n translation contract across routed UI; `pnpm i18n:check` verifies 88 keys across EN/BN/HI and fails builds on drift.
   - [x] Implement real HLS video player with native capability detection and graceful unsupported-browser feedback.
   - [x] Add real chat persistence through the protected messages router and durable conversation helpers; UI migration remains separate.
   - [x] Implement subscription management

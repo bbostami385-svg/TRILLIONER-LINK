@@ -16,6 +16,7 @@ const CACHE_NAME = "trillioner-link-offline-videos-v1";
 const STORAGE_KEY = "trillioner-link-offline-video-records";
 const SEARCH_HISTORY_KEY = "trillioner-link-offline-search-history";
 const SEARCH_HISTORY_LIMIT = 8;
+export const OFFLINE_STORAGE_SCOPE = "app-private-cache" as const;
 
 function readRecords(): OfflineVideoRecord[] {
   if (typeof window === "undefined") return [];
@@ -43,8 +44,17 @@ export function rememberOfflineSearch(query: string) { if (typeof window === "un
 export function clearOfflineSearchHistory() { if (typeof window !== "undefined") window.localStorage.removeItem(SEARCH_HISTORY_KEY); }
 export function isOfflineVideoSaved(videoId: number) { return readRecords().some((record) => record.id === videoId); }
 
+export function supportsAppOnlyOfflineStorage() { return typeof window !== "undefined" && "caches" in window; }
+
+async function requestPersistentAppStorage() {
+  if (typeof navigator !== "undefined" && navigator.storage?.persist) {
+    try { await navigator.storage.persist(); } catch { /* Browser may decline; the cache remains app-scoped. */ }
+  }
+}
+
 export async function saveVideoForOffline(record: Omit<OfflineVideoRecord, "savedAt" | "sizeBytes">) {
-  if (typeof window === "undefined" || !("caches" in window)) throw new Error("Offline saving is not supported in this browser.");
+  if (!supportsAppOnlyOfflineStorage()) throw new Error("App-only offline saving is not supported in this browser.");
+  await requestPersistentAppStorage();
   const response = await fetch(record.videoUrl, { credentials: "omit" });
   if (!response.ok) throw new Error("The video could not be downloaded for offline viewing.");
   const cache = await window.caches.open(CACHE_NAME);

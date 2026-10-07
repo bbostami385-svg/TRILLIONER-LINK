@@ -814,6 +814,7 @@
 - [x] Add smooth accessible loading skeletons to Shorts and long-form video feeds.
 - [x] Add Offline Library search with creator and playlist auto-suggestions and filtering.
 - [x] Make TRILLIONER LINK installable outside Play Store as a PWA with manifest, icons, install guidance, and offline shell compatibility; document the future Android/Play Store packaging path.
+- [x] Keep offline video copies inside origin-scoped Cache Storage/app-private storage only; do not create Gallery, Downloads, or user-visible file exports, and request persistent browser storage when supported.
 - [x] Add focused tests for playlist sharing helpers, feed skeleton/search behavior, and PWA metadata/install guidance.
 - [x] Run typecheck, tests, production build, visual verification, checkpoint, and selected GitHub synchronization.
 

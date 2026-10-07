@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import en from "../locales/en.json";
+import bn from "../locales/bn.json";
+import hi from "../locales/hi.json";
 
 describe("useTranslation Hook", () => {
   it("should have translation functions", () => {
@@ -20,6 +23,23 @@ describe("useTranslation Hook", () => {
     expect(languages).toContain("hi");
   });
 
+  it("keeps the Home page translation contract complete in every supported language", () => {
+    const homeKeys = [
+      "discoverNow", "trendingTitle", "trendingDescription", "viewAll", "views",
+      "creatorVideo", "watched", "trendingEmpty", "heroTitle", "heroDescription",
+      "getStarted", "signIn", "powerfulFeatures", "connect", "connectDescription",
+      "share", "shareDescription", "create", "createDescription", "readyToJoin",
+      "joinDescription", "createAccount", "welcomeUser",
+    ] as const;
+
+    for (const locale of [en, bn, hi]) {
+      for (const key of homeKeys) {
+        expect(locale.home[key], `missing home.${key}`).toBeTruthy();
+      }
+      expect(locale.common.appName).toBe("TRILLIONER LINK");
+    }
+  });
+
   it("should format dates correctly", () => {
     const date = new Date(2024, 0, 1);
     expect(date.getFullYear()).toBe(2024);
@@ -30,5 +50,19 @@ describe("useTranslation Hook", () => {
     const num = 1234.56;
     expect(num).toBeGreaterThan(1000);
     expect(num).toBeLessThan(2000);
+    });
   });
-});
+
+  it("keeps dashboard and notification copy available in every supported language", () => {
+    const contracts = {
+      creatorDashboard: ["privateTitle", "title", "description", "exportData", "historicalSnapshots", "customDateRange", "subscribers", "views", "likes", "engagementRate"],
+      adminVerification: ["loading", "signInRequired", "adminRequired", "trustSafety", "title", "description", "exit", "humanChecks", "kycReviews", "humanVerification", "kycDocuments"],
+      notifications: ["all", "subscriptions", "appeals", "verification", "social", "title", "refreshHint", "markAllRead", "close", "now", "empty", "viewAll"],
+    } as const;
+
+    for (const locale of [en, bn, hi]) {
+      for (const [namespace, keys] of Object.entries(contracts)) {
+        for (const key of keys) expect(locale[namespace][key], `missing ${namespace}.${key}`).toBeTruthy();
+      }
+    }
+  });

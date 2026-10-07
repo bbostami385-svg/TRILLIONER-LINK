@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit translations
+        run: pnpm i18n:check
+
       - name: Typecheck
         run: pnpm check
 

@@ -6,15 +6,15 @@ function looksLikeHtml(body: string) {
 }
 
 /**
- * Validate an API response without consuming the response that tRPC will parse.
- * The clone is read once; the original response body remains available to the caller.
+ * Read the network Response exactly once and return a fresh Response for tRPC.
+ * The original stream is never handed to a second body reader.
  */
 export async function validateApiResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
-  const preview = await response.clone().text();
-  const trimmed = preview.trim();
+  const body = await response.text();
+  const trimmed = body.trim();
 
-  if (looksLikeHtml(preview)) throw new Error(API_UNAVAILABLE_MESSAGE);
+  if (looksLikeHtml(body)) throw new Error(API_UNAVAILABLE_MESSAGE);
   if (!trimmed) throw new Error(`TRILLIONER LINK API returned an empty response (HTTP ${response.status}).`);
 
   try {
@@ -24,7 +24,11 @@ export async function validateApiResponse(response: Response) {
     throw new Error(`TRILLIONER LINK API returned a non-JSON response (HTTP ${response.status}, ${format}).`);
   }
 
-  return response;
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 }
 
 export { API_UNAVAILABLE_MESSAGE };

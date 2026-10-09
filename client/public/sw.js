@@ -1,4 +1,4 @@
-const SHELL_CACHE = "trillioner-link-shell-v3";
+const SHELL_CACHE = "trillioner-link-shell-v4";
 const SHELL_ROUTES = ["/", "/videos", "/shorts", "/offline-videos", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {

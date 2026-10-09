@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineStorageEstimate, getOfflineStorageScope, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -57,5 +57,20 @@ describe("offline video helpers", () => {
     sortOfflineVideoRecords(records, "date");
     searchOfflineVideoRecords(records, "nova");
     expect(records).toEqual(original);
+  });
+
+  it("generates distinct stable storage scopes for different accounts", () => {
+    expect(getOfflineStorageScope("user-a")).toBe(getOfflineStorageScope("user-a"));
+    expect(getOfflineStorageScope("user-a")).not.toBe(getOfflineStorageScope("user-b"));
+  });
+
+  it("reports browser quota when the StorageManager supports estimation", async () => {
+    const originalNavigator = globalThis.navigator;
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: { storage: { estimate: async () => ({ usage: 120, quota: 1000 }) } } });
+    try {
+      await expect(getOfflineStorageEstimate()).resolves.toEqual({ usageBytes: 120, quotaBytes: 1000, availableBytes: 880 });
+    } finally {
+      Object.defineProperty(globalThis, "navigator", { configurable: true, value: originalNavigator });
+    }
   });
 });

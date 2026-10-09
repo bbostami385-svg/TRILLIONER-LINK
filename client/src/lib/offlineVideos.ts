@@ -27,6 +27,8 @@ function scopeToken(ownerId = "anonymous") {
   return (hash >>> 0).toString(36);
 }
 
+export function getOfflineStorageScope(ownerId: string) { return scopeToken(ownerId); }
+
 function cacheName(ownerId = "anonymous") { return `${CACHE_PREFIX}-${CACHE_VERSION}-${scopeToken(ownerId)}`; }
 function recordsKey(ownerId = "anonymous") { return `${RECORDS_PREFIX}-${scopeToken(ownerId)}`; }
 function cacheRequest(ownerId: string, record: Pick<OfflineVideoRecord, "id" | "qualityLabel">) {
@@ -70,6 +72,12 @@ async function ensureStorageCapacity(expectedBytes?: number) {
   if (expectedBytes > MAX_OFFLINE_VIDEO_BYTES) throw new Error("This video is too large for app-only offline storage. Choose a lower quality.");
   const estimate = await navigator.storage.estimate();
   if (estimate.quota && (estimate.usage ?? 0) + expectedBytes > estimate.quota * 0.95) throw new Error("Not enough app storage remains for this video. Remove an offline video or choose a lower quality.");
+}
+
+export async function getOfflineStorageEstimate() {
+  if (typeof navigator === "undefined" || !navigator.storage?.estimate) return null;
+  const estimate = await navigator.storage.estimate();
+  return { usageBytes: estimate.usage ?? 0, quotaBytes: estimate.quota ?? null, availableBytes: estimate.quota ? Math.max(0, estimate.quota - (estimate.usage ?? 0)) : null };
 }
 
 async function removeLegacyCaches(ownerId: string) {

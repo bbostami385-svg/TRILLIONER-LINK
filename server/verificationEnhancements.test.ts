@@ -316,6 +316,6 @@ describe("confirmation, preview, visibility, and offline viewing", () => {
 
   it("does not expose raw offline cache capability as a server-side contract", async () => {
     const { getOfflineVideoUrl } = await import("../client/src/lib/offlineVideos");
-    await expect(getOfflineVideoUrl("https://cdn.example/video.mp4")).resolves.toBeNull();
+    await expect(getOfflineVideoUrl("test-user", { id: 42, videoUrl: "https://cdn.example/video.mp4", qualityLabel: "Original" })).resolves.toBeNull();
   });
 });

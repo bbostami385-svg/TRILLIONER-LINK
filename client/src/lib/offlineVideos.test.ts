@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineStorageEstimate, getOfflineStorageScope, getOfflineSuggestions, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineStorageEstimate, getOfflineStorageScope, getOfflineSuggestions, getOfflineVideoRecords, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -71,6 +71,18 @@ describe("offline video helpers", () => {
       await expect(getOfflineStorageEstimate()).resolves.toEqual({ usageBytes: 120, quotaBytes: 1000, availableBytes: 880 });
     } finally {
       Object.defineProperty(globalThis, "navigator", { configurable: true, value: originalNavigator });
+    }
+  });
+
+  it("removes malformed account metadata and keeps valid records", () => {
+    const originalWindow = globalThis.window;
+    const values = new Map<string, string>([[`trillioner-link-offline-video-records-${getOfflineStorageScope("user-a")}`, JSON.stringify([{ id: 1, videoUrl: "https://cdn.example/ok.mp4" }, { invalid: true }])]]);
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) } } });
+    try {
+      expect(getOfflineVideoRecords("user-a")).toHaveLength(1);
+      expect(JSON.parse(values.get(`trillioner-link-offline-video-records-${getOfflineStorageScope("user-a")}`) ?? "[]")).toHaveLength(1);
+    } finally {
+      Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
     }
   });
 });

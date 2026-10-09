@@ -38,10 +38,16 @@ function cacheRequest(ownerId: string, record: Pick<OfflineVideoRecord, "id" | "
 
 function readRecords(ownerId = "anonymous"): OfflineVideoRecord[] {
   if (typeof window === "undefined") return [];
+  const key = recordsKey(ownerId);
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(recordsKey(ownerId)) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter((item): item is OfflineVideoRecord => Boolean(item && typeof item === "object" && typeof (item as OfflineVideoRecord).id === "number" && typeof (item as OfflineVideoRecord).videoUrl === "string")) : [];
-  } catch { return []; }
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) { window.localStorage.removeItem(key); return []; }
+    const valid = parsed.filter((item): item is OfflineVideoRecord => Boolean(item && typeof item === "object" && typeof (item as OfflineVideoRecord).id === "number" && typeof (item as OfflineVideoRecord).videoUrl === "string"));
+    if (valid.length !== parsed.length) window.localStorage.setItem(key, JSON.stringify(valid));
+    return valid;
+  } catch { try { window.localStorage.removeItem(key); } catch { /* Storage may be unavailable. */ } return []; }
 }
 
 function writeRecords(records: OfflineVideoRecord[], ownerId = "anonymous") {

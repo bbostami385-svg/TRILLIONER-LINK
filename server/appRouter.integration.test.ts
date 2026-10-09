@@ -3,6 +3,9 @@ import { appRouter } from "./routers";
 import * as dbModule from "./db";
 
 vi.mock("./db");
+vi.mock("./contentModeration", () => ({
+  assertPublishable: vi.fn().mockResolvedValue({ decision: "allow", category: "clean", reason: "Test content allowed.", confidence: 1 }),
+}));
 
 describe("root app router integration", () => {
   beforeEach(() => vi.clearAllMocks());

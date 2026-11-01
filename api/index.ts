@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter } from "../server/routers";
+import { appRouter } from "../server/routers.ts";
 import { createContext } from "../server/_core/context";
 
 const app = express();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineStorageEstimate, getOfflineStorageScope, getOfflineSuggestions, getOfflineVideoRecords, getSuggestedOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
+import { clearOfflineSearchHistory, filterOfflineVideoRecords, getOfflineSearchHistory, getOfflineStorageEstimate, getOfflineStorageScope, getOfflineSuggestions, getOfflineVideoRecords, getSuggestedOfflineVideoRecords, reconcileOfflineVideoRecords, rememberOfflineSearch, searchOfflineVideoRecords, sortOfflineVideoRecords, type OfflineVideoRecord } from "./offlineVideos";
 
 const records: OfflineVideoRecord[] = [
   { id: 1, title: "Older large", videoUrl: "https://cdn.example/one.mp4", savedAt: "2026-08-20T12:00:00.000Z", sizeBytes: 9_000, creatorName: "Dr. Nova", playlistName: "Science" },
@@ -81,6 +81,26 @@ describe("offline video helpers", () => {
     try {
       expect(getOfflineVideoRecords("user-a")).toHaveLength(1);
       expect(JSON.parse(values.get(`trillioner-link-offline-video-records-${getOfflineStorageScope("user-a")}`) ?? "[]")).toHaveLength(1);
+    } finally {
+      Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+    }
+  });
+
+  it("removes orphaned cache entries during account reconciliation", async () => {
+    const originalWindow = globalThis.window;
+    const validKey = "https://app.example/__trillioner_offline__/valid";
+    const orphanKey = "https://app.example/__trillioner_offline__/orphan";
+    const deleted: string[] = [];
+    const values = new Map<string, string>([[`trillioner-link-offline-video-records-${getOfflineStorageScope("user-a")}`, JSON.stringify([{ id: 1, title: "Saved", videoUrl: "https://cdn.example/saved.mp4", savedAt: "2026-08-24T12:00:00.000Z", cacheKey: validKey }])]]);
+    const cache = {
+      match: async (request: RequestInfo | URL) => (request instanceof Request ? request.url : String(request)).includes("valid") ? new Response("video") : undefined,
+      keys: async () => [new Request(validKey), new Request(orphanKey)],
+      delete: async (request: RequestInfo | URL) => { deleted.push(request instanceof Request ? request.url : String(request)); return true; },
+    };
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) }, caches: { keys: async () => [`trillioner-link-offline-videos-v2-${getOfflineStorageScope("user-a")}`], open: async () => cache, delete: async () => true } } });
+    try {
+      await expect(reconcileOfflineVideoRecords("user-a")).resolves.toHaveLength(1);
+      expect(deleted).toEqual([orphanKey]);
     } finally {
       Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
     }

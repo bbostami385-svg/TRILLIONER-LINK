@@ -92,6 +92,12 @@ async function removeLegacyCaches(ownerId: string) {
   await Promise.all(names.filter((name) => name.startsWith(`${CACHE_PREFIX}-`) && !name.includes(`-${CACHE_VERSION}-`)).map((name) => window.caches.delete(name)));
 }
 
+async function removeOrphanCacheEntries(cache: Cache, records: OfflineVideoRecord[]) {
+  const referenced = new Set(records.map((record) => record.cacheKey ?? record.videoUrl));
+  const requests = await cache.keys();
+  await Promise.all(requests.filter((request) => !referenced.has(request.url)).map((request) => cache.delete(request)));
+}
+
 export async function saveVideoForOffline(ownerId: string, record: Omit<OfflineVideoRecord, "savedAt" | "sizeBytes" | "cacheKey">) {
   if (!ownerId) throw new Error("A signed-in account is required for offline storage.");
   if (!supportsAppOnlyOfflineStorage()) throw new Error("App-only offline saving is not supported in this browser.");
@@ -131,6 +137,7 @@ export async function reconcileOfflineVideoRecords(ownerId: string) {
   const valid: OfflineVideoRecord[] = [];
   for (const record of records) if (await cache.match(record.cacheKey ?? record.videoUrl)) valid.push(record);
   if (valid.length !== records.length) writeRecords(valid, ownerId);
+  await removeOrphanCacheEntries(cache, valid);
   return valid;
 }
 

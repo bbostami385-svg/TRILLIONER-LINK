@@ -19,6 +19,12 @@ app.use(
   }),
 );
 
+app.use((error: unknown, _req: Request, res: Response, _next: unknown) => {
+  console.error("[API] Unhandled request error", error);
+  if (res.headersSent) return;
+  res.status(500).json({ error: "TRILLIONER LINK API request failed.", code: "INTERNAL_API_ERROR" });
+});
+
 export default function handler(req: Request, res: Response) {
   app(req, res);
 }

@@ -8,7 +8,7 @@ import { appRouter } from "../routers.js";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { setupWebSocket } from "../websocket";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { getDb, getUserByOpenId, upsertUser } from "../db";

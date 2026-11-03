@@ -4,7 +4,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerSocialOAuthRoutes } from "../socialCallback";
-import { appRouter } from "../routers.ts";
+import { appRouter } from "../routers.js";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { setupWebSocket } from "../websocket";

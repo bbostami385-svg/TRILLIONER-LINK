@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import { appRouter } from "./routers.ts";
+import { appRouter } from "./routers.js";
 import { createContext } from "./_core/context";
 
 const providerSchema = z.enum(["google", "youtube", "facebook", "instagram", "tiktok"]);
